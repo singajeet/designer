@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html style='height:100%;width:100%'>
+  <head>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel="stylesheet" href="css/jquery-ui.css">
+    <script src="js/jquery-3.4.1.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/jquery.ui.touch-punch.min.js"></script>
+    <style>
+      .canvas {
+        height:700px;
+        width: 800px;
+        border: 1px grey solid;
+        background-image: url('images/grid.gif');
+      }
+      .ui-selecting{
+        background: lightblue !important;
+      }
+      .ui-selected{
+        height: 82px;
+        width: 122px;
+        background: transparent;
+        border: 2px #00BFFF dashed !important;
+        padding: 0px;
+        position: relative;
+      }
+      .adorner-invisible{
+        height: 82px;
+        width: 122px;
+        background: transparent;
+        border: 2px transparent solid;
+        padding: 0px;
+        position: relative;
+      }
+      .node{
+        margin-top: 10px;
+        margin-left: 10px;
+        height: 60px;
+        width: 100px;
+        background: lightgrey;
+        border: 1px solid grey !important;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+      }
+      .tl_adorner{
+        margin-top: -5px;
+        margin-left: -5px;
+	position: absolute;
+	background: #00BFFF;
+	height: 10px;
+	width: 10px;
+	border-radius: 5px;
+	display: none;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+      }
+      .tr_adorner {
+        position: absolute;
+        right: 0px;
+        margin-top: -5px;
+        margin-right: -5px;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
+	border-radius: 5px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        display: none;
+      }
+      .bl_adorner {
+        position: absolute;
+        bottom: 0px;
+        margin-bottom: -5px;
+        margin-left: -5px;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        display: none;
+	border-radius: 5px;
+      }
+      .br_adorner {
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+        margin-right: -5px;
+        margin-bottom: -5px;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        display: none;
+	border-radius: 5px;
+      }
+      .tm_adorner {
+        position: absolute;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
+        left: 50%;
+        margin-top: -5px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        display: none;
+	border-radius: 5px;
+      }
+      .lm_adorner {
+        position: absolute;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
+        top: 50%;
+        margin-left: -5px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        display: none;
+	border-radius: 5px;
+      }
+      .bm_adorner {
+        position: absolute;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
+        bottom: 0px;
+        left: 50%;
+        margin-bottom: -4px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        display: none;
+	border-radius: 5px;
+      }
+      .rm_adorner {
+        position: absolute;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
+        right: 0px;
+        top: 50%;
+        margin-right: -5px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        display: none;
+	border-radius: 5px;
+      }
+      .rotate_adorner {
+	      position: absolute;
+	      background: transparent;
+	      background-image: url('images/handle-rotate.png');
+	      height: 18px;
+	      width: 18px;
+	      bottom: -36px;
+	      left: 50%;
+	      margin-left: -5px;
+	      display: none;
+      }
+    </style>
+    <script>
+      $(function(){
+        $('#canvas_grid').selectable({
+          selected: function(event, ui){
+            var childs = $(ui.selected).children("[class*='adorner']");
+            childs.each(function(index, value){ value.style.display = 'inline';});
+		          $('#node_adorner_1').draggable({grid: [10, 10]});
+          },
+          unselected: function(event, ui){
+            var childs = $(ui.unselected).children("[class*='adorner']");
+            childs.each(function(index, value){ value.style.display = 'none';});
+		          $('#node_adorner_1').draggable("destroy");
+          }
+        });
+        $('#node_adorner_1').resizable({
+          alsoResize: "#node_1"
+        });
+	var resize_handle = $('#node_adorner_1 .ui-icon-gripsmall-diagonal-se');
+		resize_handle.css('margin-top', '-10px');
+      });
+    </script>
+  </head>
+  <body style='height:100%;width:100%;'>
+    <div id="canvas_grid" class="canvas">
+        <div id="node_adorner_1" class="adorner-invisible">
+          <div id="tl_adorner_1" class="tl_adorner"></div> <!-- top-left -->
+          <div id="tr_adorner_1" class="tr_adorner"></div> <!-- top-right -->
+          <div id="bl_adorner_1" class="bl_adorner"></div> <!-- bottom-left -->
+          <div id="br_adorner_1" class="br_adorner"></div> <!-- bottom-right -->
+          <div id="tm_adorner_1" class="tm_adorner"></div> <!-- top-mid -->
+          <div id="lm_adorner_1" class="lm_adorner"></div> <!-- left-mid -->
+          <div id="bm_adorner_1" class="bm_adorner"></div> <!-- bottom-mid -->
+          <div id="rm_adorner_1" class="rm_adorner"></div> <!-- right-mid -->
+          <div id="rotate_adorner_1" class="rotate_adorner"></div> <!-- rotate handle -->
+          <div id="node_1" class="node" ></div>
+          <!-- ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-selectee -->
+        </div>
+    </div>
+  </body>
+</html>
