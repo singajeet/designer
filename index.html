@@ -6,6 +6,7 @@
     <style rel="stylesheet" href="css/jquery-ui.css"></style>
     <script src="js/jquery-3.4.1.min.js"></script>
     <script src="js/jquery-ui.min.js"></script>
+    <script src="js/jquery.ui.touch-punch.min.js"></script>
     <style>
       .canvas {
         height:700px;
@@ -17,115 +18,134 @@
         background: lightblue !important;
       }
       .ui-selected{
-        height: 70px;
-        width: 110px;
+        height: 82px;
+        width: 122px;
         background: transparent;
-        border: 2px blue dashed !important;
+        border: 2px #00BFFF dashed !important;
         padding: 0px;
         position: relative;
       }
       .adorner-invisible{
-        height: 70px;
-        width: 110px;
+        height: 82px;
+        width: 122px;
         background: transparent;
         border: 2px transparent solid;
         padding: 0px;
         position: relative;
       }
       .node{
-        margin-top: 4px;
-        margin-left: 4px;
+        margin-top: 10px;
+        margin-left: 10px;
         height: 60px;
         width: 100px;
         background: lightgrey;
-        border: 1px solid grey;
+        border: 1px solid grey !important;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
       }
       .tl_adorner{
-        position: absolute;
-        margin-top: -4px;
-        margin-left: -4px;
-        background: red;
-        height: 6px;
-        width: 6px;
+        margin-top: -5px;
+        margin-left: -5px;
+	position: absolute;
+	background: #00BFFF;
+	height: 10px;
+	width: 10px;
+	border-radius: 5px;
+	display: none;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-        display: none;
       }
       .tr_adorner {
         position: absolute;
         right: 0px;
-        margin-top: -4px;
-        margin-right: -4px;
-        background: red;
-        height: 6px;
-        width: 6px;
+        margin-top: -5px;
+        margin-right: -5px;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
+	border-radius: 5px;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         display: none;
       }
       .bl_adorner {
         position: absolute;
         bottom: 0px;
-        margin-bottom: -4px;
-        margin-left: -4px;
-        background: red;
-        height: 6px;
-        width: 6px;
+        margin-bottom: -5px;
+        margin-left: -5px;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         display: none;
+	border-radius: 5px;
       }
       .br_adorner {
         position: absolute;
         bottom: 0px;
         right: 0px;
-        margin-right: -4px;
-        margin-bottom: -4px;
-        background: red;
-        height: 6px;
-        width: 6px;
+        margin-right: -5px;
+        margin-bottom: -5px;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         display: none;
+	border-radius: 5px;
       }
       .tm_adorner {
         position: absolute;
-        background: red;
-        height: 6px;
-        width: 6px;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
         left: 50%;
-        margin-top: -4px;
+        margin-top: -5px;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         display: none;
+	border-radius: 5px;
       }
       .lm_adorner {
         position: absolute;
-        background: red;
-        height: 6px;
-        width: 6px;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
         top: 50%;
-        margin-left: -4px;
+        margin-left: -5px;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         display: none;
+	border-radius: 5px;
       }
       .bm_adorner {
         position: absolute;
-        background: red;
-        height: 6px;
-        width: 6px;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
         bottom: 0px;
         left: 50%;
         margin-bottom: -4px;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         display: none;
+	border-radius: 5px;
       }
       .rm_adorner {
         position: absolute;
-        background: red;
-        height: 6px;
-        width: 6px;
+        background: #00BFFF;
+        height: 10px;
+        width: 10px;
         right: 0px;
         top: 50%;
-        margin-right: -4px;
+        margin-right: -5px;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         display: none;
+	border-radius: 5px;
+      }
+      .rotate_adorner {
+	      position: absolute;
+	      background: transparent;
+	      background-image: url('images/handle-rotate.png');
+	      height: 18px;
+	      width: 18px;
+	      bottom: -36px;
+	      left: 50%;
+	      margin-left: -5px;
+	      display: none;
       }
     </style>
     <script>
@@ -134,10 +154,12 @@
           selected: function(event, ui){
             var childs = $(ui.selected).children("[class*='adorner']");
             childs.each(function(index, value){ value.style.display = 'inline';});
+		  $('#node_adorner_1').draggable({grid: [10, 10]});
           },
           unselected: function(event, ui){
             var childs = $(ui.unselected).children("[class*='adorner']");
             childs.each(function(index, value){ value.style.display = 'none';});
+		  $('#node_adorner_1').draggable("destroy");
           }
         });
       });
@@ -154,6 +176,7 @@
           <div id="lm_adorner_1" class="lm_adorner"></div> <!-- left-mid -->
           <div id="bm_adorner_1" class="bm_adorner"></div> <!-- bottom-mid -->
           <div id="rm_adorner_1" class="rm_adorner"></div> <!-- right-mid -->
+	  <div id="rotate_adorner_1" class="rotate_adorner"></div> <!-- rotate handle -->
           <div id="node_1" class="node" ></div>
         </div>
     </div>
