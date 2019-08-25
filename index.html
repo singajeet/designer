@@ -2,8 +2,8 @@
 <html style='height:100%;width:100%'>
   <head>
     <title>Page Title</title>
-    <!--<meta name='viewport' content='width=device-width, initial-scale=1'>-->
-    <style rel="stylesheet" href="css/jquery-ui.css"></style>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel="stylesheet" href="css/jquery-ui.css">
     <script src="js/jquery-3.4.1.min.js"></script>
     <script src="js/jquery-ui.min.js"></script>
     <script src="js/jquery.ui.touch-punch.min.js"></script>
@@ -154,13 +154,16 @@
           selected: function(event, ui){
             var childs = $(ui.selected).children("[class*='adorner']");
             childs.each(function(index, value){ value.style.display = 'inline';});
-		  $('#node_adorner_1').draggable({grid: [10, 10]});
+		          $('#node_adorner_1').draggable({grid: [10, 10]});
           },
           unselected: function(event, ui){
             var childs = $(ui.unselected).children("[class*='adorner']");
             childs.each(function(index, value){ value.style.display = 'none';});
-		  $('#node_adorner_1').draggable("destroy");
+		          $('#node_adorner_1').draggable("destroy");
           }
+        });
+        $('#node_adorner_1').resizable({
+          alsoResize: "#node_1"
         });
       });
     </script>
@@ -176,8 +179,9 @@
           <div id="lm_adorner_1" class="lm_adorner"></div> <!-- left-mid -->
           <div id="bm_adorner_1" class="bm_adorner"></div> <!-- bottom-mid -->
           <div id="rm_adorner_1" class="rm_adorner"></div> <!-- right-mid -->
-	  <div id="rotate_adorner_1" class="rotate_adorner"></div> <!-- rotate handle -->
+          <div id="rotate_adorner_1" class="rotate_adorner"></div> <!-- rotate handle -->
           <div id="node_1" class="node" ></div>
+          <!-- ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-selectee -->
         </div>
     </div>
   </body>
