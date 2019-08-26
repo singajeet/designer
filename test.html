@@ -7,6 +7,7 @@
     <script src="js/jquery-3.4.1.min.js"></script>
     <script src="js/jquery-ui.min.js"></script>
     <script src="js/jquery.ui.touch-punch.min.js"></script>
+    <script src="js/plain-draggable.min.js" ></script>
     <style>
       .canvas {
         height:700px;
@@ -150,28 +151,46 @@
     </style>
     <script>
       $(function(){
+	      var draggable = undefined;
         $('#canvas_grid').selectable({
           selected: function(event, ui){
             var childs = $(ui.selected).children("[class*='adorner']");
             childs.each(function(index, value){ value.style.display = 'inline';});
-		          $(ui.selected).draggable({grid: [10, 10]});
+	     draggable = new PlainDraggable(document.getElementById('node_adorner_1'));
+		  /*try{        
+		  $(ui.selected).draggable({grid: [10, 10]});
               var node = $(ui.selected).children("[class*='node']");
-              $(ui.selected).resizable({
+              	$(ui.selected).resizable({
                   alsoResize: node
-              });
+              	});
+			  event.stopPropagation();
+			  event.preventDefault();
+		  }catch(err){
+			  alert(err);
+		  }*/
           },
           unselected: function(event, ui){
             var childs = $(ui.unselected).children("[class*='adorner']");
             childs.each(function(index, value){ value.style.display = 'none';});
+		  try{
+		  if(draggable != undefined){
+			draggable.remove();
+			  draggable = undefined;
+		  }
+		  }catch(err){
+			alert(err);
+		  }
+		 /* try{
 		          $(ui.unselected).draggable("destroy");
-              $(ui.unselected).resizable("destroy");
+             $(ui.unselected).resizable("destroy");
+		  }catch(err){
+			  alert(err);
+		  }*/
           }
         });
-        // $('#node_adorner_1').resizable({
-        //   alsoResize: "#node_1"
+         //$('#node_adorner_1').resizable({
+           //alsoResize: "#node_1"
         // });
-	var resize_handle = $('#node_adorner_1 .ui-icon-gripsmall-diagonal-se');
-		resize_handle.css('margin-top', '-10px');
       });
     </script>
   </head>
