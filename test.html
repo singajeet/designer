@@ -154,17 +154,22 @@
           selected: function(event, ui){
             var childs = $(ui.selected).children("[class*='adorner']");
             childs.each(function(index, value){ value.style.display = 'inline';});
-		          $('#node_adorner_1').draggable({grid: [10, 10]});
+		          $(ui.selected).draggable({grid: [10, 10]});
+              var node = $(ui.selected).children("[class*='node']");
+              $(ui.selected).resizable({
+                  alsoResize: node
+              });
           },
           unselected: function(event, ui){
             var childs = $(ui.unselected).children("[class*='adorner']");
             childs.each(function(index, value){ value.style.display = 'none';});
-		          $('#node_adorner_1').draggable("destroy");
+		          $(ui.unselected).draggable("destroy");
+              $(ui.unselected).resizable("destroy");
           }
         });
-        $('#node_adorner_1').resizable({
-          alsoResize: "#node_1"
-        });
+        // $('#node_adorner_1').resizable({
+        //   alsoResize: "#node_1"
+        // });
 	var resize_handle = $('#node_adorner_1 .ui-icon-gripsmall-diagonal-se');
 		resize_handle.css('margin-top', '-10px');
       });
@@ -182,7 +187,7 @@
           <div id="bm_adorner_1" class="bm_adorner"></div> <!-- bottom-mid -->
           <div id="rm_adorner_1" class="rm_adorner"></div> <!-- right-mid -->
           <div id="rotate_adorner_1" class="rotate_adorner"></div> <!-- rotate handle -->
-          <div id="node_1" class="node" ></div>
+          <div id="node_1" class="node"></div>
           <!-- ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-selectee -->
         </div>
     </div>
