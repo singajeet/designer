@@ -98,7 +98,7 @@ var Canvas = Class.create({
      * Description: Makes all direct child elements as selectable, draggable and resizable
      */
     add_actions: function() {
-        var selector_id = '#' + this.id;
+       /* var selector_id = '#' + this.id;
         var selector = $j(selector_id);
         selector.selectable({
             selected: function(event, ui) {
@@ -122,7 +122,33 @@ var Canvas = Class.create({
                 $j(ui.unselected).draggable("destroy");
                 $j(ui.unselected).resizable("destroy");
             }
-        });
+        });*/
+	var selectable = new Selectable({
+		filter: '.adorner-invisible'
+	});
+
+	selectable.on('selecteditem', function(item){
+		var childs = $j(item.node).children("[class*='adorner']");
+		childs.each(function(index, value){
+			value.style.display = 'inline';
+		});
+		try
+		{
+			const options = {
+				handle: document.querySelector('.adorner-invisible')
+			};
+			displacejs(item.node);
+		}catch(err){
+			alert(err);
+		}
+	});
+	selectable.on('deselecteditem', function(item){
+                var childs = $j(item.node).children("[class*='adorner']");
+                childs.each(function(index, value) {
+                    value.style.display = 'none';
+                });
+		displacejs.destroy();
+	});
     }
 });
 
