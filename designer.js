@@ -31,6 +31,7 @@ var Canvas = Class.create({
     instance: undefined,
     items: [],
     grid: [10, 10],
+    drag_items: {},
     /*
      * 	Constructor
      *					id (string):           A unique identifier for the canvas
@@ -49,6 +50,7 @@ var Canvas = Class.create({
         this.width = width;
         this.items = items || [];
         this.grid = grid || [10, 10];
+        this.drag_items = {};
     },
     /*
      * Method: add_node
@@ -98,57 +100,26 @@ var Canvas = Class.create({
      * Description: Makes all direct child elements as selectable, draggable and resizable
      */
     add_actions: function() {
-       /* var selector_id = '#' + this.id;
-        var selector = $j(selector_id);
-        selector.selectable({
-            selected: function(event, ui) {
-                var childs = $j(ui.selected).children("[class*='adorner']");
-                childs.each(function(index, value) {
-                    value.style.display = 'inline';
-                });
-                $j(ui.selected).draggable({
-                    grid: this.grid
-                });
-                var node = $j(ui.selected).children("[class*='node']");
-                $j(ui.selected).resizable({
-                    alsoResize: node
-                });
-            },
-            unselected: function(event, ui) {
-                var childs = $j(ui.unselected).children("[class*='adorner']");
-                childs.each(function(index, value) {
-                    value.style.display = 'none';
-                });
-                $j(ui.unselected).draggable("destroy");
-                $j(ui.unselected).resizable("destroy");
-            }
-        });*/
-	var selectable = new Selectable({
-		filter: '.adorner-invisible'
-	});
 
-	selectable.on('selecteditem', function(item){
-		var childs = $j(item.node).children("[class*='adorner']");
-		childs.each(function(index, value){
-			value.style.display = 'inline';
-		});
-		try
-		{
-			const options = {
-				handle: document.querySelector('.adorner-invisible')
-			};
-			displacejs(item.node);
-		}catch(err){
-			alert(err);
-		}
-	});
-	selectable.on('deselecteditem', function(item){
-                var childs = $j(item.node).children("[class*='adorner']");
-                childs.each(function(index, value) {
-                    value.style.display = 'none';
-                });
-		displacejs.destroy();
-	});
+    	var selectable = new Selectable({
+    		filter: '.adorner-invisible',
+            lasso: false
+    	});
+
+        var draggable = $j('.adorner-invisible').draggabilly();
+
+    	selectable.on('selecteditem', function(item){
+    		var childs = $j(item.node).children("[class*='adorner']");
+    		childs.each(function(index, value){
+    			value.style.display = 'inline';
+    		});
+    	});
+    	selectable.on('deselecteditem', function(item){
+                    var childs = $j(item.node).children("[class*='adorner']");
+                    childs.each(function(index, value) {
+                        value.style.display = 'none';
+                    });
+    	});
     }
 });
 
