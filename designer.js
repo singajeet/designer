@@ -31,7 +31,6 @@ var Canvas = Class.create({
     instance: undefined,
     items: [],
     grid: [10, 10],
-    drag_items: {},
     /*
      * 	Constructor
      *					id (string):           A unique identifier for the canvas
@@ -50,7 +49,6 @@ var Canvas = Class.create({
         this.width = width;
         this.items = items || [];
         this.grid = grid || [10, 10];
-        this.drag_items = {};
     },
     /*
      * Method: add_node
@@ -107,12 +105,13 @@ var Canvas = Class.create({
     	});
 
         var draggable = $j('.adorner-invisible').draggabilly();
-
+        var that = this;
     	selectable.on('selecteditem', function(item){
     		var childs = $j(item.node).children("[class*='adorner']");
     		childs.each(function(index, value){
     			value.style.display = 'inline';
     		});
+            that.resizable(item.node.id);
     	});
     	selectable.on('deselecteditem', function(item){
                     var childs = $j(item.node).children("[class*='adorner']");
@@ -120,6 +119,45 @@ var Canvas = Class.create({
                         value.style.display = 'none';
                     });
     	});
+    },
+    resizable: function(div) {
+        const element = document.getElementById(div);
+        var index = div.indexOf('_node_adorner');
+        var item_id = div.substring(0, index);
+        var resizer_id = item_id + "_br_adorner";
+        const resizer = document.getElementById(resizer_id);
+        const minimum_size = 20;
+        let original_width = 0;
+        let original_height = 0;
+        let original_x = 0;
+        let original_y = 0;
+        let original_mouse_x = 0;
+        let original_mouse_y = 0;
+
+        resizer.addEventListener('mousedown', function(e){
+            e.preventDefault();
+            original_width = parseFloat(getComputedStyle(element, null).getPropertyValue('width').replace('px', ''));
+            original_height = parseFloat(getComputedStyle(element, null).getPropertyValue('height').replace('px', ''));
+            original_x = element.getBoundingClientRect().left;
+            original_y = element.getBoundingClientRect().top;
+            original_mouse_x = e.pageX;
+            original_mouse_y = e.pageY;
+            window.addEventListener('mousemove', resize)
+            window.addEventListener('mouseup', stopResize)
+        });
+        function resize(e){
+            const width = original_width + (e.pageX - original_mouse_x);
+            const height = original_height + (e.pageY - original_mouse_y)
+            if (width > minimum_size) {
+              element.style.width = width + 'px'
+            }
+            if (height > minimum_size) {
+              element.style.height = height + 'px'
+            }
+        }
+        function stopResize(){
+            window.removeEventListener('mousemove', resize);
+        }
     }
 });
 
@@ -148,7 +186,7 @@ var Node = Class.create({
     BOTTOM_MID_ADORNER: '<div id="{0}_bm_adorner" class="bm_adorner"></div> <!-- bottom-mid -->',
     RIGHT_MID_ADORNER: '<div id="{0}_rm_adorner" class="rm_adorner"></div> <!-- right-mid -->',
     ROTATE_ADORNER: '<div id="{0}_rotate_adorner" class="rotate_adorner"></div> <!-- rotate handle -->',
-    NODE_TAG: '<div id="{0}" class="node" >{1}</div>',
+    NODE_TAG: '<div id="{0}" class="node" ><div class="node_header"><span>{1}</span></div>{2}</div>',
     ADORNER_INVISIBLE_END: '</div>',
     initialize: function(id, title, html_content, height, width) {
         this.id = id;
@@ -172,7 +210,7 @@ var Node = Class.create({
         if (this.html_content === undefined) {
             this.html_content = '';
         }
-        html += this.NODE_TAG.format(this.id, this.html_content);
+        html += this.NODE_TAG.format(this.id, this.title, this.html_content);
         html += this.ADORNER_INVISIBLE_END;
         return html;
     }
