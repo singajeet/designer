@@ -114,6 +114,7 @@ var Canvas = Class.create({
     			value.style.display = 'inline';
     		});
             that.resizable(item.node.id, draggable);
+            that.rotatable(item.node.id, draggable);
     	});
     	selectable.on('deselecteditem', function(item){
                     var childs = $j(item.node).children("[class*='adorner']");
@@ -136,44 +137,42 @@ var Canvas = Class.create({
         let original_mouse_x = 0;
         let original_mouse_y = 0;
 
-	resizer.addEventListener('touchstart', startResize, false);
+	    resizer.addEventListener('touchstart', startResize, false);
         resizer.addEventListener('mousedown', startResize, false);
-	function startResize(e){
-	    draggable.draggabilly('disable');
-            e.preventDefault();
-            original_width = parseFloat(getComputedStyle(element, null).getPropertyValue('width').replace('px', ''));
-            original_height = parseFloat(getComputedStyle(element, null).getPropertyValue('height').replace('px', ''));
-            //original_x = element.getBoundingClientRect().left;
-            //original_y = element.getBoundingClientRect().top;
-            original_mouse_x = e.pageX;
-            original_mouse_y = e.pageY;
-	    if(original_mouse_x === undefined){
-		    var touchObj = e.changedTouches[0];
-		    original_mouse_x = parseInt(touchObj.clientX);
-	    }
-	    if(original_mouse_y === undefined){
-		    var touchObj = e.changedTouches[0];
-		    original_mouse_y = parseInt(touchObj.clientY);
-	    }
-	    window.addEventListener('touchmove', resize);
+        function startResize(e){
+	       draggable.draggabilly('disable');
+           e.preventDefault();
+           original_width = parseFloat(getComputedStyle(element, null).getPropertyValue('width').replace('px', ''));
+           original_height = parseFloat(getComputedStyle(element, null).getPropertyValue('height').replace('px', ''));
+           original_mouse_x = e.pageX;
+           original_mouse_y = e.pageY;
+	       if(original_mouse_x === undefined){
+                var touchObj = e.changedTouches[0];
+                original_mouse_x = parseInt(touchObj.clientX);
+	       }
+	       if(original_mouse_y === undefined){
+                var touchObj = e.changedTouches[0];
+                original_mouse_y = parseInt(touchObj.clientY);
+	       }
+    	    window.addEventListener('touchmove', resize);
             window.addEventListener('mousemove', resize);
 
-	    window.addEventListener('touchend', stopResize);
+    	    window.addEventListener('touchend', stopResize);
             window.addEventListener('mouseup', stopResize);
-	}
+        }
         function resize(e){
-	    var cursorX = e.pageX;
-	    var cursorY = e.pageY;
-	    if(cursorX === undefined){
-		var touchObj = e.changedTouches[0];
-		cursorX = parseInt(touchObj.clientX);
-	    }
-	    if(cursorY === undefined){
-		var touchObj = e.changedTouches[0];
-		cursorY = parseInt(touchObj.clientY);
-	    }
-	    var deltaX = (cursorX - original_mouse_x);
-	    var deltaY = (cursorY - original_mouse_y);
+    	    var cursorX = e.pageX;
+    	    var cursorY = e.pageY;
+    	    if(cursorX === undefined){
+                var touchObj = e.changedTouches[0];
+                cursorX = parseInt(touchObj.clientX);
+    	    }
+    	    if(cursorY === undefined){
+                var touchObj = e.changedTouches[0];
+                cursorY = parseInt(touchObj.clientY);
+    	    }
+    	    var deltaX = (cursorX - original_mouse_x);
+    	    var deltaY = (cursorY - original_mouse_y);
             const width = original_width + (cursorX - original_mouse_x);
             const height = original_height + (cursorY - original_mouse_y)
             if (width > minimum_size) {
@@ -185,8 +184,55 @@ var Canvas = Class.create({
         }
         function stopResize(){
             window.removeEventListener('mousemove', resize);
-	    window.removeEventListener('touchmove', resize);
-		draggable.draggabilly('enable');
+            window.removeEventListener('touchmove', resize);
+            draggable.draggabilly('enable');
+        }
+    },
+    rotatable: function(div, draggable){
+        var pointer = document.getElementById(div);
+        var index = div.indexOf('_node_adorner');
+        var item_id = div.substring(0, index);
+        var rotater_id = item_id + "_rotate_adorner";
+        const rotater = document.getElementById(rotater_id);
+        var pointerBox = pointer.getBoundingClientRect();
+        var centerPoint = window.getComputedStyle(pointer).transformOrigin;
+        var centers = centerPoint.split(" ");
+        var centerY = pointerBox.top + parseInt(centers[1]) - window.pageYOffset;
+        var centerX = pointerBox.left + parseInt(centers[0]) - window.pageXOffset;
+
+        rotater.addEventListener('touchstart', startRotate, false);
+        rotater.addEventListener('mousedown', startRotate, false);
+        function startRotate(e){
+            draggable.draggabilly('disable');
+            window.addEventListener('mousemove', rotate);
+            window.addEventListener('touchmove', rotate);
+
+            window.addEventListener('mouseup', stopRotate);
+            window.addEventListener('touchend', stopRotate);
+        }
+        function rotate(e){
+            var pointerEvent = e;
+            var mouseX = 0;
+            var mouseY = 0;
+            if (e.targetTouches && e.targetTouches[0]) {
+              e.preventDefault();
+              pointerEvent = e.targetTouches[0];
+              mouseX = pointerEvent.pageX;
+              mouseY = pointerEvent.pageY;
+            } else {
+              mouseX = e.clientX;
+              mouseY = e.clientY;
+            }
+            //var centerY = pointerBox.top + parseInt(centers[1]) - window.pageYOffset;
+            //var centerX = pointerBox.left + parseInt(centers[0]) - window.pageXOffset;
+            var radians = Math.atan2(mouseX - centerX, mouseY - centerY);
+            var degrees = (radians * (180 / Math.PI) * -1) + 180;
+            pointer.style.transform = 'rotate('+degrees+'deg)';
+        }
+        function stopRotate(e){
+            window.removeEventListener('mousemove', rotate);
+            window.removeEventListener('touchmove', rotate);
+            draggable.draggabilly('enable');
         }
     }
 });
