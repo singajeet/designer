@@ -71,7 +71,7 @@ var Canvas = Class.create({
      */
     add_node: function(node){
 	this.items.push(node);
-	var added_node = $j(node.renderHTML());
+	var added_node = $j(node.render());
 	if(this.container_id != undefined){
 		var container = $j(('#' + this.container_id));
 		added_node.appendTo(container);
