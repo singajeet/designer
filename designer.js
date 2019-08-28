@@ -104,14 +104,16 @@ var Canvas = Class.create({
             lasso: false
     	});
 
-        var draggable = $j('.adorner-invisible').draggabilly();
+        var draggable = $j('.adorner-invisible').draggabilly({
+		grid: this.grid
+	});
         var that = this;
     	selectable.on('selecteditem', function(item){
     		var childs = $j(item.node).children("[class*='adorner']");
     		childs.each(function(index, value){
     			value.style.display = 'inline';
     		});
-            that.resizable(item.node.id);
+            that.resizable(item.node.id, draggable);
     	});
     	selectable.on('deselecteditem', function(item){
                     var childs = $j(item.node).children("[class*='adorner']");
@@ -120,7 +122,7 @@ var Canvas = Class.create({
                     });
     	});
     },
-    resizable: function(div) {
+    resizable: function(div, draggable) {
         const element = document.getElementById(div);
         var index = div.indexOf('_node_adorner');
         var item_id = div.substring(0, index);
@@ -134,20 +136,46 @@ var Canvas = Class.create({
         let original_mouse_x = 0;
         let original_mouse_y = 0;
 
-        resizer.addEventListener('mousedown', function(e){
+	resizer.addEventListener('touchstart', startResize, false);
+        resizer.addEventListener('mousedown', startResize, false);
+	function startResize(e){
+	    draggable.draggabilly('disable');
             e.preventDefault();
             original_width = parseFloat(getComputedStyle(element, null).getPropertyValue('width').replace('px', ''));
             original_height = parseFloat(getComputedStyle(element, null).getPropertyValue('height').replace('px', ''));
-            original_x = element.getBoundingClientRect().left;
-            original_y = element.getBoundingClientRect().top;
+            //original_x = element.getBoundingClientRect().left;
+            //original_y = element.getBoundingClientRect().top;
             original_mouse_x = e.pageX;
             original_mouse_y = e.pageY;
-            window.addEventListener('mousemove', resize)
-            window.addEventListener('mouseup', stopResize)
-        });
+	    if(original_mouse_x === undefined){
+		    var touchObj = e.changedTouches[0];
+		    original_mouse_x = parseInt(touchObj.clientX);
+	    }
+	    if(original_mouse_y === undefined){
+		    var touchObj = e.changedTouches[0];
+		    original_mouse_y = parseInt(touchObj.clientY);
+	    }
+	    window.addEventListener('touchmove', resize);
+            window.addEventListener('mousemove', resize);
+
+	    window.addEventListener('touchend', stopResize);
+            window.addEventListener('mouseup', stopResize);
+	}
         function resize(e){
-            const width = original_width + (e.pageX - original_mouse_x);
-            const height = original_height + (e.pageY - original_mouse_y)
+	    var cursorX = e.pageX;
+	    var cursorY = e.pageY;
+	    if(cursorX === undefined){
+		var touchObj = e.changedTouches[0];
+		cursorX = parseInt(touchObj.clientX);
+	    }
+	    if(cursorY === undefined){
+		var touchObj = e.changedTouches[0];
+		cursorY = parseInt(touchObj.clientY);
+	    }
+	    var deltaX = (cursorX - original_mouse_x);
+	    var deltaY = (cursorY - original_mouse_y);
+            const width = original_width + (cursorX - original_mouse_x);
+            const height = original_height + (cursorY - original_mouse_y)
             if (width > minimum_size) {
               element.style.width = width + 'px'
             }
@@ -157,6 +185,8 @@ var Canvas = Class.create({
         }
         function stopResize(){
             window.removeEventListener('mousemove', resize);
+	    window.removeEventListener('touchmove', resize);
+		draggable.draggabilly('enable');
         }
     }
 });
