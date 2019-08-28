@@ -57,7 +57,7 @@ var Canvas = Class.create({
     /*
      * Method: init_node
      * Description: Adds an node or edge node to canvas before
-     * it is rendered. If you wish to add node after canvas 
+     * it is rendered. If you wish to add node after canvas
      * has been rendered, please use add_node()
      */
     init_node: function(node) {
@@ -65,7 +65,7 @@ var Canvas = Class.create({
     },
     /*
      * Method: add_node
-     * Description: Adds an node to canvas after canvas is 
+     * Description: Adds an node to canvas after canvas is
      * rendered. This function adds selectable, resizable,
      * etc operations once node is added
      */
@@ -83,11 +83,11 @@ var Canvas = Class.create({
 	}
 	if(this.draggables != undefined){
 		this.draggables.destroy();
-		this.draggable(); 
+		this.draggable();
 	}
 	this.resizable(node.id, this.draggables);
 	this.rotatable(node.id, this.draggables);
-	
+
     },
     /*
      * Method: remove_node
@@ -174,25 +174,26 @@ var Canvas = Class.create({
     draggable: function(){
 	/*Make all items on canvas as draggable*/
         this.draggables = $j('.adorner-invisible').draggabilly({
-		grid: this.grid
-	});
-	/*Due to bug in draggabilly lib, an rotated element
-	 * gets its position reset to original during drag
-	 * and after drag is done. Workaround is to save
-	 * the rotated position of element during drag start
-	 * into variable and reapply the same rotated value to
-	 * element once drag is completed
-	 */
-	this.draggables.on('dragStart', function(event, item){
-		var id = event.currentTarget.id;
-		var element = document.getElementById(id);
-		this.drag_items[id] = element.style.transform;
-	});
-	this.draggables.on('dragEnd', function(event, item){
-		var id = event.currentTarget.id;
-		var element = document.getElementById(id);
-		element.style.transform = this.drag_items[id];
-	});
+		  grid: this.grid
+    	});
+    	/*Due to bug in draggabilly lib, an rotated element
+    	 * gets its position reset to original during drag
+    	 * and after drag is done. Workaround is to save
+    	 * the rotated position of element during drag start
+    	 * into variable and reapply the same rotated value to
+    	 * element once drag is completed
+    	 */
+        that = this;
+    	this.draggables.on('dragStart', function(event, item){
+    		var id = event.currentTarget.id;
+    		var element = document.getElementById(id);
+    		that.drag_items[id] = element.style.transform;
+    	});
+    	this.draggables.on('dragEnd', function(event, item){
+    		var id = event.currentTarget.id;
+    		var element = document.getElementById(id);
+    		element.style.transform = that.drag_items[id];
+    	});
     },
     resizable: function(div, draggable) {
         const element = document.getElementById(div);
@@ -295,7 +296,7 @@ var Canvas = Class.create({
               mouseY = e.clientY - 36;
             }
             var radians = Math.atan2(mouseX - centerX, mouseY - centerY);
-            var degrees = (radians * (180 / Math.PI) * -1); 
+            var degrees = (radians * (180 / Math.PI) * -1);
             pointer.style.transform = 'rotate('+degrees+'deg)';
         }
         function stopRotate(e){
