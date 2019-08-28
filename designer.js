@@ -31,6 +31,9 @@ var Canvas = Class.create({
     instance: undefined,
     items: [],
     grid: [10, 10],
+    drag_items: {},
+    draggables: undefined,
+    selectable: undefined,
     /*
      * 	Constructor
      *					id (string):           A unique identifier for the canvas
@@ -49,13 +52,42 @@ var Canvas = Class.create({
         this.width = width;
         this.items = items || [];
         this.grid = grid || [10, 10];
+	this.drag_items = {};
+    },
+    /*
+     * Method: init_node
+     * Description: Adds an node or edge node to canvas before
+     * it is rendered. If you wish to add node after canvas 
+     * has been rendered, please use add_node()
+     */
+    init_node: function(node) {
+        this.items.push(node);
     },
     /*
      * Method: add_node
-     * Description: Adds an node or edge node to canvas
+     * Description: Adds an node to canvas after canvas is 
+     * rendered. This function adds selectable, resizable,
+     * etc operations once node is added
      */
-    add_node: function(node) {
-        this.items.push(node);
+    add_node: function(node){
+	this.items.push(node);
+	var added_node = $j(node.renderHTML());
+	if(this.container_id != undefined){
+		var container = $j(('#' + this.container_id));
+		added_node.appendTo(container);
+	} else {
+		added_node.appendTo($j('body'));
+	}
+	if(this.selectable != undefined){
+		this.selectable.add(added_node);
+	}
+	if(this.draggables != undefined){
+		this.draggables.destroy();
+		this.draggable(); 
+	}
+	this.resizable(node.id, this.draggables);
+	this.rotatable(node.id, this.draggables);
+	
     },
     /*
      * Method: remove_node
@@ -64,12 +96,17 @@ var Canvas = Class.create({
     remove_node: function(node) {
         var index = this.items.indexOf(node);
         this.items.splice(index, 1);
+	var node_to_remove = document.getElementById(node.id);
+	if(node_to_remove != undefined){
+		node_to_remove.parentNode.removeChild(node_to_remove);
+	}
     },
     /*
      * Method: render
      * Description: Renders the HTML for Canvas component in parent element
      */
     render: function() {
+	/*Renders the canvas along with Nodes and edges*/
         var html = "<div id='" + this.id + "' ";
         html += "class='" + this.css + "' ";
         if (this.height != undefined && this.width != undefined) {
@@ -81,6 +118,10 @@ var Canvas = Class.create({
             html += "style='width:" + this.width + ";' ";
         }
         html += ">";
+	/*Iterate through all the child nodes or edges of
+	 * canvas and render each of it by concatnating its
+	 * HTML to canvas's HTML
+	 */
         for (var i = 0; i < this.items.length; i++) {
             html += this.items[i].render();
         }
@@ -95,33 +136,63 @@ var Canvas = Class.create({
     },
     /*
      * Method: add_actions
-     * Description: Makes all direct child elements as selectable, draggable and resizable
+     * Description: Makes all direct child elements as selectable, draggable, Rotatable and resizable
      */
     add_actions: function() {
 
-    	var selectable = new Selectable({
+	/*Make all items on canvas as selectable*/
+    	this.selectable = new Selectable({
     		filter: '.adorner-invisible',
             lasso: false
     	});
 
-        var draggable = $j('.adorner-invisible').draggabilly({
-		grid: this.grid
-	});
+	/*Make nodes draggable*/
+	this.draggable();
+
+	/*An pointer to current class instance to be used
+	 * in the following anonyomus class
+	 */
         var that = this;
-    	selectable.on('selecteditem', function(item){
+    	this.selectable.on('selecteditem', function(item){
     		var childs = $j(item.node).children("[class*='adorner']");
     		childs.each(function(index, value){
     			value.style.display = 'inline';
     		});
-            that.resizable(item.node.id, draggable);
-            that.rotatable(item.node.id, draggable);
+	    /*Apply resizable and rotateable function to
+	     * the selected item on canvas
+	     */
+            that.resizable(item.node.id, that.draggables);
+            that.rotatable(item.node.id, that.draggables);
     	});
-    	selectable.on('deselecteditem', function(item){
+    	this.selectable.on('deselecteditem', function(item){
                     var childs = $j(item.node).children("[class*='adorner']");
                     childs.each(function(index, value) {
                         value.style.display = 'none';
                     });
     	});
+    },
+    draggable: function(){
+	/*Make all items on canvas as draggable*/
+        this.draggables = $j('.adorner-invisible').draggabilly({
+		grid: this.grid
+	});
+	/*Due to bug in draggabilly lib, an rotated element
+	 * gets its position reset to original during drag
+	 * and after drag is done. Workaround is to save
+	 * the rotated position of element during drag start
+	 * into variable and reapply the same rotated value to
+	 * element once drag is completed
+	 */
+	this.draggables.on('dragStart', function(event, item){
+		var id = event.currentTarget.id;
+		var element = document.getElementById(id);
+		this.drag_items[id] = element.style.transform;
+	});
+	this.draggables.on('dragEnd', function(event, item){
+		var id = event.currentTarget.id;
+		var element = document.getElementById(id);
+		element.style.transform = this.drag_items[id];
+	});
     },
     resizable: function(div, draggable) {
         const element = document.getElementById(div);
@@ -218,15 +289,13 @@ var Canvas = Class.create({
               e.preventDefault();
               pointerEvent = e.targetTouches[0];
               mouseX = pointerEvent.pageX;
-              mouseY = pointerEvent.pageY;
+              mouseY = pointerEvent.pageY - 36;
             } else {
               mouseX = e.clientX;
-              mouseY = e.clientY;
+              mouseY = e.clientY - 36;
             }
-            //var centerY = pointerBox.top + parseInt(centers[1]) - window.pageYOffset;
-            //var centerX = pointerBox.left + parseInt(centers[0]) - window.pageXOffset;
             var radians = Math.atan2(mouseX - centerX, mouseY - centerY);
-            var degrees = (radians * (180 / Math.PI) * -1) + 180;
+            var degrees = (radians * (180 / Math.PI) * -1); 
             pointer.style.transform = 'rotate('+degrees+'deg)';
         }
         function stopRotate(e){
