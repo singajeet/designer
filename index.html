@@ -9,6 +9,7 @@
     <script src="js/prototype.js"></script>
     <script src="js/draggabilly.pkgd.min.js"></script>
     <script src="js/selectable.min.js" ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.11.0/d3.min.js"></script>
     <script src="designer.js" ></script>
 	<script>
 		var $j = jQuery.noConflict();
@@ -23,10 +24,12 @@
         var n2 = new Node('n2', 'title2');
 	var p1 = new Port('p1');
 	var p2 = new Port('p2');
+	var e1 = new Edge('e1', c, n1, n2);
 	n1.initPort(p1);
 	n2.initPort(p2);
         c.initNode(n1);
         c.initNode(n2);
+	c.initNode(e1);
         c.render();
 	    });
     </script>

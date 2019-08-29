@@ -29,7 +29,8 @@ var Canvas = Class.create({
     width: undefined,
     css: 'canvas',
     instance: undefined,
-    items: [],
+    nodes: [],
+    edges: [],
     grid: [10, 10],
     drag_items: {},
     draggables: undefined,
@@ -45,14 +46,28 @@ var Canvas = Class.create({
      *					items (Array): 			A list of direct child elements
      *					grid (Array): 			Size of each cell in the grid (in pixels)
      */
-    initialize: function(id, container_id, height, width, items, grid) {
+    initialize: function(id, container_id, height, width, nodes, edges, grid) {
         this.id = id;
         this.container_id = container_id;
         this.height = height;
         this.width = width;
-        this.items = items || [];
+        this.nodes = nodes || [];
+	this.edges = edges || [];
         this.grid = grid || [10, 10];
 	this.drag_items = {};
+    },
+    initEdge: function(edge){
+	    this.edges.push(edge);
+    },
+    addEdge: function(edge){
+	    this.edges.push(edge);
+	    edge.render();
+    },
+    remove: function(edge){
+	    var index = this.edges.indexOf(edge);
+	    this.edges.splice(index, 1);
+	    var edgeEle = document.getElementById(edge.id);
+	    edgeEle.parentNode.removeChild(edgeEle);
     },
     /*
      * Method: init_node
@@ -61,7 +76,7 @@ var Canvas = Class.create({
      * has been rendered, please use add_node()
      */
     initNode: function(node) {
-        this.items.push(node);
+        this.nodes.push(node);
     },
     /*
      * Method: add_node
@@ -70,7 +85,7 @@ var Canvas = Class.create({
      * etc operations once node is added
      */
     addNode: function(node){
-	this.items.push(node);
+	this.nodes.push(node);
 	var added_node = $j(node.render());
 	if(this.container_id != undefined){
 		var container = $j(('#' + this.container_id));
@@ -87,18 +102,17 @@ var Canvas = Class.create({
 	}
 	this.resizable(node.id, this.draggables);
 	this.rotatable(node.id, this.draggables);
-
     },
     /*
      * Method: remove_node
      * Description: Removes an node from the array
      */
     removeNode: function(node) {
-        var index = this.items.indexOf(node);
-        this.items.splice(index, 1);
-	var node_to_remove = document.getElementById(node.id);
-	if(node_to_remove != undefined){
-		node_to_remove.parentNode.removeChild(node_to_remove);
+        var index = this.nodes.indexOf(node);
+        this.nodes.splice(index, 1);
+	var nodeToRemove = document.getElementById(node.id);
+	if(nodeToRemove != undefined){
+		nodeToRemove.parentNode.removeChild(nodeToRemove);
 	}
     },
     /*
@@ -122,8 +136,8 @@ var Canvas = Class.create({
 	 * canvas and render each of it by concatnating its
 	 * HTML to canvas's HTML
 	 */
-        for (var i = 0; i < this.items.length; i++) {
-            html += this.items[i].render();
+        for (var i = 0; i < this.nodes.length; i++) {
+            html += this.nodes[i].render();
         }
         html += "</div>";
         if (this.container_id === undefined) {
@@ -132,9 +146,12 @@ var Canvas = Class.create({
             var container = $j(this.container_id);
             this.instance = $j(html).appendTo($j(container));
         }
-        for(var i=0; i < this.items.length; i++){
-            this.items[i].registerPortHighlighters();
+        for(var i=0; i < this.nodes.length; i++){
+            this.nodes[i].registerPortHighlighters();
         }
+	for(var i=0; i < this.edges.length; i++){
+		this.edges[i].render();
+	}
         this.addActions();
     },
     /*
@@ -515,11 +532,13 @@ var Edge = Class.create({
     endY: "",
     elementLeft: undefined,
     elementRight: undefined,
+    parentElement: undefined,
     lineColor: "Black",
     lineWidth: "1px",
     lineStroke: "Solid",
-    initialize: function(id, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, ArrowEnd, description){
+    initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, ArrowEnd, description){
         this.id = id;
+	this.parentElement = parentElement;
         this.title = title || "";
         this.description = description || "";
         this.hasArrow = hasArrow || true;
@@ -533,5 +552,25 @@ var Edge = Class.create({
         this.lineColor = lineColor || "Black";
         this.lineWidth = lineWidth || "1px";
         this.lineStroke = lineStroke || "Solid";
+    },
+    render: function(){
+	    var element1 = document.getElementById(this.elementLeft.id);
+	    var element2 = document.getElementById(this.elementRight.id);
+	    var ele1Pos = element1.getBoundingClientRect();
+	    var ele2Pos = element2.getBoundingClientRect();
+	    this.startX = ele1Pos.right;
+	    this.startY = ele1Pos.bottom;
+	    this.endX = ele2Pos.left;
+	    this.endY = ele2Pos.top;
+	    var svg = d3.select(('#' + this.parentElement))
+		    	.append('svg')
+	    		.attr('width', (this.endX-this.startX))
+	    		.attr('height', (this.endY-this.startY));
+	    svg.append('line')
+	    	.attr('x1', this.startX)
+	    	.attr('y1', this.startY)
+	    	.attr('x2', this.endX)
+	    	.attr('y2', this.endY)
+	    	.attr('stroke', this.lineStroke);
     }
 });
