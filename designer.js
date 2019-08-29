@@ -60,7 +60,7 @@ var Canvas = Class.create({
      * it is rendered. If you wish to add node after canvas
      * has been rendered, please use add_node()
      */
-    init_node: function(node) {
+    initNode: function(node) {
         this.items.push(node);
     },
     /*
@@ -69,7 +69,7 @@ var Canvas = Class.create({
      * rendered. This function adds selectable, resizable,
      * etc operations once node is added
      */
-    add_node: function(node){
+    addNode: function(node){
 	this.items.push(node);
 	var added_node = $j(node.render());
 	if(this.container_id != undefined){
@@ -93,7 +93,7 @@ var Canvas = Class.create({
      * Method: remove_node
      * Description: Removes an node from the array
      */
-    remove_node: function(node) {
+    removeNode: function(node) {
         var index = this.items.indexOf(node);
         this.items.splice(index, 1);
 	var node_to_remove = document.getElementById(node.id);
@@ -132,13 +132,13 @@ var Canvas = Class.create({
             var container = $j(this.container_id);
             this.instance = $j(html).appendTo($j(container));
         }
-        this.add_actions();
+        this.addActions();
     },
     /*
      * Method: add_actions
      * Description: Makes all direct child elements as selectable, draggable, Rotatable and resizable
      */
-    add_actions: function() {
+    addActions: function() {
 
 	/*Make all items on canvas as selectable*/
     	this.selectable = new Selectable({
@@ -320,7 +320,8 @@ var Node = Class.create({
     height: undefined,
     width: undefined,
     css: 'node',
-    html_content: undefined,
+    htmlContent: undefined,
+    ports: [],
     /* CONSTANTS */
     ADORNER_INVISIBLE: '<div id="{0}_node_adorner" class="adorner-invisible">',
     TOP_LEFT_ADORNER: '<div id="{0}_tl_adorner" class="tl_adorner"></div> <!-- top-left -->',
@@ -334,12 +335,30 @@ var Node = Class.create({
     ROTATE_ADORNER: '<div id="{0}_rotate_adorner" class="rotate_adorner"></div> <!-- rotate handle -->',
     NODE_TAG: '<div id="{0}" class="node" ><div class="node_header"><span>{1}</span></div>{2}</div>',
     ADORNER_INVISIBLE_END: '</div>',
-    initialize: function(id, title, html_content, height, width) {
+    initialize: function(id, title, htmlContent, height, width) {
         this.id = id;
         this.title = title || '';
-        this.html_content = html_content || undefined;
+        this.htmlContent = htmlContent || undefined;
         this.height = height || undefined;
         this.width = width || undefined;
+	this.ports = [];
+    },
+    initPort: function(port){
+	this.ports.push(port);
+    },
+    removePort: function(port){
+        var index = this.ports.indexOf(port);
+        this.ports.splice(index, 1);
+	var portToRemove = document.getElementById(port.id);
+	if(portToRemove != undefined){
+		portToRemove.parentNode.removeChild(portToRemove);
+	}
+    },
+    addPort: function(port){
+	    var portElement = $j(port.render());
+	    var node = $j(('#' + this.id));
+	    this.initPort(port);
+	    portElement.appendTo(node);
     },
     render: function() {
         var html = '';
@@ -353,11 +372,87 @@ var Node = Class.create({
         html += this.BOTTOM_MID_ADORNER.format(this.id);
         html += this.RIGHT_MID_ADORNER.format(this.id);
         html += this.ROTATE_ADORNER.format(this.id);
-        if (this.html_content === undefined) {
-            this.html_content = '';
+        if (this.htmlContent === undefined) {
+            this.htmlContent = '';
         }
-        html += this.NODE_TAG.format(this.id, this.title, this.html_content);
+	for(var i=0; i < this.ports.length; i++){
+		this.htmlContent += this.ports[i].render();
+	}
+        html += this.NODE_TAG.format(this.id, this.title, this.htmlContent);
         html += this.ADORNER_INVISIBLE_END;
         return html;
     }
+});
+
+/**********************************************************
+ * Defines a port on the node where an edge can be connected
+ * The port should have an magnet field to itself while any
+ * of the edge element passby this port
+ **********************************************************/
+var Port = Class.create({
+	id: '',
+	title: '',
+	description: '',
+	position: {top: '25px', left: 'auto', bottom: 'auto', right: '-5px'},
+	height: '10px',
+	width: '10px',
+	isConnected: false,
+	connectedTo: undefined,
+	cssClass: 'port',
+	cssStyle: '',
+	initialize: function(id, position, cssClass, cssStyle, title, description, height, width){
+		this.id = id;
+		this.position = position || {top: '25px', left: 'auto', bottom: 'auto', right: '-5px'};
+		this.cssClass = cssClass || 'port';
+		this.cssStyle = cssStyle || '';
+		this.title = title || '';
+		this.description = description || '';
+		this.height = height || '10px';
+		this.width = width || '10px';
+	},
+	render: function(){
+		var html = "<div id='" + this.id + "' ";
+		html += "class='" + this.cssClass + "' ";
+		html += "style='" + this.cssStyle + "; ";
+		if(this.height != '10px'){
+			html += 'height: ' + this.height + '; ';
+		}
+		if(this.width != '10px'){
+			html += 'width: ' + this.width + ';';
+		}
+		var isAbsolute = false;
+		if(this.position.top != 'auto'){
+			html += 'top: ' + this.position.top + '; ';
+			isAbsolute = true;
+		}
+		if(this.position.left != 'auto'){
+			html += 'left: ' + this.position.left + '; ';
+			isAbsolute = true;
+		}
+		if(this.position.bottom != 'auto'){
+			html += 'bottom: ' + this.position.bottom + '; ';
+			isAbsolute = true;
+		}
+		if(this.position.right != 'auto'){
+			html += 'right: ' + this.position.right + '; ';
+			isAbsolute = true;
+		}
+		if(isAbsolute){
+			html += 'position: absolute; ' 
+		}
+		html += "' ></div>";
+		return html;
+	},
+	canConnect: function(edge){
+        	const port = document.getElementById(this.id);
+        	var portBox = port.getBoundingClientRect();
+		if(edge.x > portBox.left && edge.y > portBox.top && edge.x < (portBox.left + portBox.width) && edge.y < (portBox.top + portBox.height)){
+			return true;
+		} else {
+			return false;
+		}
+	},
+	connect: function(edge){
+		this.connectedTo = edge;
+	}
 });
