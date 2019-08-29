@@ -132,6 +132,9 @@ var Canvas = Class.create({
             var container = $j(this.container_id);
             this.instance = $j(html).appendTo($j(container));
         }
+        for(var i=0; i < this.items.length; i++){
+            this.items[i].registerPortHighlighters();
+        }
         this.addActions();
     },
     /*
@@ -274,6 +277,7 @@ var Canvas = Class.create({
 
         rotater.addEventListener('touchstart', startRotate, false);
         rotater.addEventListener('mousedown', startRotate, false);
+        that = this;
         function startRotate(e){
             draggable.draggabilly('disable');
             window.addEventListener('mousemove', rotate);
@@ -298,6 +302,13 @@ var Canvas = Class.create({
             var radians = Math.atan2(mouseX - centerX, mouseY - centerY);
             var degrees = (radians * (180 / Math.PI) * -1);
             pointer.style.transform = 'rotate('+degrees+'deg)';
+            /*Somehow the value of transform attribute is becoming blank
+             *after rotation is stopped, so capturing the transform
+             *value during rotation process and same will be applied
+             *when drag stopped
+             * DOESN'T MAKE ANY SENSE BUT IT WORKS!!!
+             */
+            that.drag_items[div] = pointer.style.transform;
         }
         function stopRotate(e){
             window.removeEventListener('mousemove', rotate);
@@ -341,17 +352,17 @@ var Node = Class.create({
         this.htmlContent = htmlContent || undefined;
         this.height = height || undefined;
         this.width = width || undefined;
-	this.ports = [];
+	    this.ports = [];
     },
     initPort: function(port){
-	this.ports.push(port);
+	   this.ports.push(port);
     },
     removePort: function(port){
         var index = this.ports.indexOf(port);
         this.ports.splice(index, 1);
-	var portToRemove = document.getElementById(port.id);
-	if(portToRemove != undefined){
-		portToRemove.parentNode.removeChild(portToRemove);
+    	var portToRemove = document.getElementById(port.id);
+    	if(portToRemove != undefined){
+    		portToRemove.parentNode.removeChild(portToRemove);
 	}
     },
     addPort: function(port){
@@ -375,12 +386,17 @@ var Node = Class.create({
         if (this.htmlContent === undefined) {
             this.htmlContent = '';
         }
-	for(var i=0; i < this.ports.length; i++){
-		this.htmlContent += this.ports[i].render();
-	}
+	    for(var i=0; i < this.ports.length; i++){
+		  this.htmlContent += this.ports[i].render();
+	    }
         html += this.NODE_TAG.format(this.id, this.title, this.htmlContent);
         html += this.ADORNER_INVISIBLE_END;
         return html;
+    },
+    registerPortHighlighters: function(){
+        for(var i=0; i < this.ports.length; i++){
+            this.ports[i].highlight();
+        }
     }
 });
 
@@ -438,11 +454,36 @@ var Port = Class.create({
 			isAbsolute = true;
 		}
 		if(isAbsolute){
-			html += 'position: absolute; ' 
+			html += 'position: absolute; '
 		}
 		html += "' ></div>";
 		return html;
 	},
+    highlight: function(){
+        var port = document.getElementById(this.id);
+        window.addEventListener('mousemove', mouseMove);
+
+        function mouseMove(e){
+            var portBox = port.getBoundingClientRect();
+            var pointerEvent = e;
+            var mouseX = 0;
+            var mouseY = 0;
+            if (e.targetTouches && e.targetTouches[0]) {
+              e.preventDefault();
+              pointerEvent = e.targetTouches[0];
+              mouseX = pointerEvent.pageX;
+              mouseY = pointerEvent.pageY;
+            } else {
+              mouseX = e.clientX;
+              mouseY = e.clientY;
+            }
+            if(mouseX > portBox.left && mouseY > portBox.top && mouseX < (portBox.left + portBox.width) && mouseY < (portBox.top + portBox.height)){
+                port.style.background = "green";
+            } else {
+                port.style.background = "#EF9A9A";
+            }
+        }
+    },
 	canConnect: function(edge){
         	const port = document.getElementById(this.id);
         	var portBox = port.getBoundingClientRect();
@@ -455,4 +496,42 @@ var Port = Class.create({
 	connect: function(edge){
 		this.connectedTo = edge;
 	}
+});
+
+/**********************************************************************
+ * Defined an edge that will be used to connect two or more nodes with
+ * each other. An can have direction and will be denoted by an Arrow
+ * icon on one end or both end of the edge.
+ **********************************************************************/
+var Edge = Class.create({
+    id: "",
+    title: "",
+    description: "",
+    hasArrow: true,
+    arrowEnd: "RIGHT", /*Other values are LEFT, BOTH, NONE */
+    startX: "",
+    startY: "",
+    endX: "",
+    endY: "",
+    elementLeft: undefined,
+    elementRight: undefined,
+    lineColor: "Black",
+    lineWidth: "1px",
+    lineStroke: "Solid",
+    initialize: function(id, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, ArrowEnd, description){
+        this.id = id;
+        this.title = title || "";
+        this.description = description || "";
+        this.hasArrow = hasArrow || true;
+        this.arrowEnd = arrowEnd || "RIGHT";
+        this.startX = "0px";
+        this.startY = "0px";
+        this.endX = "0px";
+        this.endY = "0px";
+        this.elementLeft = elementLeft;
+        this.elementRight = elementRight;
+        this.lineColor = lineColor || "Black";
+        this.lineWidth = lineWidth || "1px";
+        this.lineStroke = lineStroke || "Solid";
+    }
 });
