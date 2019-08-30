@@ -132,6 +132,9 @@ var Canvas = Class.create({
             html += "style='width:" + this.width + ";' ";
         }
         html += ">";
+	html += "<svg id='svg_" + this.id + "' style='";
+	html += "height: 100%;width: 100%; position: absolute; top: 0px; left: 0px";
+	html += "' ></svg>";
 	/*Iterate through all the child nodes or edges of
 	 * canvas and render each of it by concatnating its
 	 * HTML to canvas's HTML
@@ -174,21 +177,34 @@ var Canvas = Class.create({
 	 */
         var that = this;
     	this.selectable.on('selecteditem', function(item){
-    		var childs = $j(item.node).children("[class*='adorner']");
-    		childs.each(function(index, value){
-    			value.style.display = 'inline';
-    		});
-	    /*Apply resizable and rotateable function to
-	     * the selected item on canvas
-	     */
-            that.resizable(item.node.id, that.draggables);
-            that.rotatable(item.node.id, that.draggables);
+		if(item.node.nodeName === 'DIV'){
+    			var childs = $j(item.node).children("[class*='adorner']");
+    			childs.each(function(index, value){
+    				value.style.display = 'inline';
+    			});
+	    		/*Apply resizable and rotateable function to
+	     		* the selected item on canvas
+	     		*/
+            		that.resizable(item.node.id, that.draggables);
+            		that.rotatable(item.node.id, that.draggables);
+		} else if(item.node.nodeName === 'line'){
+			var node_id = item.node.id + '_adorner';
+			var node_adorner = document.getElementById(node_id);
+			node_adorner.style.stroke = 'lightblue';
+		}
     	});
     	this.selectable.on('deselecteditem', function(item){
+		if(item.node.nodeName === 'DIV'){
                     var childs = $j(item.node).children("[class*='adorner']");
                     childs.each(function(index, value) {
                         value.style.display = 'none';
                     });
+		} else if(item.node.nodeName === 'line'){
+			var node_id = item.node.id + '_adorner';
+			var node_adorner = document.getElementById(node_id);
+			node_adorner.style.stroke = 'transparent';
+		}
+		
     	});
     },
     draggable: function(){
@@ -533,10 +549,10 @@ var Edge = Class.create({
     elementLeft: undefined,
     elementRight: undefined,
     parentElement: undefined,
-    lineColor: "Black",
-    lineWidth: "1px",
+    lineColor: "red",
+    lineWidth: "3",
     lineStroke: "Solid",
-    initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, ArrowEnd, description){
+    initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowEnd, description){
         this.id = id;
 	this.parentElement = parentElement;
         this.title = title || "";
@@ -549,8 +565,8 @@ var Edge = Class.create({
         this.endY = "0px";
         this.elementLeft = elementLeft;
         this.elementRight = elementRight;
-        this.lineColor = lineColor || "Black";
-        this.lineWidth = lineWidth || "1px";
+        this.lineColor = lineColor || "red";
+        this.lineWidth = lineWidth || "3";
         this.lineStroke = lineStroke || "Solid";
     },
     render: function(){
@@ -562,15 +578,54 @@ var Edge = Class.create({
 	    this.startY = ele1Pos.bottom;
 	    this.endX = ele2Pos.left;
 	    this.endY = ele2Pos.top;
-	    var svg = d3.select(('#' + this.parentElement))
-		    	.append('svg')
-	    		.attr('width', (this.endX-this.startX))
-	    		.attr('height', (this.endY-this.startY));
-	    svg.append('line')
-	    	.attr('x1', this.startX)
+	    var svg = d3.select(('#svg_' + this.parentElement.id));
+	    /*svg.append('line')
+	    	.attr('id', this.id)
+		.attr('x1', this.startX)
 	    	.attr('y1', this.startY)
 	    	.attr('x2', this.endX)
 	    	.attr('y2', this.endY)
-	    	.attr('stroke', this.lineStroke);
+	    	.attr('class', 'ui-selectable')
+	    	.attr('style', ('stroke:' + this.lineColor + ';stroke-width:' + this.lineWidth + ';'));
+	    svg.append('line')
+	    	.attr('id', this.id + "_adorner")
+		.attr('x1', this.startX)
+	    	.attr('y1', this.startY)
+	    	.attr('x2', this.endX)
+	    	.attr('y2', this.endY)
+	    	.attr('style', ('stroke: transparent;stroke-width:1;stroke-dasharray:4'));*/
+	    var defs = svg.append('svg:defs');
+	    var arrow_marker = defs.append('marker')
+	    			.attr('id', 'arrow_marker')
+	    			.attr('markerHeight', 5)
+	    			.attr('markerWidth', 5)
+	    			.attr('markerUnits', 'strokeWidth')
+	    			.attr('orient', 'auto')
+	    			.attr('refX', 0)
+	    			.attr('refY', 0)
+	    			.append('svg:path')
+	    				.attr('d', 'M 0,0 m -5,-5 L 5,0 L -5,5 Z')
+	    				.attr('fill','black');
+	
+	    var symbol = svg.append('svg:symbol')
+	    			.attr('id', this.id + '_adorner')
+	    			.append('svg:line')
+	    			.attr('x1', this.startX)
+	    			.attr('y1', this.startY)
+	    			.attr('x2', this.endX)
+	    			.attr('y2', this.endY)
+	    			.attr('style', 'stroke: lightblue;atroke-width:1;stroke-dasharray:4')
+	    			.attr('marker-start', 'url(#arrow_marker');
+	    
+	    svg.append('line')
+	    	.attr('id', this.id)
+		.attr('x1', this.startX)
+	    	.attr('y1', this.startY)
+	    	.attr('x2', this.endX)
+	    	.attr('y2', this.endY)
+	    	.attr('class', 'ui-selectable')
+	    	.attr('style', ('stroke:' + this.lineColor + ';stroke-width:' + this.lineWidth + ';'))
+	    	.attr('d', symbol);
+
     }
 });
