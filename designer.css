@@ -28,6 +28,14 @@
         padding: 10px;
         position: relative;
 }
+.adorner-line-unselected {
+        display: none;
+}
+.adorner-line-selected {
+        display: inline;
+        stroke: #00BFFF;
+        stroke-width: 1px;
+}
 .node_header{
         border-bottom: 1px darkgrey solid;
         opacity: .8;
