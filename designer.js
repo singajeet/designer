@@ -132,9 +132,9 @@ var Canvas = Class.create({
             html += "style='width:" + this.width + ";' ";
         }
         html += ">";
-	html += "<svg id='svg_" + this.id + "' style='";
+/*	html += "<svg id='svg_" + this.id + "' style='";
 	html += "height: 100%;width: 100%; position: absolute; top: 0px; left: 0px";
-	html += "' ></svg>";
+	html += "' ></svg>";*/
 	/*Iterate through all the child nodes or edges of
 	 * canvas and render each of it by concatnating its
 	 * HTML to canvas's HTML
@@ -156,7 +156,7 @@ var Canvas = Class.create({
     		this.edges[i].render();
     	}
         this.addActions();
-        this.registerSVGMarkers();
+        //this.registerSVGMarkers();
     },
     /*
      * Method: add_actions
@@ -166,7 +166,7 @@ var Canvas = Class.create({
 
 	   /*Make all items on canvas as selectable*/
     	this.selectable = new Selectable({
-    		filter: '.adorner-invisible',
+    		filter: '.ui-selectable',
             lasso: false
     	});
 
@@ -178,8 +178,8 @@ var Canvas = Class.create({
     	 */
             var that = this;
         	this.selectable.on('selecteditem', function(item){
-            if(item.node.nodeName === 'line'){
-                var childs = $j(item.node.parentElement).children("[class='adorner-line-unselected']");
+            if(item.node.nodeName === 'svg'){
+                var childs = $j(item.node).children("[class='adorner-line-unselected']");
                 childs.each(function(index, value){
                     value.classList.add('adorner-line-selected');
                     value.classList.remove('adorner-line-unselected');
@@ -198,8 +198,8 @@ var Canvas = Class.create({
     		}
         	});
         	this.selectable.on('deselecteditem', function(item){
-            if(item.node.nodeName === 'line'){
-                var childs = $j(item.node.parentElement).children("[class='adorner-line-selected']");
+            if(item.node.nodeName === 'svg'){
+                var childs = $j(item.node).children("[class='adorner-line-selected']");
                 childs.each(function(index, value){
                     value.classList.add('adorner-line-unselected');
                     value.classList.remove('adorner-line-selected');
@@ -216,7 +216,7 @@ var Canvas = Class.create({
     },
     draggable: function(){
 	/*Make all items on canvas as draggable*/
-        this.draggables = $j('.adorner-invisible').draggabilly({
+        this.draggables = $j('.ui-draggable').draggabilly({
 		  grid: this.grid
     	});
     	/*Due to bug in draggabilly lib, an rotated element
@@ -388,7 +388,7 @@ var Node = Class.create({
     htmlContent: undefined,
     ports: [],
     /* CONSTANTS */
-    ADORNER_INVISIBLE: '<div id="{0}_node_adorner" class="adorner-invisible">',
+    ADORNER_INVISIBLE: '<div id="{0}_node_adorner" class="adorner-invisible ui-selectable ui-draggable">',
     TOP_LEFT_ADORNER: '<div id="{0}_tl_adorner" class="tl_adorner"></div> <!-- top-left -->',
     TOP_RIGHT_ADORNER: '<div id="{0}_tr_adorner" class="tr_adorner"></div> <!-- top-right -->',
     BOTTOM_LEFT_ADORNER: '<div id="{0}_bl_adorner" class="bl_adorner"></div> <!-- bottom-left -->',
@@ -603,45 +603,101 @@ var Edge = Class.create({
 	    this.startY = ele1Pos.bottom;
 	    this.endX = ele2Pos.left;
 	    this.endY = ele2Pos.top;
+	    var style = "position: absolute !important; "
+	    var x1 = 0;
+	    var y1 = 0;
+	    var x2 = 0;
+	    var y2 = 0;
+	    if(this.startX > this.endX){
+		this.width = this.startX - this.endX;
+		style += "left: " + this.endX + "px; ";
+		x1 = this.width;
+		x2 = 0;
+	    } else {
+		this.width = this.endX - this.startX;
+		style += "left: " + this.startX + "px; ";
+		x1 = 0;
+		x2 = this.width;
+	    }
+	    if(this.startY > this.endY){
+		this.height = this.startY - this.endY;
+		style += "top: " + this.endY + "px; ";
+		y1 = this.height;
+		y2 = 0;
+	    } else {
+		this.height = this.endY - this.startY;
+		style += "top: " + this.startY + "px; ";
+		y1 = 0;
+		y2 = this.height;
+	    }
+	    style += "width: " + this.width + "px; ";
+	    style += "height: " + this.height + "px; ";
 
-	    var svg = d3.select(('#svg_' + this.parentElement.id))
-                    .append('g')
+	    var maindiv = d3.select(('#' + this.parentElement.id))
+                    .append('div')
                     .attr('id', this.id + "_line_adorner")
-                    .attr('class', "adorner-invisible");
+                    .attr('class', "ui-selectable ui-draggable")
+	    	    .attr('style', style);
+	var svg = maindiv.append('svg')
+	    		.attr('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
 
-	    svg.append('line')
+		maindiv
+	    	.append('div')
+	    	.attr('id', this.id + '_start_adorner')
+	    	.attr('class','adorner-line-unselected')
+	    	.attr('style', 'top: -5px; left: -5px;');
+	
+		maindiv
+	    	.append('div')
+	    	.attr('id', this.id + '_end_adorner')
+	    	.attr('class','adorner-line-unselected')
+	    	.attr('style', 'top: -5px; right: -5px;');
+
+        svg.append('svg:defs').append('svg:marker')
+            .attr("id", "arrow")
+            .attr("refX", 6)
+            .attr("refY", 6)
+            .attr("markerWidth", 30)
+            .attr("markerHeight", 30)
+            .attr("markerUnits","userSpaceOnUse")
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M 0 0 12 6 0 12 3 6")
+            .style("fill", "black");
+	
+	svg.append('line')
             .attr('id', this.id)
-            .attr('x1', this.startX)
-        	.attr('y1', this.startY)
-        	.attr('x2', this.endX)
-        	.attr('y2', this.endY)
+            .attr('x1', x1)
+        	.attr('y1', y1+2)
+        	.attr('x2', x2+5)
+        	.attr('y2', y2-5)
         	.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
-            .attr('marker-end', 'url(#arrow)')
-            .attr('class', 'ui-selectable');
+            .attr('marker-end', 'url(#arrow)');
+            //.attr('class', 'ui-selectable');
 
-        svg.append('line')
+        /*svg.append('line')
             .attr('id', this.id + '_adorner')
-            .attr('x1', this.startX)
-            .attr('y1', this.startY)
-            .attr('x2', this.endX)
-            .attr('y2', this.endY)
+            .attr('x1', x1)
+            .attr('y1', y1)
+            .attr('x2', x2)
+            .attr('y2', y2)
             .attr('style', 'stroke-dasharray: 10; stroke-width: 2px')
-            .attr('class', 'adorner-line-unselected');
-        svg.append('circle')
+            .attr('class', 'adorner-line-unselected');*/
+        /*svg.append('circle')
             .attr('id', this.id + '_start_adorner')
-            .attr('cx', this.startX)
-            .attr('cy', this.startY)
+            .attr('cx', x1)
+            .attr('cy', y1)
             .attr('r', 5)
-            .attr('fill', '#00BFFF')
-            .attr('style', 'stroke: black !important')
+            .attr('fill', 'transparent')
+            .attr('style', 'stroke: transparent')
             .attr('class', 'adorner-line-unselected');
         svg.append('circle')
             .attr('id', this.id + '_end_adorner')
-            .attr('cx', this.endX - 10)
-            .attr('cy', this.endY + 3)
+            .attr('cx', x2 - 10)
+            .attr('cy', y2 + 3)
             .attr('r', 5)
-            .attr('fill', '#00BFFF')
-            .attr('style', 'stroke: black !important')
-            .attr('class', 'adorner-line-unselected');
+            .attr('fill', 'transparent')
+            .attr('style', 'stroke: transparent')
+            .attr('class', 'adorner-line-unselected');*/
     }
 });

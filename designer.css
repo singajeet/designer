@@ -28,13 +28,33 @@
         padding: 10px;
         position: relative;
 }
+.ui-draggable{
+
+}
 .adorner-line-unselected {
-        display: none;
+        /*display: none;
+	stroke: transparent;
+	fill: transparent;*/
+	position: absolute;
+	background: #00BFFF;
+	height: 10px;
+	width: 10px;
+	border-radius: 5px;
+	display: none;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 .adorner-line-selected {
-        display: inline;
+        /*display: inline;
         stroke: #00BFFF;
-        stroke-width: 1px;
+	fill: black;
+        stroke-width: 2px;*/
+	position: absolute;
+	background: #00BFFF;
+	height: 10px;
+	width: 10px;
+	border-radius: 5px;
+	display: inline;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 .node_header{
         border-bottom: 1px darkgrey solid;
