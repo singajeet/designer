@@ -32,9 +32,6 @@
 
 }
 .adorner-line-unselected {
-        /*display: none;
-	stroke: transparent;
-	fill: transparent;*/
 	position: absolute;
 	background: #00BFFF;
 	height: 10px;
@@ -43,11 +40,7 @@
 	display: none;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
-.adorner-line-selected {
-        /*display: inline;
-        stroke: #00BFFF;
-	fill: black;
-        stroke-width: 2px;*/
+/*.adorner-line-selected {
 	position: absolute;
 	background: #00BFFF;
 	height: 10px;
@@ -55,7 +48,7 @@
 	border-radius: 5px;
 	display: inline;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-}
+}*/
 .node_header{
         border-bottom: 1px darkgrey solid;
         opacity: .8;

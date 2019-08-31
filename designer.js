@@ -178,13 +178,13 @@ var Canvas = Class.create({
     	 */
             var that = this;
         	this.selectable.on('selecteditem', function(item){
-            if(item.node.nodeName === 'svg'){
+            /*if(item.node.nodeName === 'svg'){
                 var childs = $j(item.node).children("[class='adorner-line-unselected']");
                 childs.each(function(index, value){
                     value.classList.add('adorner-line-selected');
                     value.classList.remove('adorner-line-unselected');
                 });
-            }
+            }*/
     		if(item.node.nodeName === 'DIV'){
         			var childs = $j(item.node).children("[class*='adorner']");
         			childs.each(function(index, value){
@@ -198,13 +198,13 @@ var Canvas = Class.create({
     		}
         	});
         	this.selectable.on('deselecteditem', function(item){
-            if(item.node.nodeName === 'svg'){
+           /* if(item.node.nodeName === 'svg'){
                 var childs = $j(item.node).children("[class='adorner-line-selected']");
                 childs.each(function(index, value){
                     value.classList.add('adorner-line-unselected');
                     value.classList.remove('adorner-line-selected');
                 });
-            }
+            }*/
     		if(item.node.nodeName === 'DIV'){
                         var childs = $j(item.node).children("[class*='adorner']");
                         childs.each(function(index, value) {
@@ -241,8 +241,16 @@ var Canvas = Class.create({
     resizable: function(div, draggable) {
         const element = document.getElementById(div);
         var index = div.indexOf('_node_adorner');
-        var item_id = div.substring(0, index);
-        var resizer_id = item_id + "_br_adorner";
+	var item_id = '';
+	var resizer_id = '';
+	if(index >= 0){
+        	item_id = div.substring(0, index);
+        	resizer_id = item_id + "_br_adorner";
+	} else {
+		index = div.indexOf('_line_adorner');
+		item_id = div.substring(0, index);
+		resizer_id = item_id + "_start_adorner";
+	}
         const resizer = document.getElementById(resizer_id);
         const minimum_size = 20;
         let original_width = 0;
@@ -610,12 +618,12 @@ var Edge = Class.create({
 	    var y2 = 0;
 	    if(this.startX > this.endX){
 		this.width = this.startX - this.endX;
-		style += "left: " + this.endX + "px; ";
+		style += "left: " + (this.endX-2) + "px; ";
 		x1 = this.width;
 		x2 = 0;
 	    } else {
 		this.width = this.endX - this.startX;
-		style += "left: " + this.startX + "px; ";
+		style += "left: " + (this.startX-2) + "px; ";
 		x1 = 0;
 		x2 = this.width;
 	    }
@@ -632,6 +640,7 @@ var Edge = Class.create({
 	    }
 	    style += "width: " + this.width + "px; ";
 	    style += "height: " + this.height + "px; ";
+	    style += "border: 2px transparent solid !important";
 
 	    var maindiv = d3.select(('#' + this.parentElement.id))
                     .append('div')
@@ -641,17 +650,38 @@ var Edge = Class.create({
 	var svg = maindiv.append('svg')
 	    		.attr('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
 
+	    var adorner_start_style = '';
+	    if(x1 == 0 && y1 == 0){
+		    adorner_start_style = "top: -5px; left: -8px;";
+	    } else if(x1 == 0 && y1 > 0){
+		    adorner_start_style = "left: -8px; bottom: -5px;";
+	    } else if(x1 > 0 && y1 > 0){
+		    adorner_start_style = "bottom: -5px; right: -8px;";
+	    } else if(x1 > 0 && y1 == 0){
+		    adorner_start_style = "right: -8px; top: -4px;";
+	    }
 		maindiv
 	    	.append('div')
 	    	.attr('id', this.id + '_start_adorner')
 	    	.attr('class','adorner-line-unselected')
-	    	.attr('style', 'top: -5px; left: -5px;');
+	    	.attr('style', adorner_start_style);
 	
+	    var adorner_end_style = '';
+	    if(x2 == 0 && y2 == 0){
+		    adorner_end_style = "top: -5px; left: -8px;";
+	    } else if(x2 == 0 && y2 > 0){
+		    adorner_end_style = "left: -10px; bottom: -2px;";
+	    } else if(x2 > 0 && y2 > 0){
+		    adorner_end_style = "bottom: -5px; right: -8px;";
+	    } else if(x2 > 0 && y2 == 0){
+		    adorner_end_style = "right: -8px; top: -5px;";
+	    }
 		maindiv
 	    	.append('div')
 	    	.attr('id', this.id + '_end_adorner')
 	    	.attr('class','adorner-line-unselected')
-	    	.attr('style', 'top: -5px; right: -5px;');
+	    	.attr('style', adorner_end_style);
+	
 
         svg.append('svg:defs').append('svg:marker')
             .attr("id", "arrow")
@@ -673,7 +703,6 @@ var Edge = Class.create({
         	.attr('y2', y2-5)
         	.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
             .attr('marker-end', 'url(#arrow)');
-            //.attr('class', 'ui-selectable');
 
         /*svg.append('line')
             .attr('id', this.id + '_adorner')
