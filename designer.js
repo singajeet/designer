@@ -52,26 +52,42 @@ var Canvas = Class.create({
         this.height = height;
         this.width = width;
         this.nodes = nodes || [];
-	this.edges = edges || [];
+        this.edges = edges || [];
         this.grid = grid || [10, 10];
-	this.drag_items = {};
+        this.drag_items = {};
     },
+    /*
+     * Method: initEdge
+     * Description: Adds edge to canvas before
+     * it is rendered. If you wish to add edge after canvas
+     * has been rendered, please use add_edge()
+     */
     initEdge: function(edge){
 	    this.edges.push(edge);
     },
+    /*
+     * Method: addEdge
+     * Description: Adds an edge to canvas after canvas is
+     * rendered. This function adds selectable, resizable,
+     * etc operations once edge is added
+     */
     addEdge: function(edge){
 	    this.edges.push(edge);
 	    edge.render();
     },
-    remove: function(edge){
+    /*
+     * Method: removeEdge
+     * Description: Removes an edge from the array
+     */
+    removeEdge: function(edge){
 	    var index = this.edges.indexOf(edge);
 	    this.edges.splice(index, 1);
 	    var edgeEle = document.getElementById(edge.id);
 	    edgeEle.parentNode.removeChild(edgeEle);
     },
     /*
-     * Method: init_node
-     * Description: Adds an node or edge node to canvas before
+     * Method: initNode
+     * Description: Adds an node to canvas before
      * it is rendered. If you wish to add node after canvas
      * has been rendered, please use add_node()
      */
@@ -79,48 +95,48 @@ var Canvas = Class.create({
         this.nodes.push(node);
     },
     /*
-     * Method: add_node
+     * Method: addNode
      * Description: Adds an node to canvas after canvas is
      * rendered. This function adds selectable, resizable,
      * etc operations once node is added
      */
     addNode: function(node){
-	this.nodes.push(node);
-	var added_node = $j(node.render());
-	if(this.container_id != undefined){
-		var container = $j(('#' + this.container_id));
-		added_node.appendTo(container);
-	} else {
-		added_node.appendTo($j('body'));
-	}
-	if(this.selectable != undefined){
-		this.selectable.add(added_node);
-	}
-	if(this.draggables != undefined){
-		this.draggables.destroy();
-		this.draggable();
-	}
-	this.resizable(node.id, this.draggables);
-	this.rotatable(node.id, this.draggables);
+    	this.nodes.push(node);
+    	var added_node = $j(node.render());
+    	if(this.container_id != undefined){
+    		var container = $j(('#' + this.container_id));
+    		added_node.appendTo(container);
+    	} else {
+    		added_node.appendTo($j('body'));
+    	}
+    	if(this.selectable != undefined){
+    		this.selectable.add(added_node);
+    	}
+    	if(this.draggables != undefined){
+    		this.draggables.destroy();
+    		this.draggable();
+    	}
+    	this.resizable(node.id, this.draggables);
+    	this.rotatable(node.id, this.draggables);
     },
     /*
-     * Method: remove_node
+     * Method: removeNode
      * Description: Removes an node from the array
      */
     removeNode: function(node) {
         var index = this.nodes.indexOf(node);
         this.nodes.splice(index, 1);
-	var nodeToRemove = document.getElementById(node.id);
-	if(nodeToRemove != undefined){
-		nodeToRemove.parentNode.removeChild(nodeToRemove);
-	}
+    	var nodeToRemove = document.getElementById(node.id);
+    	if(nodeToRemove != undefined){
+    		nodeToRemove.parentNode.removeChild(nodeToRemove);
+    	}
     },
     /*
      * Method: render
      * Description: Renders the HTML for Canvas component in parent element
      */
     render: function() {
-	/*Renders the canvas along with Nodes and edges*/
+    	/*Renders the canvas along with Nodes and edges*/
         var html = "<div id='" + this.id + "' ";
         html += "class='" + this.css + "' ";
         if (this.height != undefined && this.width != undefined) {
@@ -132,13 +148,10 @@ var Canvas = Class.create({
             html += "style='width:" + this.width + ";' ";
         }
         html += ">";
-/*	html += "<svg id='svg_" + this.id + "' style='";
-	html += "height: 100%;width: 100%; position: absolute; top: 0px; left: 0px";
-	html += "' ></svg>";*/
-	/*Iterate through all the child nodes or edges of
-	 * canvas and render each of it by concatnating its
-	 * HTML to canvas's HTML
-	 */
+	   /*Iterate through all the child nodes or edges of
+	   * canvas and render each of it by concatnating its
+	   * HTML to canvas's HTML
+	   */
         for (var i = 0; i < this.nodes.length; i++) {
             html += this.nodes[i].render();
         }
@@ -156,7 +169,6 @@ var Canvas = Class.create({
     		this.edges[i].render();
     	}
         this.addActions();
-        //this.registerSVGMarkers();
     },
     /*
      * Method: add_actions
@@ -176,46 +188,31 @@ var Canvas = Class.create({
     	/*An pointer to current class instance to be used
     	 * in the following anonyomus class
     	 */
-            var that = this;
-        	this.selectable.on('selecteditem', function(item){
-            /*if(item.node.nodeName === 'svg'){
-                var childs = $j(item.node).children("[class='adorner-line-unselected']");
-                childs.each(function(index, value){
-                    value.classList.add('adorner-line-selected');
-                    value.classList.remove('adorner-line-unselected');
-                });
-            }*/
-    		if(item.node.nodeName === 'DIV'){
-        			var childs = $j(item.node).children("[class*='adorner']");
-        			childs.each(function(index, value){
-        				value.style.display = 'inline';
-        			});
-    	    		/*Apply resizable and rotateable function to
-    	     		* the selected item on canvas
-    	     		*/
-                		that.resizable(item.node.id, that.draggables);
-                		that.rotatable(item.node.id, that.draggables);
+        var that = this;
+    	this.selectable.on('selecteditem', function(item){
+            if(item.node.nodeName === 'DIV'){
+    			var childs = $j(item.node).children("[class*='adorner']");
+    			childs.each(function(index, value){
+    				value.style.display = 'inline';
+    			});
+	    		/*Apply resizable and rotateable function to
+	     		* the selected item on canvas
+	     		*/
+            	that.resizable(item.node.id, that.draggables);
+            	that.rotatable(item.node.id, that.draggables);
     		}
-        	});
-        	this.selectable.on('deselecteditem', function(item){
-           /* if(item.node.nodeName === 'svg'){
-                var childs = $j(item.node).children("[class='adorner-line-selected']");
-                childs.each(function(index, value){
-                    value.classList.add('adorner-line-unselected');
-                    value.classList.remove('adorner-line-selected');
+    	});
+    	this.selectable.on('deselecteditem', function(item){
+            if(item.node.nodeName === 'DIV'){
+                var childs = $j(item.node).children("[class*='adorner']");
+                childs.each(function(index, value) {
+                    value.style.display = 'none';
                 });
-            }*/
-    		if(item.node.nodeName === 'DIV'){
-                        var childs = $j(item.node).children("[class*='adorner']");
-                        childs.each(function(index, value) {
-                            value.style.display = 'none';
-                        });
     		}
-
-        	});
+    	});
     },
     draggable: function(){
-	/*Make all items on canvas as draggable*/
+	   /*Make all items on canvas as draggable*/
         this.draggables = $j('.ui-draggable').draggabilly({
 		  grid: this.grid
     	});
@@ -239,144 +236,38 @@ var Canvas = Class.create({
     	});
     },
     resizable: function(div, draggable) {
-        const element = document.getElementById(div);
+        /* Make node element as resizable */
         var index = div.indexOf('_node_adorner');
-	var item_id = '';
-	var resizer_id = '';
-	if(index >= 0){
-        	item_id = div.substring(0, index);
-        	resizer_id = item_id + "_br_adorner";
-	} else {
-		index = div.indexOf('_line_adorner');
-		item_id = div.substring(0, index);
-		resizer_id = item_id + "_start_adorner";
-	}
-        const resizer = document.getElementById(resizer_id);
-        const minimum_size = 20;
-        let original_width = 0;
-        let original_height = 0;
-        let original_x = 0;
-        let original_y = 0;
-        let original_mouse_x = 0;
-        let original_mouse_y = 0;
-
-	    resizer.addEventListener('touchstart', startResize, false);
-        resizer.addEventListener('mousedown', startResize, false);
-        function startResize(e){
-	       draggable.draggabilly('disable');
-           e.preventDefault();
-           original_width = parseFloat(getComputedStyle(element, null).getPropertyValue('width').replace('px', ''));
-           original_height = parseFloat(getComputedStyle(element, null).getPropertyValue('height').replace('px', ''));
-           original_mouse_x = e.pageX;
-           original_mouse_y = e.pageY;
-	       if(original_mouse_x === undefined){
-                var touchObj = e.changedTouches[0];
-                original_mouse_x = parseInt(touchObj.clientX);
-	       }
-	       if(original_mouse_y === undefined){
-                var touchObj = e.changedTouches[0];
-                original_mouse_y = parseInt(touchObj.clientY);
-	       }
-    	    window.addEventListener('touchmove', resize);
-            window.addEventListener('mousemove', resize);
-
-    	    window.addEventListener('touchend', stopResize);
-            window.addEventListener('mouseup', stopResize);
-        }
-        function resize(e){
-    	    var cursorX = e.pageX;
-    	    var cursorY = e.pageY;
-    	    if(cursorX === undefined){
-                var touchObj = e.changedTouches[0];
-                cursorX = parseInt(touchObj.clientX);
-    	    }
-    	    if(cursorY === undefined){
-                var touchObj = e.changedTouches[0];
-                cursorY = parseInt(touchObj.clientY);
-    	    }
-    	    var deltaX = (cursorX - original_mouse_x);
-    	    var deltaY = (cursorY - original_mouse_y);
-            const width = original_width + (cursorX - original_mouse_x);
-            const height = original_height + (cursorY - original_mouse_y)
-            if (width > minimum_size) {
-              element.style.width = width + 'px'
+        if(index >= 0){
+            item_id = div.substring(0, index);
+            for(var i=0; i < this.nodes.length; i++){
+                if(this.nodes[i].id === item_id){
+                    this.nodes[i].resizable(draggable);
+                }
             }
-            if (height > minimum_size) {
-              element.style.height = height + 'px'
+        } else {
+            /* Make edge as resizable */
+            var index = div.indexOf('_line_adorner');
+            if(index >= 0){
+                item_id = div.substring(0, index);
+                for(var i=0; i < this.edges.length; i++){
+                    if(this.edges[i].id === item_id){
+                        this.edges[i].resizable(draggable);
+                    }
+                }
             }
-        }
-        function stopResize(){
-            window.removeEventListener('mousemove', resize);
-            window.removeEventListener('touchmove', resize);
-            draggable.draggabilly('enable');
         }
     },
     rotatable: function(div, draggable){
-        var pointer = document.getElementById(div);
         var index = div.indexOf('_node_adorner');
-        var item_id = div.substring(0, index);
-        var rotater_id = item_id + "_rotate_adorner";
-        const rotater = document.getElementById(rotater_id);
-        var pointerBox = pointer.getBoundingClientRect();
-        var centerPoint = window.getComputedStyle(pointer).transformOrigin;
-        var centers = centerPoint.split(" ");
-        var centerY = pointerBox.top + parseInt(centers[1]) - window.pageYOffset;
-        var centerX = pointerBox.left + parseInt(centers[0]) - window.pageXOffset;
-
-        rotater.addEventListener('touchstart', startRotate, false);
-        rotater.addEventListener('mousedown', startRotate, false);
-        that = this;
-        function startRotate(e){
-            draggable.draggabilly('disable');
-            window.addEventListener('mousemove', rotate);
-            window.addEventListener('touchmove', rotate);
-
-            window.addEventListener('mouseup', stopRotate);
-            window.addEventListener('touchend', stopRotate);
-        }
-        function rotate(e){
-            var pointerEvent = e;
-            var mouseX = 0;
-            var mouseY = 0;
-            if (e.targetTouches && e.targetTouches[0]) {
-              e.preventDefault();
-              pointerEvent = e.targetTouches[0];
-              mouseX = pointerEvent.pageX;
-              mouseY = pointerEvent.pageY - 36;
-            } else {
-              mouseX = e.clientX;
-              mouseY = e.clientY - 36;
+        if(index >= 0){
+            item_id = div.substring(0, index);
+            for(var i=0; i < this.nodes.length; i++){
+                if(this.nodes[i].id === item_id){
+                    this.nodes[i].rotatable(this, draggable);
+                }
             }
-            var radians = Math.atan2(mouseX - centerX, mouseY - centerY);
-            var degrees = (radians * (180 / Math.PI) * -1);
-            pointer.style.transform = 'rotate('+degrees+'deg)';
-            /*Somehow the value of transform attribute is becoming blank
-             *after rotation is stopped, so capturing the transform
-             *value during rotation process and same will be applied
-             *when drag stopped
-             * DOESN'T MAKE ANY SENSE BUT IT WORKS!!!
-             */
-            that.drag_items[div] = pointer.style.transform;
         }
-        function stopRotate(e){
-            window.removeEventListener('mousemove', rotate);
-            window.removeEventListener('touchmove', rotate);
-            draggable.draggabilly('enable');
-        }
-    },
-    registerSVGMarkers: function(){
-        var svg = d3.select(('#svg_' + this.id));
-        svg.append('svg:defs').append('svg:marker')
-            .attr("id", "arrow")
-            .attr("refX", 6)
-            .attr("refY", 6)
-            .attr("markerWidth", 30)
-            .attr("markerHeight", 30)
-            .attr("markerUnits","userSpaceOnUse")
-            .attr("orient", "auto")
-            .append("path")
-            .attr("d", "M 0 0 12 6 0 12 3 6")
-            .style("fill", "black");
     }
 });
 
@@ -458,6 +349,121 @@ var Node = Class.create({
     registerPortHighlighters: function(){
         for(var i=0; i < this.ports.length; i++){
             this.ports[i].highlight();
+        }
+    },
+    resizable: function(draggable) {
+        const element = document.getElementById(this.id + '_node_adorner');
+        var resizer_id = this.id + "_br_adorner";
+        const resizer = document.getElementById(resizer_id);
+        const minimum_size = 20;
+        let original_width = 0;
+        let original_height = 0;
+        let original_x = 0;
+        let original_y = 0;
+        let original_mouse_x = 0;
+        let original_mouse_y = 0;
+
+        resizer.addEventListener('touchstart', startResize, false);
+        resizer.addEventListener('mousedown', startResize, false);
+        function startResize(e){
+           draggable.draggabilly('disable');
+           e.preventDefault();
+           original_width = parseFloat(getComputedStyle(element, null).getPropertyValue('width').replace('px', ''));
+           original_height = parseFloat(getComputedStyle(element, null).getPropertyValue('height').replace('px', ''));
+           original_mouse_x = e.pageX;
+           original_mouse_y = e.pageY;
+           if(original_mouse_x === undefined){
+                var touchObj = e.changedTouches[0];
+                original_mouse_x = parseInt(touchObj.clientX);
+           }
+           if(original_mouse_y === undefined){
+                var touchObj = e.changedTouches[0];
+                original_mouse_y = parseInt(touchObj.clientY);
+           }
+            window.addEventListener('touchmove', resize);
+            window.addEventListener('mousemove', resize);
+
+            window.addEventListener('touchend', stopResize);
+            window.addEventListener('mouseup', stopResize);
+        }
+        function resize(e){
+            var cursorX = e.pageX;
+            var cursorY = e.pageY;
+            if(cursorX === undefined){
+                var touchObj = e.changedTouches[0];
+                cursorX = parseInt(touchObj.clientX);
+            }
+            if(cursorY === undefined){
+                var touchObj = e.changedTouches[0];
+                cursorY = parseInt(touchObj.clientY);
+            }
+            var deltaX = (cursorX - original_mouse_x);
+            var deltaY = (cursorY - original_mouse_y);
+            const width = original_width + (cursorX - original_mouse_x);
+            const height = original_height + (cursorY - original_mouse_y)
+            if (width > minimum_size) {
+              element.style.width = width + 'px'
+            }
+            if (height > minimum_size) {
+              element.style.height = height + 'px'
+            }
+        }
+        function stopResize(){
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('touchmove', resize);
+            draggable.draggabilly('enable');
+        }
+    },
+    rotatable: function(canvas, draggable){
+        const pointer = document.getElementById(this.id + '_node_adorner');
+        var rotater_id = this.id + "_rotate_adorner";
+        const rotater = document.getElementById(rotater_id);
+        var pointerBox = pointer.getBoundingClientRect();
+        var centerPoint = window.getComputedStyle(pointer).transformOrigin;
+        var centers = centerPoint.split(" ");
+        var centerY = pointerBox.top + parseInt(centers[1]) - window.pageYOffset;
+        var centerX = pointerBox.left + parseInt(centers[0]) - window.pageXOffset;
+
+        rotater.addEventListener('touchstart', startRotate, false);
+        rotater.addEventListener('mousedown', startRotate, false);
+
+        node = this;
+        function startRotate(e){
+            draggable.draggabilly('disable');
+            window.addEventListener('mousemove', rotate);
+            window.addEventListener('touchmove', rotate);
+
+            window.addEventListener('mouseup', stopRotate);
+            window.addEventListener('touchend', stopRotate);
+        }
+        function rotate(e){
+            var pointerEvent = e;
+            var mouseX = 0;
+            var mouseY = 0;
+            if (e.targetTouches && e.targetTouches[0]) {
+              e.preventDefault();
+              pointerEvent = e.targetTouches[0];
+              mouseX = pointerEvent.pageX;
+              mouseY = pointerEvent.pageY - 36;
+            } else {
+              mouseX = e.clientX;
+              mouseY = e.clientY - 36;
+            }
+            var radians = Math.atan2(mouseX - centerX, mouseY - centerY);
+            var degrees = (radians * (180 / Math.PI) * -1);
+            pointer.style.transform = 'rotate('+degrees+'deg)';
+            /*Somehow the value of transform attribute is becoming blank
+             *after rotation is stopped, so capturing the transform
+             *value during rotation process and same will be applied
+             *when drag stopped
+             * DOESN'T MAKE ANY SENSE BUT IT WORKS!!!
+             */
+            canvas.drag_items[(node.id + '_node_adorner')] = pointer.style.transform;
+        }
+        function stopRotate(e){
+            window.removeEventListener('mousemove', rotate);
+            window.removeEventListener('touchmove', rotate);
+            draggable.draggabilly('enable');
         }
     }
 });
@@ -547,8 +553,8 @@ var Port = Class.create({
         }
     },
 	canConnect: function(edge){
-        	const port = document.getElementById(this.id);
-        	var portBox = port.getBoundingClientRect();
+        const port = document.getElementById(this.id);
+        var portBox = port.getBoundingClientRect();
 		if(edge.x > portBox.left && edge.y > portBox.top && edge.x < (portBox.left + portBox.width) && edge.y < (portBox.top + portBox.height)){
 			return true;
 		} else {
@@ -585,7 +591,7 @@ var Edge = Class.create({
     lineStroke: "Solid",
     initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowEnd, description){
         this.id = id;
-	this.parentElement = parentElement;
+        this.parentElement = parentElement;
         this.title = title || "";
         this.description = description || "";
         this.hasArrow = hasArrow || true;
@@ -594,8 +600,8 @@ var Edge = Class.create({
         this.startY = 0;
         this.endX = 0;
         this.endY = 0;
-	this.width = 0;
-	this.height = 0;
+        this.width = 0;
+        this.height = 0;
         this.elementLeft = elementLeft;
         this.elementRight = elementRight;
         this.lineColor = lineColor || "black";
@@ -617,26 +623,26 @@ var Edge = Class.create({
 	    var x2 = 0;
 	    var y2 = 0;
 	    if(this.startX > this.endX){
-		this.width = this.startX - this.endX;
-		style += "left: " + (this.endX-2) + "px; ";
-		x1 = this.width;
-		x2 = 0;
+		  this.width = this.startX - this.endX;
+		  style += "left: " + (this.endX-2) + "px; ";
+		  x1 = this.width;
+		  x2 = 0;
 	    } else {
-		this.width = this.endX - this.startX;
-		style += "left: " + (this.startX-2) + "px; ";
-		x1 = 0;
-		x2 = this.width;
+		  this.width = this.endX - this.startX;
+		  style += "left: " + (this.startX-2) + "px; ";
+		  x1 = 0;
+		  x2 = this.width;
 	    }
 	    if(this.startY > this.endY){
-		this.height = this.startY - this.endY;
-		style += "top: " + this.endY + "px; ";
-		y1 = this.height;
-		y2 = 0;
+		  this.height = this.startY - this.endY;
+		  style += "top: " + this.endY + "px; ";
+		  y1 = this.height;
+		  y2 = 0;
 	    } else {
-		this.height = this.endY - this.startY;
-		style += "top: " + this.startY + "px; ";
-		y1 = 0;
-		y2 = this.height;
+		  this.height = this.endY - this.startY;
+		  style += "top: " + this.startY + "px; ";
+		  y1 = 0;
+		  y2 = this.height;
 	    }
 	    style += "width: " + this.width + "px; ";
 	    style += "height: " + this.height + "px; ";
@@ -646,8 +652,9 @@ var Edge = Class.create({
                     .append('div')
                     .attr('id', this.id + "_line_adorner")
                     .attr('class', "ui-selectable ui-draggable")
-	    	    .attr('style', style);
-	var svg = maindiv.append('svg')
+	           	    .attr('style', style);
+
+	   var svg = maindiv.append('svg')
 	    		.attr('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
 
 	    var adorner_start_style = '';
@@ -660,12 +667,13 @@ var Edge = Class.create({
 	    } else if(x1 > 0 && y1 == 0){
 		    adorner_start_style = "right: -8px; top: -4px;";
 	    }
+        adorner_start_style += "background: #D1C4E9;cursor: nwse-resize"
 		maindiv
 	    	.append('div')
 	    	.attr('id', this.id + '_start_adorner')
 	    	.attr('class','adorner-line-unselected')
 	    	.attr('style', adorner_start_style);
-	
+
 	    var adorner_end_style = '';
 	    if(x2 == 0 && y2 == 0){
 		    adorner_end_style = "top: -5px; left: -8px;";
@@ -681,7 +689,7 @@ var Edge = Class.create({
 	    	.attr('id', this.id + '_end_adorner')
 	    	.attr('class','adorner-line-unselected')
 	    	.attr('style', adorner_end_style);
-	
+
 
         svg.append('svg:defs').append('svg:marker')
             .attr("id", "arrow")
@@ -694,8 +702,8 @@ var Edge = Class.create({
             .append("path")
             .attr("d", "M 0 0 12 6 0 12 3 6")
             .style("fill", "black");
-	
-	svg.append('line')
+
+	   svg.append('line')
             .attr('id', this.id)
             .attr('x1', x1)
         	.attr('y1', y1+2)
@@ -703,30 +711,49 @@ var Edge = Class.create({
         	.attr('y2', y2-5)
         	.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
             .attr('marker-end', 'url(#arrow)');
+    },
+    resizable: function(draggable){
+        var element = document.getElementById(this.id + '_line_adorner');
+        var resizer = document.getElementById(this.id + '_start_adorner');
+        var line = document.getElementById(this.id);
 
-        /*svg.append('line')
-            .attr('id', this.id + '_adorner')
-            .attr('x1', x1)
-            .attr('y1', y1)
-            .attr('x2', x2)
-            .attr('y2', y2)
-            .attr('style', 'stroke-dasharray: 10; stroke-width: 2px')
-            .attr('class', 'adorner-line-unselected');*/
-        /*svg.append('circle')
-            .attr('id', this.id + '_start_adorner')
-            .attr('cx', x1)
-            .attr('cy', y1)
-            .attr('r', 5)
-            .attr('fill', 'transparent')
-            .attr('style', 'stroke: transparent')
-            .attr('class', 'adorner-line-unselected');
-        svg.append('circle')
-            .attr('id', this.id + '_end_adorner')
-            .attr('cx', x2 - 10)
-            .attr('cy', y2 + 3)
-            .attr('r', 5)
-            .attr('fill', 'transparent')
-            .attr('style', 'stroke: transparent')
-            .attr('class', 'adorner-line-unselected');*/
+        let original_width = 0;
+        let original_x = 0;
+        let original_mouse_x = 0;
+        resizer.addEventListener('mousedown', startResize, false);
+        resizer.addEventListener('touchstart', startResize, false);
+
+        function startResize(e){
+            draggable.draggabilly('disable');
+            e.preventDefault();
+            original_width = parseFloat(getComputedStyle(element, null).getPropertyValue('width').replace('px', ''));
+            original_mouse_x = e.pageX;
+            if(original_mouse_x === undefined){
+                var touchObj = e.changedTouches[0];
+                original_mouse_x = parseInt(touchObj.clientX);
+            }
+            window.addEventListener('touchmove', resize);
+            window.addEventListener('mousemove', resize);
+            window.addEventListener('touchend', stopResize);
+            window.addEventListener('mouseup', stopResize);
+        }
+
+        function resize(e){
+            var cursorX = e.pageX;
+            if(cursorX === undefined){
+                var touchObj = e.changedTouches[0];
+                cursorX = parseInt(touchObj.clientX);
+            }
+            var deltaX = (cursorX - original_mouse_x);
+            const width = original_width + (cursorX - original_mouse_x);
+            element.style.width = width + 'px';
+            line.setAttribute('x1', width);
+            line.parentElement.style.width = width + 'px';
+        }
+        function stopResize(){
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('touchmove', resize);
+            draggable.draggabilly('enable');
+        }
     }
 });
