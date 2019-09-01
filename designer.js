@@ -234,6 +234,9 @@ var Canvas = Class.create({
     		var element = document.getElementById(id);
     		element.style.transform = that.drag_items[id];
     	});
+	this.draggables.on('dragMove', function(event, item){
+		
+	});
     },
     resizable: function(div, draggable) {
         /* Make node element as resizable */
@@ -267,7 +270,18 @@ var Canvas = Class.create({
                     this.nodes[i].rotatable(this, draggable);
                 }
             }
-        }
+        } else {
+		/* Make edge as rotatable */
+		var index = div.indexOf('_line_adorner');
+		if(index >= 0){
+			item_id = div.substring(0, index);
+			for(var i=0; i < this.edges.length; i++){
+				if(this.edges[i].id === item_id){
+					this.edges[i].rotatable(this, draggable);
+				}
+			}
+		}
+	}
     }
 });
 
@@ -552,10 +566,10 @@ var Port = Class.create({
             }
         }
     },
-	canConnect: function(edge){
+	canConnect: function(point){
         const port = document.getElementById(this.id);
         var portBox = port.getBoundingClientRect();
-		if(edge.x > portBox.left && edge.y > portBox.top && edge.x < (portBox.left + portBox.width) && edge.y < (portBox.top + portBox.height)){
+		if(point.x > portBox.left && point.y > portBox.top && point.x < (portBox.left + portBox.width) && point.y < (portBox.top + portBox.height)){
 			return true;
 		} else {
 			return false;
@@ -589,6 +603,16 @@ var Edge = Class.create({
     lineColor: "black",
     lineWidth: "3",
     lineStroke: "Solid",
+    mainDiv: undefined,
+    svg: undefined,
+    line: undefined,
+    startAdorner: undefined,
+    endAdorner: undefined,
+    rotateAdorner: undefined,
+    x1: 0,
+    y1: 0,
+    x2: 0,
+    y2: 0,
     initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowEnd, description){
         this.id = id;
         this.parentElement = parentElement;
@@ -608,90 +632,33 @@ var Edge = Class.create({
         this.lineWidth = lineWidth || "3";
         this.lineStroke = lineStroke || "Solid";
     },
-    render: function(){
-	    var element1 = document.getElementById(this.elementLeft.id);
-	    var element2 = document.getElementById(this.elementRight.id);
-	    var ele1Pos = element1.getBoundingClientRect();
-	    var ele2Pos = element2.getBoundingClientRect();
-	    this.startX = ele1Pos.right;
-	    this.startY = ele1Pos.bottom;
-	    this.endX = ele2Pos.left;
-	    this.endY = ele2Pos.top;
-	    var style = "position: absolute !important; "
-	    var x1 = 0;
-	    var y1 = 0;
-	    var x2 = 0;
-	    var y2 = 0;
-	    if(this.startX > this.endX){
-		  this.width = this.startX - this.endX;
-		  style += "left: " + (this.endX-2) + "px; ";
-		  x1 = this.width;
-		  x2 = 0;
-	    } else {
-		  this.width = this.endX - this.startX;
-		  style += "left: " + (this.startX-2) + "px; ";
-		  x1 = 0;
-		  x2 = this.width;
-	    }
-	    if(this.startY > this.endY){
-		  this.height = this.startY - this.endY;
-		  style += "top: " + this.endY + "px; ";
-		  y1 = this.height;
-		  y2 = 0;
-	    } else {
-		  this.height = this.endY - this.startY;
-		  style += "top: " + this.startY + "px; ";
-		  y1 = 0;
-		  y2 = this.height;
-	    }
-	    style += "width: " + this.width + "px; ";
-	    style += "height: " + this.height + "px; ";
-	    style += "border: 2px transparent solid !important";
-
-	    var maindiv = d3.select(('#' + this.parentElement.id))
+    makeElement: function(){
+	this.mainDiv = d3.select(('#' + this.parentElement.id))
                     .append('div')
                     .attr('id', this.id + "_line_adorner")
-                    .attr('class', "ui-selectable ui-draggable")
-	           	    .attr('style', style);
+                    .attr('class', "ui-selectable ui-draggable");
 
-	   var svg = maindiv.append('svg')
+	this.svg = this.mainDiv.append('svg')
 	    		.attr('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
-
-	    var adorner_start_style = '';
-	    if(x1 == 0 && y1 == 0){
-		    adorner_start_style = "top: -5px; left: -8px;";
-	    } else if(x1 == 0 && y1 > 0){
-		    adorner_start_style = "left: -8px; bottom: -5px;";
-	    } else if(x1 > 0 && y1 > 0){
-		    adorner_start_style = "bottom: -5px; right: -8px;";
-	    } else if(x1 > 0 && y1 == 0){
-		    adorner_start_style = "right: -8px; top: -4px;";
-	    }
-        adorner_start_style += "background: #D1C4E9;cursor: nwse-resize"
-		maindiv
+	this.startAdorner 
+		= this.mainDiv
 	    	.append('div')
 	    	.attr('id', this.id + '_start_adorner')
-	    	.attr('class','adorner-line-unselected')
-	    	.attr('style', adorner_start_style);
+	    	.attr('class','adorner-line-unselected');
 
-	    var adorner_end_style = '';
-	    if(x2 == 0 && y2 == 0){
-		    adorner_end_style = "top: -5px; left: -8px;";
-	    } else if(x2 == 0 && y2 > 0){
-		    adorner_end_style = "left: -10px; bottom: -2px;";
-	    } else if(x2 > 0 && y2 > 0){
-		    adorner_end_style = "bottom: -5px; right: -8px;";
-	    } else if(x2 > 0 && y2 == 0){
-		    adorner_end_style = "right: -8px; top: -5px;";
-	    }
-		maindiv
+	this.endAdorner
+		= this.mainDiv
 	    	.append('div')
 	    	.attr('id', this.id + '_end_adorner')
-	    	.attr('class','adorner-line-unselected')
-	    	.attr('style', adorner_end_style);
+	    	.attr('class','adorner-line-unselected');
 
-
-        svg.append('svg:defs').append('svg:marker')
+	this.rotateAdorner 
+		= this.mainDiv
+	    	.append('div')
+	    	.attr('id', this.id + '_rotate_adorner')
+	    	.attr('class', 'rotate_adorner');
+        
+	this.svg.append('svg:defs').append('svg:marker')
             .attr("id", "arrow")
             .attr("refX", 6)
             .attr("refY", 6)
@@ -702,15 +669,94 @@ var Edge = Class.create({
             .append("path")
             .attr("d", "M 0 0 12 6 0 12 3 6")
             .style("fill", "black");
-
-	   svg.append('line')
+	   
+	this.line = this.svg.append('line')
             .attr('id', this.id)
-            .attr('x1', x1)
-        	.attr('y1', y1+2)
-        	.attr('x2', x2+5)
-        	.attr('y2', y2-5)
+            .attr('x1', this.x1)
+        	.attr('y1', this.y1+2)
+        	.attr('x2', this.x2+5)
+        	.attr('y2', this.y2-5)
         	.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
             .attr('marker-end', 'url(#arrow)');
+    },
+    redraw: function(){
+	    var style = "position: absolute !important; "
+	    this.x1 = 0;
+	    this.y1 = 0;
+	    this.x2 = 0;
+	    this.y2 = 0;
+	    if(this.startX > this.endX){
+		  this.width = this.startX - this.endX;
+		  style += "left: " + (this.endX-2) + "px; ";
+		  this.x1 = this.width;
+		  this.x2 = 0;
+	    } else {
+		  this.width = this.endX - this.startX;
+		  style += "left: " + (this.startX-2) + "px; ";
+		  this.x1 = 0;
+		  this.x2 = this.width;
+	    }
+	    if(this.startY > this.endY){
+		  this.height = this.startY - this.endY;
+		  style += "top: " + this.endY + "px; ";
+		  this.y1 = this.height;
+		  this.y2 = 0;
+	    } else {
+		  this.height = this.endY - this.startY;
+		  style += "top: " + this.startY + "px; ";
+		  this.y1 = 0;
+		  this.y2 = this.height;
+	    }
+	    style += "width: " + this.width + "px; ";
+	    style += "height: " + this.height + "px; ";
+	    style += "border: 2px transparent solid !important";
+	    this.svg.attr('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
+	    this.mainDiv.attr('style', style);
+
+	    var adorner_start_style = '';
+	    if(this.x1 == 0 && this.y1 == 0){
+		    adorner_start_style = "top: -5px; left: -8px;";
+	    } else if(this.x1 == 0 && this.y1 > 0){
+		    adorner_start_style = "left: -8px; bottom: -5px;";
+	    } else if(this.x1 > 0 && this.y1 > 0){
+		    adorner_start_style = "bottom: -5px; right: -8px;";
+	    } else if(this.x1 > 0 && this.y1 == 0){
+		    adorner_start_style = "right: -8px; top: -4px;";
+	    }
+        adorner_start_style += "background: #D1C4E9;cursor: nwse-resize"
+	this.startAdorner.attr('style', adorner_start_style);
+
+	    var adorner_end_style = '';
+	    if(this.x2 == 0 && this.y2 == 0){
+		    adorner_end_style = "top: -5px; left: -8px;";
+	    } else if(this.x2 == 0 && this.y2 > 0){
+		    adorner_end_style = "left: -10px; bottom: -2px;";
+	    } else if(this.x2 > 0 && this.y2 > 0){
+		    adorner_end_style = "bottom: -5px; right: -8px;";
+	    } else if(this.x2 > 0 && this.y2 == 0){
+		    adorner_end_style = "right: -8px; top: -5px;";
+	    }
+	this.endAdorner.attr('style', adorner_end_style);
+	
+	this.line
+        	.attr('x1', this.x1)
+        	.attr('y1', this.y1+2)
+        	.attr('x2', this.x2+5)
+        	.attr('y2', this.y2-5)
+        	.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
+            .attr('marker-end', 'url(#arrow)');
+    },
+    render: function(){
+	    var element1 = document.getElementById(this.elementLeft.id);
+	    var element2 = document.getElementById(this.elementRight.id);
+	    var ele1Pos = element1.getBoundingClientRect();
+	    var ele2Pos = element2.getBoundingClientRect();
+	    this.startX = ele1Pos.right;
+	    this.startY = ele1Pos.bottom;
+	    this.endX = ele2Pos.left;
+	    this.endY = ele2Pos.top;
+	    this.makeElement();
+	    this.redraw();
     },
     resizable: function(draggable){
         var element = document.getElementById(this.id + '_line_adorner');
@@ -755,5 +801,73 @@ var Edge = Class.create({
             window.removeEventListener('touchmove', resize);
             draggable.draggabilly('enable');
         }
+    },
+    rotatable: function(canvas, draggable){
+        const pointer = document.getElementById(this.id + '_line_adorner');
+        var rotater_id = this.id + "_rotate_adorner";
+        const rotater = document.getElementById(rotater_id);
+        var pointerBox = pointer.getBoundingClientRect();
+        var centerPoint = window.getComputedStyle(pointer).transformOrigin;
+        var centers = centerPoint.split(" ");
+        var centerY = pointerBox.top + parseInt(centers[1]) - window.pageYOffset;
+        var centerX = pointerBox.left + parseInt(centers[0]) - window.pageXOffset;
+
+        rotater.addEventListener('touchstart', startRotate, false);
+        rotater.addEventListener('mousedown', startRotate, false);
+
+        node = this;
+        function startRotate(e){
+            draggable.draggabilly('disable');
+            window.addEventListener('mousemove', rotate);
+            window.addEventListener('touchmove', rotate);
+
+            window.addEventListener('mouseup', stopRotate);
+            window.addEventListener('touchend', stopRotate);
+        }
+        function rotate(e){
+            var pointerEvent = e;
+            var mouseX = 0;
+            var mouseY = 0;
+            if (e.targetTouches && e.targetTouches[0]) {
+              e.preventDefault();
+              pointerEvent = e.targetTouches[0];
+              mouseX = pointerEvent.pageX;
+              mouseY = pointerEvent.pageY - 36;
+            } else {
+              mouseX = e.clientX;
+              mouseY = e.clientY - 36;
+            }
+            var radians = Math.atan2(mouseX - centerX, mouseY - centerY);
+            var degrees = (radians * (180 / Math.PI) * -1);
+            pointer.style.transform = 'rotate('+degrees+'deg)';
+            /*Somehow the value of transform attribute is becoming blank
+             *after rotation is stopped, so capturing the transform
+             *value during rotation process and same will be applied
+             *when drag stopped
+             * DOESN'T MAKE ANY SENSE BUT IT WORKS!!!
+             */
+            canvas.drag_items[(node.id + '_line_adorner')] = pointer.style.transform;
+        }
+        function stopRotate(e){
+            window.removeEventListener('mousemove', rotate);
+            window.removeEventListener('touchmove', rotate);
+            draggable.draggabilly('enable');
+        }
+    },
+    setStartPoint: function(x1, y1){
+	    this.startX = x1;
+	    this.startY = y1;
+	    this.redraw();
+    },
+    setEndPoint: function(x2, y2){
+	    this.endX = x2;
+	    this.endY = y2;
+	    this.redraw();
+    },
+    getStartPoint: function(){
+	return {x: this.startX, y: this.startY};
+    },
+    getEndPoint: function(){
+	return {x: this.endX, y: this.endY};
     }
 });
