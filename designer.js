@@ -147,7 +147,7 @@ var Canvas = Class.create({
         } else if (this.height === undefined && this.width != undefined) {
             html += "style='width:" + this.width + ";' ";
         }
-        html += ">";
+        html += " data-type='canvas'>";
 	   /*Iterate through all the child nodes or edges of
 	   * canvas and render each of it by concatnating its
 	   * HTML to canvas's HTML
@@ -235,7 +235,24 @@ var Canvas = Class.create({
     		element.style.transform = that.drag_items[id];
     	});
 	this.draggables.on('dragMove', function(event, item){
-		
+		var adorner_id = event.currentTarget.id;
+		var element = document.getElementById(adorner_id);
+		if(element.dataset['type'] === 'edge'){
+			var idx = adorner_id.indexOf('_line_adorner');
+			var id = adorner_id.substring(0, idx);
+			for(var i=0; i < that.nodes.length; i++){
+				var availPort = that.nodes[i].getNextEmptyPort();
+				var edge = that.getEdge(id);
+				edge.updatePosition();
+				var startPoint = edge.getStartPoint();
+				var endPoint = edge.getEndPoint();
+				if(availPort.canConnect(startPoint)){
+					alert('Can Connect @ startPoint');
+				} else if(availPort.canConnect(endPoint)){
+					alert('Can connect @ endPoint');
+				}
+			}	
+		}
 	});
     },
     resizable: function(div, draggable) {
@@ -282,6 +299,37 @@ var Canvas = Class.create({
 			}
 		}
 	}
+    },
+    getNode: function(id){
+	    for(var i=0; i < this.nodes.length; i++){
+		    if(id === this.nodes[i].id){
+			    return this.nodes[i];
+		    }
+	    }
+	    return null;
+    },
+    getEdge: function(id){
+	    for(var i=0; i < this.edges.length; i++){
+		    if(id === this.edges[i].id){
+			    return this.edges[i];
+		    }
+	    }
+    },
+    getFirstPortOfNode: function(id){
+	    var node = this.getNode(id);
+	    return node.getFirstPort();
+    },
+    getAllPortsOfNode: function(id){
+	    var node = this.getNode(id);
+	    return node.getAllPorts();
+    },
+    getLastPortOfNode: function(id){
+	    var node = this.getNode(id);
+	    return node.getLastPort();
+    },
+    getNextEmptyPortOfNode: function(id){
+	    var node = this.getNode(id);
+	    return node.getNextEmptyPort();
     }
 });
 
@@ -301,7 +349,7 @@ var Node = Class.create({
     htmlContent: undefined,
     ports: [],
     /* CONSTANTS */
-    ADORNER_INVISIBLE: '<div id="{0}_node_adorner" class="adorner-invisible ui-selectable ui-draggable">',
+    ADORNER_INVISIBLE: '<div id="{0}_node_adorner" class="adorner-invisible ui-selectable ui-draggable" data-type="node">',
     TOP_LEFT_ADORNER: '<div id="{0}_tl_adorner" class="tl_adorner"></div> <!-- top-left -->',
     TOP_RIGHT_ADORNER: '<div id="{0}_tr_adorner" class="tr_adorner"></div> <!-- top-right -->',
     BOTTOM_LEFT_ADORNER: '<div id="{0}_bl_adorner" class="bl_adorner"></div> <!-- bottom-left -->',
@@ -311,7 +359,7 @@ var Node = Class.create({
     BOTTOM_MID_ADORNER: '<div id="{0}_bm_adorner" class="bm_adorner"></div> <!-- bottom-mid -->',
     RIGHT_MID_ADORNER: '<div id="{0}_rm_adorner" class="rm_adorner"></div> <!-- right-mid -->',
     ROTATE_ADORNER: '<div id="{0}_rotate_adorner" class="rotate_adorner"></div> <!-- rotate handle -->',
-    NODE_TAG: '<div id="{0}" class="node" ><div class="node_header"><span>{1}</span></div>{2}</div>',
+    NODE_TAG: '<div id="{0}" class="node" data-type="node-base" ><div class="node_header"><span>{1}</span></div>{2}</div>',
     ADORNER_INVISIBLE_END: '</div>',
     initialize: function(id, title, htmlContent, height, width) {
         this.id = id;
@@ -479,6 +527,29 @@ var Node = Class.create({
             window.removeEventListener('touchmove', rotate);
             draggable.draggabilly('enable');
         }
+    },
+    getFirstPort: function(){
+	if(this.ports.length > 0){
+		return this.ports[0];
+	}
+	return null;
+    },
+    getAllPorts: function(){
+	    return this.ports;
+    },
+    getLastPort: function(){
+	if(this.ports.length > 0){
+		return this.ports[this.ports.length-1];
+	}
+	return null;
+    },
+    getNextEmptyPort: function(){
+	for(var i=0; i < this.ports.length; i++){
+		if(!this.ports[i].isConnected){
+			return this.ports[i];
+		}
+	}
+	return null;
     }
 });
 
@@ -510,6 +581,7 @@ var Port = Class.create({
 	},
 	render: function(){
 		var html = "<div id='" + this.id + "' ";
+		html += "data-type='port' ";
 		html += "class='" + this.cssClass + "' ";
 		html += "style='" + this.cssStyle + "; ";
 		if(this.height != '10px'){
@@ -569,6 +641,7 @@ var Port = Class.create({
 	canConnect: function(point){
         const port = document.getElementById(this.id);
         var portBox = port.getBoundingClientRect();
+		console.log("Point ==> " + JSON.stringify(point) + "\n" + "Port ==> " + JSON.stringify(portBox));
 		if(point.x > portBox.left && point.y > portBox.top && point.x < (portBox.left + portBox.width) && point.y < (portBox.top + portBox.height)){
 			return true;
 		} else {
@@ -577,6 +650,7 @@ var Port = Class.create({
 	},
 	connect: function(edge){
 		this.connectedTo = edge;
+		this.isConnected = true;
 	}
 });
 
@@ -613,6 +687,10 @@ var Edge = Class.create({
     y1: 0,
     x2: 0,
     y2: 0,
+    x1_pos: '',
+    y1_pos: '',
+    x2_pos: '',
+    y2_pos: '',
     initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowEnd, description){
         this.id = id;
         this.parentElement = parentElement;
@@ -634,9 +712,11 @@ var Edge = Class.create({
     },
     makeElement: function(){
 	this.mainDiv = d3.select(('#' + this.parentElement.id))
-                    .append('div')
-                    .attr('id', this.id + "_line_adorner")
-                    .attr('class', "ui-selectable ui-draggable");
+                .append('div')
+                .attr('id', this.id + "_line_adorner")
+                .attr('class', "ui-selectable ui-draggable")
+	    	.attr('data-type', 'edge')
+	    	.attr('data-subtype', 'straight-line');
 
 	this.svg = this.mainDiv.append('svg')
 	    		.attr('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
@@ -677,7 +757,8 @@ var Edge = Class.create({
         	.attr('x2', this.x2+5)
         	.attr('y2', this.y2-5)
         	.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
-            .attr('marker-end', 'url(#arrow)');
+            .attr('marker-end', 'url(#arrow)')
+	    .attr('data-type', 'edge-base');
     },
     redraw: function(){
 	    var style = "position: absolute !important; "
@@ -716,12 +797,20 @@ var Edge = Class.create({
 	    var adorner_start_style = '';
 	    if(this.x1 == 0 && this.y1 == 0){
 		    adorner_start_style = "top: -5px; left: -8px;";
+		    this.x1_pos = 'left';
+		    this.y1_pos = 'top';
 	    } else if(this.x1 == 0 && this.y1 > 0){
 		    adorner_start_style = "left: -8px; bottom: -5px;";
+		    this.x1_pos = 'left';
+		    this.y1_pos = 'bottom';
 	    } else if(this.x1 > 0 && this.y1 > 0){
 		    adorner_start_style = "bottom: -5px; right: -8px;";
+		    this.x1_pos = 'right';
+		    this.y1_pos = 'bottom';
 	    } else if(this.x1 > 0 && this.y1 == 0){
 		    adorner_start_style = "right: -8px; top: -4px;";
+		    this.x1_pos = 'right';
+		    this.y1_pos = 'top';
 	    }
         adorner_start_style += "background: #D1C4E9;cursor: nwse-resize"
 	this.startAdorner.attr('style', adorner_start_style);
@@ -729,12 +818,20 @@ var Edge = Class.create({
 	    var adorner_end_style = '';
 	    if(this.x2 == 0 && this.y2 == 0){
 		    adorner_end_style = "top: -5px; left: -8px;";
+		    this.x2_pos = 'left';
+		    this.y2_pos = 'top';
 	    } else if(this.x2 == 0 && this.y2 > 0){
 		    adorner_end_style = "left: -10px; bottom: -2px;";
+		    this.x2_pos = 'left';
+		    this.y2_pos = 'bottom';
 	    } else if(this.x2 > 0 && this.y2 > 0){
 		    adorner_end_style = "bottom: -5px; right: -8px;";
+		    this.x2_pos = 'right';
+		    this.y2_pos = 'bottom';
 	    } else if(this.x2 > 0 && this.y2 == 0){
 		    adorner_end_style = "right: -8px; top: -5px;";
+		    this.x2_pos = 'right';
+		    this.y2_pos = 'top';
 	    }
 	this.endAdorner.attr('style', adorner_end_style);
 	
@@ -869,5 +966,13 @@ var Edge = Class.create({
     },
     getEndPoint: function(){
 	return {x: this.endX, y: this.endY};
+    },
+    updatePosition: function(){
+	    var line_adorner = document.getElementById(this.id + '_line_adorner');
+	    var pos = line_adorner.getBoundingClientRect();
+	    this.startX = pos[this.x1_pos];
+	    this.startY = pos[this.y1_pos];
+	    this.endX = pos[this.x2_pos];
+	    this.endY = pos[this.y2_pos];
     }
 });
