@@ -247,9 +247,15 @@ var Canvas = Class.create({
 				var startPoint = edge.getStartPoint();
 				var endPoint = edge.getEndPoint();
 				if(availPort.canConnect(startPoint)){
-					alert('Can Connect @ startPoint');
+					//edge.setStartPoint(startPoint.x, endPoint.y);
+					availPort.connect(edge);
+					that.draggables._pointerUp(event.originalEvent, item);
+					return false;
 				} else if(availPort.canConnect(endPoint)){
-					alert('Can connect @ endPoint');
+					//edge.setEndPoint(endPoint.x, endPoint.y);
+					availPort.connect(edge);
+					that.draggables._pointerUp(event.originalEvent, item);
+					return false;
 				}
 			}	
 		}
@@ -649,8 +655,12 @@ var Port = Class.create({
 		}
 	},
 	connect: function(edge){
+		const port = document.getElementById(this.id);
+        	var portBox = port.getBoundingClientRect();
 		this.connectedTo = edge;
 		this.isConnected = true;
+		edge.setEndPoint(portBox.left, portBox.bottom);
+		port.style.background = 'lightgreen';
 	}
 });
 
@@ -960,6 +970,9 @@ var Edge = Class.create({
 	    this.endX = x2;
 	    this.endY = y2;
 	    this.redraw();
+	    var l = document.getElementById(this.id + '_line_adorner');
+	    var p = l.getBoundingClientRect();
+	    //alert('Arrow is now at: ' + JSON.stringify(p) +"\n" + "xy: " + x2 + "," + y2);
     },
     getStartPoint: function(){
 	return {x: this.startX, y: this.startY};
