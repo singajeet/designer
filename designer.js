@@ -246,14 +246,34 @@ var Canvas = Class.create({
 				edge.updatePosition();
 				var startPoint = edge.getStartPoint();
 				var endPoint = edge.getEndPoint();
+				//do we have anything to disconnect first
+				var allPorts = that.nodes[i].getAllPorts();
+				for(var j=0; j < allPorts.length; j++){
+					if(allPorts[j].isConnected){
+						//check mouse point is in range of current port
+						if(allPorts[j].canConnect(startPoint)){
+							allPorts[j].disconnect(edge);
+							that.draggables._pointerUp(event.originalEvent, item);
+							return false;
+						} else if(allPorts[j].canConnect(endPoint)){
+							allPorts[j].disconnect(edge);
+							that.draggables._pointerUp(event.originalEvent, item);
+							return false;
+						}
+					}
+				}
 				if(availPort.canConnect(startPoint)){
 					//edge.setStartPoint(startPoint.x, endPoint.y);
-					availPort.connect(edge);
+					if(!availPort.isConnected){
+						availPort.connect(edge);
+					} 
 					that.draggables._pointerUp(event.originalEvent, item);
 					return false;
 				} else if(availPort.canConnect(endPoint)){
 					//edge.setEndPoint(endPoint.x, endPoint.y);
-					availPort.connect(edge);
+					if(!availPort.isConnected){
+						availPort.connect(edge);
+					}
 					that.draggables._pointerUp(event.originalEvent, item);
 					return false;
 				}
@@ -644,10 +664,16 @@ var Port = Class.create({
             }
         }
     },
+	getConnectionPoint: function(){
+		var port = document.getElementById(this.id);
+		var portBox = port.getBoundingClientRect();
+		var x = portBox.left + (portBox.width/2);
+		var y = portBox.top + (portBox.height/2);
+		return {'x': x, 'y': y};
+	},
 	canConnect: function(point){
         const port = document.getElementById(this.id);
         var portBox = port.getBoundingClientRect();
-		console.log("Point ==> " + JSON.stringify(point) + "\n" + "Port ==> " + JSON.stringify(portBox));
 		if(point.x > portBox.left && point.y > portBox.top && point.x < (portBox.left + portBox.width) && point.y < (portBox.top + portBox.height)){
 			return true;
 		} else {
@@ -660,7 +686,13 @@ var Port = Class.create({
 		this.connectedTo = edge;
 		this.isConnected = true;
 		edge.setEndPoint(portBox.left, portBox.bottom);
-		port.style.background = 'lightgreen';
+		port.style.background = '#81C784';
+	},
+	disconnect: function(edge){
+		const port = document.getElementById(this.id);
+		this.connectedTo = undefined;
+		this.isConnected = false;
+		port.style.background = "#EF9A9A";
 	}
 });
 
@@ -701,6 +733,7 @@ var Edge = Class.create({
     y1_pos: '',
     x2_pos: '',
     y2_pos: '',
+    labelStartPoint: undefined,
     initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowEnd, description){
         this.id = id;
         this.parentElement = parentElement;
@@ -735,6 +768,13 @@ var Edge = Class.create({
 	    	.append('div')
 	    	.attr('id', this.id + '_start_adorner')
 	    	.attr('class','adorner-line-unselected');
+
+	this.labelStartPoint
+	    	= this.mainDiv
+	    	.append('div')
+	    	.append('span')
+	    	.attr('text', 'x: , y:')
+	    	.attr('id', this.id + '_label_start_point');
 
 	this.endAdorner
 		= this.mainDiv
@@ -798,6 +838,12 @@ var Edge = Class.create({
 		  this.y1 = 0;
 		  this.y2 = this.height;
 	    }
+	    if(this.width == 0){
+		    this.width = 10;
+	    }
+	    if(this.height == 0){
+		    this.height = 10;
+	    }
 	    style += "width: " + this.width + "px; ";
 	    style += "height: " + this.height + "px; ";
 	    style += "border: 2px transparent solid !important";
@@ -824,6 +870,7 @@ var Edge = Class.create({
 	    }
         adorner_start_style += "background: #D1C4E9;cursor: nwse-resize"
 	this.startAdorner.attr('style', adorner_start_style);
+	this.labelStartPoint.attr('style', adorner_start_style);
 
 	    var adorner_end_style = '';
 	    if(this.x2 == 0 && this.y2 == 0){
@@ -846,7 +893,7 @@ var Edge = Class.create({
 	this.endAdorner.attr('style', adorner_end_style);
 	
 	this.line
-        	.attr('x1', this.x1)
+        	.attr('x1', this.x1+5)
         	.attr('y1', this.y1+2)
         	.attr('x2', this.x2+5)
         	.attr('y2', this.y2-5)
@@ -854,14 +901,20 @@ var Edge = Class.create({
             .attr('marker-end', 'url(#arrow)');
     },
     render: function(){
-	    var element1 = document.getElementById(this.elementLeft.id);
+	    var node1 = this.parentElement.getNode(this.elementLeft.id);
+	    var node2 = this.parentElement.getNode(this.elementRight.id);
+	    var port1 = node1.getNextEmptyPort();
+	    var port2 = node2.getNextEmptyPort();
+
+	    /*var element1 = document.getElementById(this.elementLeft.id);
 	    var element2 = document.getElementById(this.elementRight.id);
 	    var ele1Pos = element1.getBoundingClientRect();
-	    var ele2Pos = element2.getBoundingClientRect();
-	    this.startX = ele1Pos.right;
-	    this.startY = ele1Pos.bottom;
-	    this.endX = ele2Pos.left;
-	    this.endY = ele2Pos.top;
+	    var ele2Pos = element2.getBoundingClientRect();*/
+	    this.startX = port1.getConnectionPoint().x; //ele1Pos.right;
+	    this.startY = port1.getConnectionPoint().y; //ele1Pos.bottom;
+	    this.endX = port2.getConnectionPoint().x; //ele2Pos.left;
+	    this.endY = port2.getConnectionPoint().y; //ele2Pos.top;
+	    alert(this.startX + ',' + this.startY + ',' + this.endX + ',' + this.endY);
 	    this.makeElement();
 	    this.redraw();
     },
@@ -873,18 +926,32 @@ var Edge = Class.create({
         let original_width = 0;
         let original_x = 0;
         let original_mouse_x = 0;
+	let original_height = 0;
+	let original_y = 0;
+	let original_mouse_y = 0;
+	let centerX = 0;
+	let centerY = 0;
         resizer.addEventListener('mousedown', startResize, false);
         resizer.addEventListener('touchstart', startResize, false);
 
+	var that = this;
         function startResize(e){
             draggable.draggabilly('disable');
             e.preventDefault();
             original_width = parseFloat(getComputedStyle(element, null).getPropertyValue('width').replace('px', ''));
+	    original_height = parseFloat(getComputedStyle(element, null).getPropertyValue('height').replace('px', ''));
             original_mouse_x = e.pageX;
+	    original_mouse_y = e.pageY;
             if(original_mouse_x === undefined){
                 var touchObj = e.changedTouches[0];
                 original_mouse_x = parseInt(touchObj.clientX);
             }
+	    if(original_mouse_y === undefined){
+		var touchObj = e.changedTouches[0];
+		original_mouse_y = parseInt(touchObj.clientY);
+	    }
+	    centerX = that.endX - window.pageXOffset;
+	    centerY = that.endY - window.pageYOffset;
             window.addEventListener('touchmove', resize);
             window.addEventListener('mousemove', resize);
             window.addEventListener('touchend', stopResize);
@@ -893,12 +960,22 @@ var Edge = Class.create({
 
         function resize(e){
             var cursorX = e.pageX;
+	    var cursorY = e.pageY;
             if(cursorX === undefined){
                 var touchObj = e.changedTouches[0];
                 cursorX = parseInt(touchObj.clientX);
             }
+	    if(cursorY === undefined){
+		var touchObj = e.changedTouches[0];
+		cursorY = parseInt(touchObj.clientY);
+	    }
             var deltaX = (cursorX - original_mouse_x);
-            const width = original_width + (cursorX - original_mouse_x);
+	    var deltaY = (cursorY - original_mouse_y);
+	    var radians = Math.atan2(cursorX - centerX, cursorY - centerY);
+	    var degrees = (radians * (180 / Math.PI) * -1);
+	    element.style.transform = 'rotate('+degrees+'deg)';
+
+            const width = original_width + deltaX;
             element.style.width = width + 'px';
             line.setAttribute('x1', width);
             line.parentElement.style.width = width + 'px';
