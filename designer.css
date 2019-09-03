@@ -157,11 +157,11 @@
 	border-radius: 5px;
 }
 .rotate_adorner {
-	      position: absolute;
-	      background: transparent;
-	      background-image: url('images/handle-rotate.png');
-	      display: none;
+        position: absolute;
+        background: transparent;
+        background-image: url('images/handle-rotate.png');
+        display: none;
 }
 .line_rotate_adorner{
-
+        display: none;
 }

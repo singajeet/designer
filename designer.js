@@ -170,6 +170,8 @@ var Canvas = Class.create({
     for (var i = 0; i < this.edges.length; i++) {
       this.edges[i].render();
     }
+    var svg = document.getElementById(this.id + '_svg');
+    //makeDraggable(svg);
   },
   getNode: function(id) {
     for (var i = 0; i < this.nodes.length; i++) {
@@ -306,7 +308,7 @@ var Edge = Class.create({
 
     this.g = this.svg.append('g')
       .attr('id', this.id + '_line_adorner')
-      .attr('class', 'ui-selectable ui-draggable');
+      .attr('class', 'ui-selectable');
 
     this.startAdoner = this.g
       .append('rect')
@@ -333,42 +335,42 @@ var Edge = Class.create({
     if(dy <= dx){ //X-Axis dominant
       if(dx >= 0){ //left to right
           this.rotateAdorner = this.g
-          .append('rect')
-          .attr('id', this.id + '_rotate_adorner')
-          .attr('x', this.startX + (this.width/2))
-          .attr('y', this.startY + 36)
-          .attr('height', 15)
-          .attr('width', 15)
-          .attr('class', 'line_rotate_adorner');
+            .append('svg:image')
+            .attr('x', this.startX + (this.width/2))
+            .attr('y', this.startY + 36)
+            .attr('height', 15)
+            .attr('width', 15)
+            .attr('xlink:href', 'images/handle-rotate.png')
+            .attr('class', 'line_rotate_adorner');
         } else { //right to left
           this.rotateAdorner = this.g
-          .append('rect')
-          .attr('id', this.id + '_rotate_adorner')
-          .attr('x', this.endX + (this.width/2))
-          .attr('y', this.endY + 36)
-          .attr('height', 15)
-          .attr('width', 15)
-          .attr('class', 'line_rotate_adorner');
+            .append('svg:image')
+            .attr('x', this.endX + (this.width/2))
+            .attr('y', this.endY + 36)
+            .attr('height', 15)
+            .attr('width', 15)
+            .attr('xlink:href', 'images/handle-rotate.png')
+            .attr('class', 'line_rotate_adorner');
         }
     } else { //Y Axis dominant
       if(dy >= 0){ //bottom to top
         this.rotateAdorner = this.g
-          .append('rect')
-          .attr('id', this.id + '_rotate_adorner')
-          .attr('x', this.startX + 36)
-          .attr('y', this.endY + (this.height/2))
-          .attr('height', 15)
-          .attr('width', 15)
-          .attr('class', 'line_rotate_adorner');
+            .append('svg:image')
+            .attr('x', this.startX + 36)
+            .attr('y', this.endY + (this.height/2))
+            .attr('height', 15)
+            .attr('width', 15)
+            .attr('xlink:href', 'images/handle-rotate.png')
+            .attr('class', 'line_rotate_adorner');
       } else {
         this.rotateAdorner = this.g
-          .append('rect')
-          .attr('id', this.id + '_rotate_adorner')
-          .attr('x', this.endX + 36)
-          .attr('y', this.startY + (this.height/2))
-          .attr('height', 15)
-          .attr('width', 15)
-          .attr('class', 'line_rotate_adorner');
+            .append('svg:image')
+            .attr('x', this.endX + 36)
+            .attr('y', this.startY + (this.height/2))
+            .attr('height', 15)
+            .attr('width', 15)
+            .attr('xlink:href', 'images/handle-rotate.png')
+            .attr('class', 'line_rotate_adorner');
       }
     }
 
@@ -380,8 +382,7 @@ var Edge = Class.create({
       .attr('y2', this.endY)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
       .attr('marker-end', 'url(#arrow)')
-      .attr('data-type', 'edge-base')
-      .attr('class', 'ui-selectable ui-draggable');
+      .attr('data-type', 'edge-base');
   },
   redraw: function() {
 
@@ -398,29 +399,40 @@ var Edge = Class.create({
     	this.endX = port2.getConnectionPoint().x;
     	this.endY = port2.getConnectionPoint().y;
     } else {
-	this.startX = this.elementLeft.x;
-	this.startY = this.elementLeft.y;
-	this.endX = this.elementRight.x;
-	this.endY = this.elementRight.y;
+    	this.startX = this.elementLeft.x;
+    	this.startY = this.elementLeft.y;
+    	this.endX = this.elementRight.x;
+    	this.endY = this.elementRight.y;
     }
 
     this.makeElement();
     this.redraw();
     this.selectable();
+    this.draggable();
   },
   selectable: function(){
-	selectable = new Selectable();
-	var dom =  document.getElementById(this.id);
-	selectable.add(dom);
-	var that = this;                                              selectable.on('selecteditem', function(item){
-                        var childs = $j(item.node).children('[class*="adorner"]');
+    var selectable = new Selectable({
+      lasso: false
+    });
+    var dom =  document.getElementById(this.id + '_line_adorner');
+    selectable.add(dom);
+    var that = this;
+    selectable.on('selecteditem', function(item){
+      var childs = $j(item.node).children('[class*="adorner"]');
 			childs.each(function(index, value){
-                                value.style.display = 'inline';
+        value.style.display = 'inline';
 			});
-	});
-	selectable.on('deselecteditem', function(item){
-                childs.each(function(index, value) {                              value.style.display = 'none';
-                });
-        });
+    });
+    selectable.on('deselecteditem', function(item){
+      var childs = $j(item.node).children('[class*="adorner"]');
+      childs.each(function(index, value) {
+        value.style.display = 'none';
+      });
+    });
+  },
+  draggable: function(){
+    var dom =  document.getElementById(this.id + '_line_adorner');
+    var svg = document.getElementById(this.parentElement.id + "_svg");
+    makeDraggable(svg, dom);
   }
 });
