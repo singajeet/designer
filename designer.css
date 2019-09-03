@@ -32,25 +32,10 @@
 
 }
 .adorner-line-unselected {
-	/*position: absolute;
-	background: #00BFFF;
-	height: 10px;
-	width: 10px;
-	border-radius: 5px;*/
 	display: none;
         fill: #00BFFF;
         stroke-width: 1px;
-        /*box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);*/
 }
-/*.adorner-line-selected {
-	position: absolute;
-	background: #00BFFF;
-	height: 10px;
-	width: 10px;
-	border-radius: 5px;
-	display: inline;
-        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-}*/
 .node_header{
         border-bottom: 1px darkgrey solid;
         opacity: .8;
@@ -175,11 +160,6 @@
 	      position: absolute;
 	      background: transparent;
 	      background-image: url('images/handle-rotate.png');
-	      height: 18px;
-	      width: 18px;
-	      bottom: -36px;
-	      left: 50%;
-	      margin-left: -5px;
 	      display: none;
 }
 .line_rotate_adorner{

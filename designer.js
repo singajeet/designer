@@ -18,6 +18,16 @@ String.prototype.format = function() {
   return a
 }
 
+/****************
+ * Returns true if obj is plain obj {} or dict
+ * ***************/
+is_dict = function (obj) {
+    if(!obj) return false;
+    if(Array.isArray(obj)) return false;
+    if(obj.constructor != Object) return false;
+    return true;
+}
+
 /**********************************************************
  * Canvas: class provides the functionality to hold the
  * nodes and edges objects
@@ -109,15 +119,6 @@ var Canvas = Class.create({
     } else {
       added_node.appendTo($j('body'));
     }
-    if (this.selectable != undefined) {
-      this.selectable.add(added_node);
-    }
-    if (this.draggables != undefined) {
-      this.draggables.destroy();
-      this.draggable();
-    }
-    this.resizable(node.id, this.draggables);
-    this.rotatable(node.id, this.draggables);
   },
   /*
    * Method: removeNode
@@ -285,7 +286,7 @@ var Edge = Class.create({
       } else { //right to left
         this.width = this.startX - this.endX;
         }
-      if (width === 0) {
+      if (this.width === 0) {
         this.width = 20;
       }
     } else { //Y-Axis dominant
@@ -298,6 +299,9 @@ var Edge = Class.create({
         } else { //top to bottom
         this.height = this.endY - this.startY;
         }
+	if (this.height === 0){
+	  this.height = 20;
+	}
     }
 
     this.g = this.svg.append('g')
@@ -383,153 +387,40 @@ var Edge = Class.create({
 
   },
   render: function() {
-    var node1 = this.parentElement.getNode(this.elementLeft.id);
-    var node2 = this.parentElement.getNode(this.elementRight.id);
-    var port1 = node1.getNextEmptyPort();
-    var port2 = node2.getNextEmptyPort();
+    if(!is_dict(this.elementLeft) && !is_dict(this.elementRight)){
+    	var node1 = this.parentElement.getNode(this.elementLeft.id);
+    	var node2 = this.parentElement.getNode(this.elementRight.id);
+    	var port1 = node1.getNextEmptyPort();
+    	var port2 = node2.getNextEmptyPort();
 
-    this.startX = port1.getConnectionPoint().x;
-    this.startY = port1.getConnectionPoint().y;
-    this.endX = port2.getConnectionPoint().x;
-    this.endY = port2.getConnectionPoint().y;
+    	this.startX = port1.getConnectionPoint().x;
+    	this.startY = port1.getConnectionPoint().y;
+    	this.endX = port2.getConnectionPoint().x;
+    	this.endY = port2.getConnectionPoint().y;
+    } else {
+	this.startX = this.elementLeft.x;
+	this.startY = this.elementLeft.y;
+	this.endX = this.elementRight.x;
+	this.endY = this.elementRight.y;
+    }
 
     this.makeElement();
     this.redraw();
+    this.selectable();
   },
-  resizable: function(draggable) {
-    var element = document.getElementById(this.id + '_line_adorner');
-    var resizer = document.getElementById(this.id + '_start_adorner');
-    var line = document.getElementById(this.id);
-
-    let original_width = 0;
-    let original_x = 0;
-    let original_mouse_x = 0;
-    let original_height = 0;
-    let original_y = 0;
-    let original_mouse_y = 0;
-    resizer.addEventListener('mousedown', startResize, false);
-    resizer.addEventListener('touchstart', startResize, false);
-
-    var that = this;
-
-    function startResize(e) {
-      draggable.draggabilly('disable');
-      e.preventDefault();
-      original_width = parseFloat(getComputedStyle(element, null).getPropertyValue('width').replace('px', ''));
-      original_mouse_x = e.pageX;
-      if (original_mouse_x === undefined) {
-        var touchObj = e.changedTouches[0];
-        original_mouse_x = parseInt(touchObj.clientX);
-      }
-      window.addEventListener('touchmove', resize);
-      window.addEventListener('mousemove', resize);
-      window.addEventListener('touchend', stopResize);
-      window.addEventListener('mouseup', stopResize);
-    }
-
-    function resize(e) {
-      var cursorX = e.pageX;
-      var cursorY = e.pageY;
-      if (cursorX === undefined) {
-        var touchObj = e.changedTouches[0];
-        cursorX = parseInt(touchObj.clientX);
-      }
-      if (cursorY === undefined) {
-        var touchObj = e.changedTouches[0];
-        cursorY = parseInt(touchObj.clientY);
-      }
-
-      var deltaX = (cursorX - original_mouse_x);
-
-      const width = original_width + deltaX;
-      element.style.width = width + 'px';
-      line.setAttribute('x1', width);
-      line.parentElement.style.width = width + 'px';
-    }
-
-    function stopResize() {
-      window.removeEventListener('mousemove', resize);
-      window.removeEventListener('touchmove', resize);
-      draggable.draggabilly('enable');
-    }
-  },
-  rotatable: function(canvas, draggable) {
-    const pointer = document.getElementById(this.id + '_line_adorner');
-    var rotater_id = this.id + "_rotate_adorner";
-    const rotater = document.getElementById(rotater_id);
-    var pointerBox = pointer.getBoundingClientRect();
-    var centerPoint = window.getComputedStyle(pointer).transformOrigin;
-    var centers = centerPoint.split(" ");
-    var centerY = pointerBox.top + parseInt(centers[1]) - window.pageYOffset;
-    var centerX = pointerBox.left + parseInt(centers[0]) - window.pageXOffset;
-
-    rotater.addEventListener('touchstart', startRotate, false);
-    rotater.addEventListener('mousedown', startRotate, false);
-
-    node = this;
-
-    function startRotate(e) {
-      draggable.draggabilly('disable');
-      window.addEventListener('mousemove', rotate);
-      window.addEventListener('touchmove', rotate);
-
-      window.addEventListener('mouseup', stopRotate);
-      window.addEventListener('touchend', stopRotate);
-    }
-
-    function rotate(e) {
-      var pointerEvent = e;
-      var mouseX = 0;
-      var mouseY = 0;
-      if (e.targetTouches && e.targetTouches[0]) {
-        e.preventDefault();
-        pointerEvent = e.targetTouches[0];
-        mouseX = pointerEvent.pageX;
-        mouseY = pointerEvent.pageY - 36;
-      } else {
-        mouseX = e.clientX;
-        mouseY = e.clientY - 36;
-      }
-      var radians = Math.atan2(mouseX - centerX, mouseY - centerY);
-      var degrees = (radians * (180 / Math.PI) * -1);
-      pointer.style.transform = 'rotate(' + degrees + 'deg)';
-      /*Somehow the value of transform attribute is becoming blank
-       *after rotation is stopped, so capturing the transform
-       *value during rotation process and same will be applied
-       *when drag stopped
-       * DOESN'T MAKE ANY SENSE BUT IT WORKS!!!
-       */
-      canvas.drag_items[(node.id + '_line_adorner')] = pointer.style.transform;
-    }
-
-    function stopRotate(e) {
-      window.removeEventListener('mousemove', rotate);
-      window.removeEventListener('touchmove', rotate);
-      draggable.draggabilly('enable');
-    }
-  },
-  setStartPoint: function(x1, y1) {
-    this.startX = x1;
-    this.startY = y1;
-    this.redraw();
-  },
-  setEndPoint: function(x2, y2) {
-    this.endX = x2;
-    this.endY = y2;
-    this.redraw();
-    var l = document.getElementById(this.id + '_line_adorner');
-    var p = l.getBoundingClientRect();
-  },
-  getStartPoint: function() {
-    return {
-      x: this.startX,
-      y: this.startY
-    };
-  },
-  getEndPoint: function() {
-    return {
-      x: this.endX,
-      y: this.endY
-    };
+  selectable: function(){
+	selectable = new Selectable();
+	var dom =  document.getElementById(this.id);
+	selectable.add(dom);
+	var that = this;                                              selectable.on('selecteditem', function(item){
+                        var childs = $j(item.node).children('[class*="adorner"]');
+			childs.each(function(index, value){
+                                value.style.display = 'inline';
+			});
+	});
+	selectable.on('deselecteditem', function(item){
+                childs.each(function(index, value) {                              value.style.display = 'none';
+                });
+        });
   }
 });
