@@ -148,6 +148,7 @@ var Canvas = Class.create({
             html += "style='width:" + this.width + ";' ";
         }
         html += " data-type='canvas'>";
+        html += "<svg style='position:absolute; top: 0px; height: 100%; width: 100%' id='" + this.id + "_svg' ></svg>"
 	   /*Iterate through all the child nodes or edges of
 	   * canvas and render each of it by concatnating its
 	   * HTML to canvas's HTML
@@ -190,7 +191,7 @@ var Canvas = Class.create({
     	 */
         var that = this;
     	this.selectable.on('selecteditem', function(item){
-            if(item.node.nodeName === 'DIV'){
+            if(item.node.nodeName === 'DIV' || item.node.nodeName === 'g'){
     			var childs = $j(item.node).children("[class*='adorner']");
     			childs.each(function(index, value){
     				value.style.display = 'inline';
@@ -203,7 +204,7 @@ var Canvas = Class.create({
     		}
     	});
     	this.selectable.on('deselecteditem', function(item){
-            if(item.node.nodeName === 'DIV'){
+            if(item.node.nodeName === 'DIV' || item.node.nodeName === 'g'){
                 var childs = $j(item.node).children("[class*='adorner']");
                 childs.each(function(index, value) {
                     value.style.display = 'none';
@@ -237,13 +238,19 @@ var Canvas = Class.create({
 	this.draggables.on('dragMove', function(event, item){
 		var adorner_id = event.currentTarget.id;
 		var element = document.getElementById(adorner_id);
-		if(element.dataset['type'] === 'edge'){
+        var item_type = undefined;
+        if(element.dataset != undefined){
+            item_type = element.dataset['type'];
+        } else {
+            item_type = element.attributes['data-type'];
+        }
+		if(item_type === 'edge'){
 			var idx = adorner_id.indexOf('_line_adorner');
 			var id = adorner_id.substring(0, idx);
 			for(var i=0; i < that.nodes.length; i++){
 				var availPort = that.nodes[i].getNextEmptyPort();
 				var edge = that.getEdge(id);
-				edge.updatePosition();
+				//edge.updatePosition();
 				var startPoint = edge.getStartPoint();
 				var endPoint = edge.getEndPoint();
 				//do we have anything to disconnect first
@@ -253,31 +260,29 @@ var Canvas = Class.create({
 						//check mouse point is in range of current port
 						if(allPorts[j].canConnect(startPoint)){
 							allPorts[j].disconnect(edge);
-							that.draggables._pointerUp(event.originalEvent, item);
 							return false;
 						} else if(allPorts[j].canConnect(endPoint)){
 							allPorts[j].disconnect(edge);
-							that.draggables._pointerUp(event.originalEvent, item);
 							return false;
 						}
 					}
 				}
-				if(availPort.canConnect(startPoint)){
-					//edge.setStartPoint(startPoint.x, endPoint.y);
-					if(!availPort.isConnected){
-						availPort.connect(edge);
-					} 
-					that.draggables._pointerUp(event.originalEvent, item);
-					return false;
-				} else if(availPort.canConnect(endPoint)){
-					//edge.setEndPoint(endPoint.x, endPoint.y);
-					if(!availPort.isConnected){
-						availPort.connect(edge);
-					}
-					that.draggables._pointerUp(event.originalEvent, item);
-					return false;
-				}
-			}	
+  //               if(availPort != null){
+  //   				if(availPort.canConnect(startPoint)){
+  //   					//edge.setStartPoint(startPoint.x, endPoint.y);
+  //   					if(!availPort.isConnected){
+  //   						availPort.connect(edge);
+  //   					}
+  //   					return false;
+  //   				} else if(availPort.canConnect(endPoint)){
+  //   					//edge.setEndPoint(endPoint.x, endPoint.y);
+  //   					if(!availPort.isConnected){
+  //   						availPort.connect(edge);
+  //   					}
+  //   					return false;
+  //   				}
+  //               }
+			}
 		}
 	});
     },
@@ -754,40 +759,35 @@ var Edge = Class.create({
         this.lineStroke = lineStroke || "Solid";
     },
     makeElement: function(){
-	this.mainDiv = d3.select(('#' + this.parentElement.id))
-                .append('div')
-                .attr('id', this.id + "_line_adorner")
-                .attr('class', "ui-selectable ui-draggable")
-	    	.attr('data-type', 'edge')
-	    	.attr('data-subtype', 'straight-line');
+	// this.mainDiv = d3.select(('#' + this.parentElement.id))
+ //                .append('div')
+ //                .attr('id', this.id + "_line_adorner")
+ //                .attr('class', "ui-selectable ui-draggable")
+	//     	.attr('data-type', 'edge')
+	//     	.attr('data-subtype', 'straight-line');
 
-	this.svg = this.mainDiv.append('svg')
-	    		.attr('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
-	this.startAdorner 
-		= this.mainDiv
-	    	.append('div')
-	    	.attr('id', this.id + '_start_adorner')
-	    	.attr('class','adorner-line-unselected');
+	// this.svg = this.mainDiv.append('svg')
+	//     		.attr('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
+	// this.startAdorner
+	// 	= this.mainDiv
+	//     	.append('div')
+	//     	.attr('id', this.id + '_start_adorner')
+	//     	.attr('class','adorner-line-unselected');
 
-	this.labelStartPoint
-	    	= this.mainDiv
-	    	.append('div')
-	    	.append('span')
-	    	.attr('text', 'x: , y:')
-	    	.attr('id', this.id + '_label_start_point');
+	// this.endAdorner
+	// 	= this.mainDiv
+	//     	.append('div')
+	//     	.attr('id', this.id + '_end_adorner')
+	//     	.attr('class','adorner-line-unselected');
 
-	this.endAdorner
-		= this.mainDiv
-	    	.append('div')
-	    	.attr('id', this.id + '_end_adorner')
-	    	.attr('class','adorner-line-unselected');
+	// this.rotateAdorner
+	// 	= this.mainDiv
+	//     	.append('div')
+	//     	.attr('id', this.id + '_rotate_adorner')
+	//     	.attr('class', 'rotate_adorner');
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    this.svg = d3.select(svg_id);
 
-	this.rotateAdorner 
-		= this.mainDiv
-	    	.append('div')
-	    	.attr('id', this.id + '_rotate_adorner')
-	    	.attr('class', 'rotate_adorner');
-        
 	this.svg.append('svg:defs').append('svg:marker')
             .attr("id", "arrow")
             .attr("refX", 6)
@@ -799,106 +799,166 @@ var Edge = Class.create({
             .append("path")
             .attr("d", "M 0 0 12 6 0 12 3 6")
             .style("fill", "black");
-	   
-	this.line = this.svg.append('line')
+    var dx = Math.abs(this.endX - this.startX);
+    var dy = Math.abs(this.endY - this.startY);
+    var startXOffset = 0;
+    var startYOffset = 0;
+    var endXOffset = 0;
+    var endYOffset = 0;
+    var width = 0;
+    var height = 0;
+
+    if(dy <= dx){ //X-Axis dominant
+        startXOffset = 10;
+        startYOffset = 5;
+        endXOffset = -5;
+        endYOffset = 5;
+        if(dx >= 0){ //left to right
+            width = this.endX - this.startX;
+        } else { //right to left
+            width = this.startX - this.endX;
+        }
+    } else { //Y-Axis dominant
+        startXOffset = 5;
+        startYOffset = 10;
+        endXOffset = 5;
+        endYOffset = -5;
+        if(dy >= 0) { //bottom to top
+            height = this.startY - this.endY;
+        } else { //top to bottom
+            height = this.endY - this.startY;
+        }
+    }
+
+    this.g = this.svg.append('g')
+                .attr('id', this.id + '_line_adorner')
+                .attr('class', 'ui-selectable ui-draggable');
+
+    this.startAdoner = this.g
+                            .append('rect')
+                            .attr('id', this.id + '_start_adorner')
+                            .attr('x', this.startX-startXOffset)
+                            .attr('y', this.startY-startYOffset)
+                            .attr('height', 10)
+                            .attr('width', 10)
+                            .attr('rx', 3)
+                            .attr('ry', 3)
+                            .attr('class', 'adorner-line-unselected');
+
+    this.endAdoner = this.g
+                            .append('rect')
+                            .attr('id', this.id + '_end_adorner')
+                            .attr('x', this.endX-endXOffset)
+                            .attr('y', this.endY-endYOffset)
+                            .attr('height', 10)
+                            .attr('width', 10)
+                            .attr('rx', 3)
+                            .attr('ry', 3)
+                            .attr('class', 'adorner-line-unselected');
+
+    this.rotateAdorner = this.g
+                            .append('rect')
+                            .attr('id', this.id + '_rotate_adorner')
+                            .attr('class', 'line_rotate_adorner');
+
+	this.line = this.g.append('line')
             .attr('id', this.id)
-            .attr('x1', this.x1)
-        	.attr('y1', this.y1+2)
-        	.attr('x2', this.x2+5)
-        	.attr('y2', this.y2-5)
+            .attr('x1', this.startX) //x1)
+        	.attr('y1', this.startY) //y1+2)
+        	.attr('x2', this.endX) //x2+5)
+        	.attr('y2', this.endY) //y2-5)
         	.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
             .attr('marker-end', 'url(#arrow)')
 	    .attr('data-type', 'edge-base');
     },
     redraw: function(){
-	    var style = "position: absolute !important; "
-	    this.x1 = 0;
-	    this.y1 = 0;
-	    this.x2 = 0;
-	    this.y2 = 0;
-	    if(this.startX > this.endX){
-		  this.width = this.startX - this.endX;
-		  style += "left: " + (this.endX-2) + "px; ";
-		  this.x1 = this.width;
-		  this.x2 = 0;
-	    } else {
-		  this.width = this.endX - this.startX;
-		  style += "left: " + (this.startX-2) + "px; ";
-		  this.x1 = 0;
-		  this.x2 = this.width;
-	    }
-	    if(this.startY > this.endY){
-		  this.height = this.startY - this.endY;
-		  style += "top: " + this.endY + "px; ";
-		  this.y1 = this.height;
-		  this.y2 = 0;
-	    } else {
-		  this.height = this.endY - this.startY;
-		  style += "top: " + this.startY + "px; ";
-		  this.y1 = 0;
-		  this.y2 = this.height;
-	    }
-	    if(this.width == 0){
-		    this.width = 10;
-	    }
-	    if(this.height == 0){
-		    this.height = 10;
-	    }
-	    style += "width: " + this.width + "px; ";
-	    style += "height: " + this.height + "px; ";
-	    style += "border: 2px transparent solid !important";
-	    this.svg.attr('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
-	    this.mainDiv.attr('style', style);
+	//     var style = "position: absolute !important; "
+	//     this.x1 = 0;
+	//     this.y1 = 0;
+	//     this.x2 = 0;
+	//     this.y2 = 0;
+	//     if(this.startX > this.endX){
+	// 	  this.width = this.startX - this.endX;
+	// 	  style += "left: " + (this.endX-2) + "px; ";
+	// 	  this.x1 = this.width;
+	// 	  this.x2 = 0;
+	//     } else {
+	// 	  this.width = this.endX - this.startX;
+	// 	  style += "left: " + (this.startX-2) + "px; ";
+	// 	  this.x1 = 0;
+	// 	  this.x2 = this.width;
+	//     }
+	//     if(this.startY > this.endY){
+	// 	  this.height = this.startY - this.endY;
+	// 	  style += "top: " + this.endY + "px; ";
+	// 	  this.y1 = this.height;
+	// 	  this.y2 = 0;
+	//     } else {
+	// 	  this.height = this.endY - this.startY;
+	// 	  style += "top: " + this.startY + "px; ";
+	// 	  this.y1 = 0;
+	// 	  this.y2 = this.height;
+	//     }
+	//     if(this.width == 0){
+	// 	    this.width = 10;
+	//     }
+	//     if(this.height == 0){
+	// 	    this.height = 10;
+	//     }
+	//     style += "width: " + this.width + "px; ";
+	//     style += "height: " + this.height + "px; ";
+	//     style += "border: 2px transparent solid !important";
+	//     this.svg.attr('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
+	//     this.mainDiv.attr('style', style);
 
-	    var adorner_start_style = '';
-	    if(this.x1 == 0 && this.y1 == 0){
-		    adorner_start_style = "top: -5px; left: -8px;";
-		    this.x1_pos = 'left';
-		    this.y1_pos = 'top';
-	    } else if(this.x1 == 0 && this.y1 > 0){
-		    adorner_start_style = "left: -8px; bottom: -5px;";
-		    this.x1_pos = 'left';
-		    this.y1_pos = 'bottom';
-	    } else if(this.x1 > 0 && this.y1 > 0){
-		    adorner_start_style = "bottom: -5px; right: -8px;";
-		    this.x1_pos = 'right';
-		    this.y1_pos = 'bottom';
-	    } else if(this.x1 > 0 && this.y1 == 0){
-		    adorner_start_style = "right: -8px; top: -4px;";
-		    this.x1_pos = 'right';
-		    this.y1_pos = 'top';
-	    }
-        adorner_start_style += "background: #D1C4E9;cursor: nwse-resize"
-	this.startAdorner.attr('style', adorner_start_style);
-	this.labelStartPoint.attr('style', adorner_start_style);
+	//     var adorner_start_style = '';
+	//     if(this.x1 == 0 && this.y1 == 0){
+	// 	    adorner_start_style = "top: -5px; left: -8px;";
+	// 	    this.x1_pos = 'left';
+	// 	    this.y1_pos = 'top';
+	//     } else if(this.x1 == 0 && this.y1 > 0){
+	// 	    adorner_start_style = "left: -8px; bottom: -5px;";
+	// 	    this.x1_pos = 'left';
+	// 	    this.y1_pos = 'bottom';
+	//     } else if(this.x1 > 0 && this.y1 > 0){
+	// 	    adorner_start_style = "bottom: -5px; right: -8px;";
+	// 	    this.x1_pos = 'right';
+	// 	    this.y1_pos = 'bottom';
+	//     } else if(this.x1 > 0 && this.y1 == 0){
+	// 	    adorner_start_style = "right: -8px; top: -4px;";
+	// 	    this.x1_pos = 'right';
+	// 	    this.y1_pos = 'top';
+	//     }
+ //        adorner_start_style += "background: #D1C4E9;cursor: nwse-resize"
+ //    	this.startAdorner.attr('style', adorner_start_style);
 
-	    var adorner_end_style = '';
-	    if(this.x2 == 0 && this.y2 == 0){
-		    adorner_end_style = "top: -5px; left: -8px;";
-		    this.x2_pos = 'left';
-		    this.y2_pos = 'top';
-	    } else if(this.x2 == 0 && this.y2 > 0){
-		    adorner_end_style = "left: -10px; bottom: -2px;";
-		    this.x2_pos = 'left';
-		    this.y2_pos = 'bottom';
-	    } else if(this.x2 > 0 && this.y2 > 0){
-		    adorner_end_style = "bottom: -5px; right: -8px;";
-		    this.x2_pos = 'right';
-		    this.y2_pos = 'bottom';
-	    } else if(this.x2 > 0 && this.y2 == 0){
-		    adorner_end_style = "right: -8px; top: -5px;";
-		    this.x2_pos = 'right';
-		    this.y2_pos = 'top';
-	    }
-	this.endAdorner.attr('style', adorner_end_style);
-	
-	this.line
-        	.attr('x1', this.x1+5)
-        	.attr('y1', this.y1+2)
-        	.attr('x2', this.x2+5)
-        	.attr('y2', this.y2-5)
-        	.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
-            .attr('marker-end', 'url(#arrow)');
+	//     var adorner_end_style = '';
+	//     if(this.x2 == 0 && this.y2 == 0){
+	// 	    adorner_end_style = "top: -5px; left: -8px;";
+	// 	    this.x2_pos = 'left';
+	// 	    this.y2_pos = 'top';
+	//     } else if(this.x2 == 0 && this.y2 > 0){
+	// 	    adorner_end_style = "left: -10px; bottom: -2px;";
+	// 	    this.x2_pos = 'left';
+	// 	    this.y2_pos = 'bottom';
+	//     } else if(this.x2 > 0 && this.y2 > 0){
+	// 	    adorner_end_style = "bottom: -5px; right: -8px;";
+	// 	    this.x2_pos = 'right';
+	// 	    this.y2_pos = 'bottom';
+	//     } else if(this.x2 > 0 && this.y2 == 0){
+	// 	    adorner_end_style = "right: -8px; top: -5px;";
+	// 	    this.x2_pos = 'right';
+	// 	    this.y2_pos = 'top';
+	//     }
+	// this.endAdorner.attr('style', adorner_end_style);
+
+	// this.line
+ //        	.attr('x1', this.x1+5)
+ //        	.attr('y1', this.y1+2)
+ //        	.attr('x2', this.x2+5)
+ //        	.attr('y2', this.y2-5)
+ //        	.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
+ //            .attr('marker-end', 'url(#arrow)');
     },
     render: function(){
 	    var node1 = this.parentElement.getNode(this.elementLeft.id);
@@ -906,15 +966,11 @@ var Edge = Class.create({
 	    var port1 = node1.getNextEmptyPort();
 	    var port2 = node2.getNextEmptyPort();
 
-	    /*var element1 = document.getElementById(this.elementLeft.id);
-	    var element2 = document.getElementById(this.elementRight.id);
-	    var ele1Pos = element1.getBoundingClientRect();
-	    var ele2Pos = element2.getBoundingClientRect();*/
-	    this.startX = port1.getConnectionPoint().x; //ele1Pos.right;
-	    this.startY = port1.getConnectionPoint().y; //ele1Pos.bottom;
-	    this.endX = port2.getConnectionPoint().x; //ele2Pos.left;
-	    this.endY = port2.getConnectionPoint().y; //ele2Pos.top;
-	    alert(this.startX + ',' + this.startY + ',' + this.endX + ',' + this.endY);
+	    this.startX = port1.getConnectionPoint().x;
+	    this.startY = port1.getConnectionPoint().y;
+	    this.endX = port2.getConnectionPoint().x;
+	    this.endY = port2.getConnectionPoint().y;
+
 	    this.makeElement();
 	    this.redraw();
     },
@@ -926,11 +982,9 @@ var Edge = Class.create({
         let original_width = 0;
         let original_x = 0;
         let original_mouse_x = 0;
-	let original_height = 0;
-	let original_y = 0;
-	let original_mouse_y = 0;
-	let centerX = 0;
-	let centerY = 0;
+        let original_height = 0;
+        let original_y = 0;
+        let original_mouse_y = 0;
         resizer.addEventListener('mousedown', startResize, false);
         resizer.addEventListener('touchstart', startResize, false);
 
@@ -939,20 +993,12 @@ var Edge = Class.create({
             draggable.draggabilly('disable');
             e.preventDefault();
             original_width = parseFloat(getComputedStyle(element, null).getPropertyValue('width').replace('px', ''));
-	    original_height = parseFloat(getComputedStyle(element, null).getPropertyValue('height').replace('px', ''));
-            original_mouse_x = e.pageX;
-	    original_mouse_y = e.pageY;
-            if(original_mouse_x === undefined){
+	        original_mouse_x = e.pageX;
+	        if(original_mouse_x === undefined){
                 var touchObj = e.changedTouches[0];
                 original_mouse_x = parseInt(touchObj.clientX);
             }
-	    if(original_mouse_y === undefined){
-		var touchObj = e.changedTouches[0];
-		original_mouse_y = parseInt(touchObj.clientY);
-	    }
-	    centerX = that.endX - window.pageXOffset;
-	    centerY = that.endY - window.pageYOffset;
-            window.addEventListener('touchmove', resize);
+	        window.addEventListener('touchmove', resize);
             window.addEventListener('mousemove', resize);
             window.addEventListener('touchend', stopResize);
             window.addEventListener('mouseup', stopResize);
@@ -960,25 +1006,22 @@ var Edge = Class.create({
 
         function resize(e){
             var cursorX = e.pageX;
-	    var cursorY = e.pageY;
+            var cursorY = e.pageY;
             if(cursorX === undefined){
                 var touchObj = e.changedTouches[0];
                 cursorX = parseInt(touchObj.clientX);
             }
-	    if(cursorY === undefined){
-		var touchObj = e.changedTouches[0];
-		cursorY = parseInt(touchObj.clientY);
-	    }
-            var deltaX = (cursorX - original_mouse_x);
-	    var deltaY = (cursorY - original_mouse_y);
-	    var radians = Math.atan2(cursorX - centerX, cursorY - centerY);
-	    var degrees = (radians * (180 / Math.PI) * -1);
-	    element.style.transform = 'rotate('+degrees+'deg)';
+            if(cursorY === undefined){
+                var touchObj = e.changedTouches[0];
+                cursorY = parseInt(touchObj.clientY);
+            }
 
-            const width = original_width + deltaX;
-            element.style.width = width + 'px';
-            line.setAttribute('x1', width);
-            line.parentElement.style.width = width + 'px';
+            // var deltaX = (cursorX - original_mouse_x);
+
+            // const width = original_width + deltaX;
+            // element.style.width = width + 'px';
+            // line.setAttribute('x1', width);
+            // line.parentElement.style.width = width + 'px';
         }
         function stopResize(){
             window.removeEventListener('mousemove', resize);

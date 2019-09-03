@@ -32,13 +32,15 @@
 
 }
 .adorner-line-unselected {
-	position: absolute;
+	/*position: absolute;
 	background: #00BFFF;
 	height: 10px;
 	width: 10px;
-	border-radius: 5px;
+	border-radius: 5px;*/
 	display: none;
-        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        fill: #00BFFF;
+        stroke-width: 1px;
+        /*box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);*/
 }
 /*.adorner-line-selected {
 	position: absolute;
@@ -179,4 +181,7 @@
 	      left: 50%;
 	      margin-left: -5px;
 	      display: none;
+}
+.line_rotate_adorner{
+
 }
