@@ -191,7 +191,7 @@ var Canvas = Class.create({
     	 */
         var that = this;
     	this.selectable.on('selecteditem', function(item){
-            if(item.node.nodeName === 'DIV' || item.node.nodeName === 'g'){
+            if(item.node.nodeName === 'DIV' || item.node.nodeName === 'line'){
     			var childs = $j(item.node).children("[class*='adorner']");
     			childs.each(function(index, value){
     				value.style.display = 'inline';
@@ -204,7 +204,7 @@ var Canvas = Class.create({
     		}
     	});
     	this.selectable.on('deselecteditem', function(item){
-            if(item.node.nodeName === 'DIV' || item.node.nodeName === 'g'){
+            if(item.node.nodeName === 'DIV' || item.node.nodeName === 'line'){
                 var childs = $j(item.node).children("[class*='adorner']");
                 childs.each(function(index, value) {
                     value.style.display = 'none';
@@ -214,9 +214,25 @@ var Canvas = Class.create({
     },
     draggable: function(){
 	   /*Make all items on canvas as draggable*/
-        this.draggables = $j('.ui-draggable').draggabilly({
-		  grid: this.grid
-    	});
+        //this.draggables = $j('.ui-draggable').draggabilly({
+	//	  grid: this.grid
+    	//});
+	this.draggables = $j('.ui-draggable').draggable();
+	this.draggables.bind('mousedown', function(event, ui){
+		$(event.target.parentElement).append(event.target);
+	});
+	this.draggables.bind('drag', function(event, ui){
+		var x1 = event.target.getAttribute('x1');
+		var y1 = event.target.getAttribute('y1');
+		var x2 = event.target.getAttribute('x2');
+		var y2 = event.target.getAttribute('y2');
+		deltaX = x2-x1;
+		deltaY = y2-y1;
+		event.target.setAttribute('x1', ui.position.left);
+		event.target.setAttribute('y1', ui.position.top);
+		event.target.setAttribute('x2', ui.position.left + deltaX);
+		event.target.setAttribute('y2', ui.position.top + deltaY);
+	});
     	/*Due to bug in draggabilly lib, an rotated element
     	 * gets its position reset to original during drag
     	 * and after drag is done. Workaround is to save
@@ -224,16 +240,16 @@ var Canvas = Class.create({
     	 * into variable and reapply the same rotated value to
     	 * element once drag is completed
     	 */
-        that = this;
+        /*that = this;
     	this.draggables.on('dragStart', function(event, item){
-    		var id = event.currentTarget.id;
-    		var element = document.getElementById(id);
-    		that.drag_items[id] = element.style.transform;
+    		//var id = event.currentTarget.id;
+    		//var element = document.getElementById(id);
+    		//that.drag_items[id] = element.style.transform;
     	});
     	this.draggables.on('dragEnd', function(event, item){
-    		var id = event.currentTarget.id;
-    		var element = document.getElementById(id);
-    		element.style.transform = that.drag_items[id];
+    		//var id = event.currentTarget.id;
+    		//var element = document.getElementById(id);
+    		//element.style.transform = that.drag_items[id];
     	});
 	this.draggables.on('dragMove', function(event, item){
 		var adorner_id = event.currentTarget.id;
@@ -284,7 +300,7 @@ var Canvas = Class.create({
   //               }
 			}
 		}
-	});
+	});*/
     },
     resizable: function(div, draggable) {
         /* Make node element as resizable */
@@ -807,6 +823,8 @@ var Edge = Class.create({
     var endYOffset = 0;
     var width = 0;
     var height = 0;
+    var boxX = 0;
+    var boxY = 0;
 
     if(dy <= dx){ //X-Axis dominant
         startXOffset = 10;
@@ -815,9 +833,14 @@ var Edge = Class.create({
         endYOffset = 5;
         if(dx >= 0){ //left to right
             width = this.endX - this.startX;
+	    boxX = this.startX;
         } else { //right to left
             width = this.startX - this.endX;
+	    boxX = this.endX;
         }
+	if(width === 0){
+		width = 20;
+	}
     } else { //Y-Axis dominant
         startXOffset = 5;
         startYOffset = 10;
@@ -825,14 +848,16 @@ var Edge = Class.create({
         endYOffset = -5;
         if(dy >= 0) { //bottom to top
             height = this.startY - this.endY;
+	    boxY = this.endY;
         } else { //top to bottom
             height = this.endY - this.startY;
+	    boxY = this.startY;
         }
     }
-
+	height = height*-1;
     this.g = this.svg.append('g')
                 .attr('id', this.id + '_line_adorner')
-                .attr('class', 'ui-selectable ui-draggable');
+                .attr('class','');
 
     this.startAdoner = this.g
                             .append('rect')
@@ -869,7 +894,8 @@ var Edge = Class.create({
         	.attr('y2', this.endY) //y2-5)
         	.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
             .attr('marker-end', 'url(#arrow)')
-	    .attr('data-type', 'edge-base');
+	    .attr('data-type', 'edge-base')
+	    .attr('class', 'ui-selectable ui-draggable');
     },
     redraw: function(){
 	//     var style = "position: absolute !important; "
