@@ -235,6 +235,7 @@ var Edge = Class.create({
   startAdorner: undefined,
   endAdorner: undefined,
   rotateAdorner: undefined,
+  drag_handle: undefined,
   initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowEnd, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -253,6 +254,7 @@ var Edge = Class.create({
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "3";
     this.lineStroke = lineStroke || "Solid";
+    this.drag_handle = undefined;
   },
   makeElement: function() {
 
@@ -308,7 +310,8 @@ var Edge = Class.create({
 
     this.g = this.svg.append('g')
       .attr('id', this.id + '_line_adorner')
-      .attr('class', 'ui-selectable');
+      .attr('class', 'ui-selectable')
+      .attr('style', '');
 
     this.startAdoner = this.g
       .append('rect')
@@ -409,12 +412,14 @@ var Edge = Class.create({
     this.redraw();
     this.selectable();
     this.draggable();
+    this.resizable();
   },
   selectable: function(){
     var selectable = new Selectable({
       lasso: false
     });
     var dom =  document.getElementById(this.id + '_line_adorner');
+    var line = document.getElementById(this.id);
     selectable.add(dom);
     var that = this;
     selectable.on('selecteditem', function(item){
@@ -434,5 +439,42 @@ var Edge = Class.create({
     var dom =  document.getElementById(this.id + '_line_adorner');
     var svg = document.getElementById(this.parentElement.id + "_svg");
     makeDraggable(svg, dom);
+  },
+  resizable: function(){
+	var line = document.getElementById(this.id);
+	var resizer = document.getElementById(this.id + '_start_adorner');
+
+	resizer.addEventListener('mousedown', startResize);
+	resizer.addEventListener('touchstart', startResize);
+
+	function startResize(e){
+		e.preventDefault();
+		resizer.addEventListener('mousemove', resize);
+		resizer.addEventListener('touchmove', resize);
+		resizer.addEventListener('touchend', stopResize);
+		resizer.addEventListener('mouseup', stopResize);
+		dragEnabled = false;
+	}
+
+	function resize(e){
+		var cursorX = e.pageX;
+		var cursorY = e.pageY;
+		if(cursorX === undefined){
+			var touchObj = e.changedTouches[0];
+			cursorX = parseInt(touchObj.clientX);
+		}
+		if(cursorY === undefined){
+			var touchObj = e.changedTouches[0];
+			cursorY = parseInt(touchObj.clientY);
+		}
+		line.setAttribute('x1', cursorX);
+		line.setAttribute('y1', cursorY);
+	}
+
+	function stopResize(e){
+		dragEnabled = true;
+		resizer.removeEventListener('mousemove', resize);
+		reaizer.removeEventListener('touchmove', resize);
+	}
   }
 });

@@ -4,10 +4,15 @@
  * Date: 25-Aug-2019
  * ***********************************/
 .canvas {
-	height:700px;
-        width: 800px;
+	height: 100%;
+        max-width: 100%;
         border: 1px grey solid;
         background-image: url('images/grid.gif');
+	position:absolute;
+	top:0;
+	bottom:0;
+	right:0;
+	left:0;
 }
 .ui-selecting{
         background: lightblue !important;

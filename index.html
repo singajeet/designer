@@ -17,8 +17,8 @@
 		var $j = jQuery.noConflict();
 	</script>
   </head>
-  <body style='height:100%;width:100%;'>
-	  <div id="parent_div" style="height:100%; width:100%"></div>
+  <body style='height:auto;max-width:100%;'>
+	  <div id="parent_div" style="height:auto; max-width:100%"></div>
     <script>
 	    $j(document).ready(function(){
 		    try{
@@ -28,11 +28,13 @@
 	// var p1 = new Port('p1');
 	// var p2 = new Port('p2');
 		var e1 = new Edge('e1', c, {x:100, y:100}, {x:100, y:250});
+		var e2 = new Edge('e2', c, {x:100, y:300}, {x:200, y:300});
 	// n1.initPort(p1);
 	// n2.initPort(p2);
  //        c.initNode(n1);
  //        c.initNode(n2);
 	c.initEdge(e1);
+	c.initEdge(e2);
         c.render();
 		    }catch(err){
 			    alert(err.stack);
