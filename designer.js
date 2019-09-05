@@ -236,6 +236,7 @@ var Edge = Class.create({
   endAdorner: undefined,
   rotateAdorner: undefined,
   drag_handle: undefined,
+  resize_handle: undefined,
   initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowEnd, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -254,7 +255,14 @@ var Edge = Class.create({
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "3";
     this.lineStroke = lineStroke || "Solid";
+    this.mainDiv = undefined;
+    this.svg = undefined;
+    this.line = undefined;
+    this.startAdorner = undefined;
+    this.endAdorner = undefined;
+    this.rotateAdorner = undefined;
     this.drag_handle = undefined;
+    this.resize_handle = undefined;
   },
   makeElement: function() {
 
@@ -279,6 +287,10 @@ var Edge = Class.create({
     var startYOffset = 0;
     var endXOffset = 0;
     var endYOffset = 0;
+    var borderX = 0;
+    var borderY = 0;
+    var borderW = 0;
+    var borderH = 0;
 
     if (dy <= dx) { //X-Axis dominant
       startXOffset = 10;
@@ -287,8 +299,16 @@ var Edge = Class.create({
       endYOffset = 5;
       if (dx >= 0) { //left to right
         this.width = this.endX - this.startX;
+	borderX = this.startX;
+	borderY = this.startY - 10;
+	borderW = this.width;
+	borderH = 10 + 10;
       } else { //right to left
         this.width = this.startX - this.endX;
+	borderX = this.endX;
+	borderY = thia.endY - 10;
+	borderW = this.width;
+	borderH = 10 + 10;
         }
       if (this.width === 0) {
         this.width = 20;
@@ -298,10 +318,18 @@ var Edge = Class.create({
       startYOffset = 10;
       endXOffset = 5;
       endYOffset = -5;
-      if (dy >= 0) { //bottom to top
+      if (dy < 0) { //bottom to top
         this.height = this.startY - this.endY;
+	borderX = this.endX - 10;
+	borderY = this.endY;
+	borderW = 10 + 10;
+	borderH = this.height;
         } else { //top to bottom
         this.height = this.endY - this.startY;
+	borderX = this.startX - 10;
+	borderY = this.startY;
+	borderW = 10 + 10;
+	borderH = this.height;
         }
 	if (this.height === 0){
 	  this.height = 20;
@@ -312,6 +340,22 @@ var Edge = Class.create({
       .attr('id', this.id + '_line_adorner')
       .attr('class', 'ui-selectable')
       .attr('style', '');
+
+	this.drag_handle = this.g
+		  .append('rect')
+		  .attr('id', this.id + '_border')
+          .attr('x', borderX)                                           .attr('y', borderY)
+          .attr('width', borderW)
+          .attr('height', borderH)
+          .attr('style', 'stroke: transparent; stroke-width: 2px; stroke-dasharray: 10; fill: transparent;');
+
+    this.resize_handle = this.g
+	  .append('circle')
+	  .attr('id', this.id + '_resizer')
+	  .attr('cx', this.startX)
+	  .attr('cy', this.startY)
+	  .attr('r', 20)
+	  .attr('style', 'stroke: red; stroke-width: 2px; fill: transparent;');
 
     this.startAdoner = this.g
       .append('rect')
@@ -356,7 +400,7 @@ var Edge = Class.create({
             .attr('class', 'line_rotate_adorner');
         }
     } else { //Y Axis dominant
-      if(dy >= 0){ //bottom to top
+      if(dy < 0){ //bottom to top
         this.rotateAdorner = this.g
             .append('svg:image')
             .attr('x', this.startX + 36)
@@ -365,7 +409,7 @@ var Edge = Class.create({
             .attr('width', 15)
             .attr('xlink:href', 'images/handle-rotate.png')
             .attr('class', 'line_rotate_adorner');
-      } else {
+      } else { //top to bottom
         this.rotateAdorner = this.g
             .append('svg:image')
             .attr('x', this.endX + 36)
@@ -441,8 +485,12 @@ var Edge = Class.create({
     makeDraggable(svg, dom);
   },
   resizable: function(){
-	var line = document.getElementById(this.id);
-	var resizer = document.getElementById(this.id + '_start_adorner');
+	var line_adorner = document.getElementById(this.id + '_line_adorner');
+	var resizer = document.getElementById(this.id + '_resizer');
+	var centerX;
+	var centerY;
+	var initAngle;
+	var that = this;
 
 	resizer.addEventListener('mousedown', startResize);
 	resizer.addEventListener('touchstart', startResize);
@@ -453,7 +501,12 @@ var Edge = Class.create({
 		resizer.addEventListener('touchmove', resize);
 		resizer.addEventListener('touchend', stopResize);
 		resizer.addEventListener('mouseup', stopResize);
+		centerX = that.endX;
+		centerY = that.endY;
+		var cursorX = that.startX;
+		var cursorY = that.startY;
 		dragEnabled = false;
+		initAngle = Math.atan2(cursorY - centerY, cursorX - centerX) * (180/Math.PI);
 	}
 
 	function resize(e){
@@ -467,8 +520,8 @@ var Edge = Class.create({
 			var touchObj = e.changedTouches[0];
 			cursorY = parseInt(touchObj.clientY);
 		}
-		line.setAttribute('x1', cursorX);
-		line.setAttribute('y1', cursorY);
+		var angle = Math.atan2(cursorY - centerY, cursorX - centerX) * (180/Math.PI) + Math.abs(initAngle);
+		line_adorner.setAttribute("transform", "rotate(" + angle + " " + centerX + " " + centerY + ")" );
 	}
 
 	function stopResize(e){
