@@ -264,6 +264,15 @@ var Canvas = Class.create({
       html += "style='width:" + this.width + ";' ";
     }
     html += " data-type='canvas'>";
+    for(var i=0; i < this.tools.length; i++){
+      html += "<input type='radio' name='tools' id='" + this.tools[i].name;
+      if(i < 1){
+        html += "' checked>" + this.tools[i].name;
+      } else {
+        html += "'>" + this.tools[i].name;
+      }
+      html += "</input>"
+    }
     html += "<svg style='position:absolute; top: 0px; height: 100%; width: 100%' id='" + this.id + "_svg' ></svg>"
     /*Iterate through all the child nodes or edges of
      * canvas and render each of it by concatnating its
@@ -279,6 +288,15 @@ var Canvas = Class.create({
       var container = $j(this.containerId);
       this.dom = $j(html).appendTo($j(container));
     }
+    var that = this;
+    $j('[name="tools"]').bind('click', function(e){
+      var name = e.currentTarget.id;
+      for(var i=0; i < that.tools.length; i++){
+        if(that.tools[i].name === name){
+          that.selectedTool = that.tools[i];
+        }
+      }
+    });
     for (var i = 0; i < this.nodes.length; i++) {
       this.nodes[i].registerPortHighlighters();
     }
@@ -343,7 +361,9 @@ var Canvas = Class.create({
       }
       if(that.mouseTouchStatus === 'DOWN' || that.mouseTouchStatus === 'DRAG'){
         that.clickTapPosition = new Point(mouseX, mouseY);
-        that.selectedItem.mouseDrag(that.clickTapPosition, action);
+        if(that.selectedItem !== undefined){
+          that.selectedItem.mouseDrag(that.clickTapPosition, action);
+        }
         that.mouseTouchStatus = 'DRAG';
       }
     }
@@ -369,7 +389,9 @@ var Canvas = Class.create({
       if (that.mouseTouchStatus !== 'DOWN') {   //if the last state of mouse/touch was not a down event
         if(that.mouseTouchStatus === 'DRAG'){
           //if the last state of mouse was drag, consider this as mouseup/touchend event
-          that.selectedItem.mouseUp(that.clickTapPosition, action);
+          if(that.selectedItem !== undefined){
+            that.selectedItem.mouseUp(that.clickTapPosition, action);
+          }
         }
         that.mouseTouchStatus = 'UP';
         return;
@@ -377,6 +399,7 @@ var Canvas = Class.create({
       //if the last event was mousedown/touchstart or something else, iterate through all items
       //on canvas and select/unselect the item if it is under mouse position and can be
       //selected/unselected
+      that.selectedItem = undefined;
       for (var i = 0; i < that.nodes.length; i++) {
         if (that.nodes[i].isSelectable({
             x: mouseX,
@@ -677,6 +700,9 @@ var Edge = Class.create({
     });
   },
   isSelectable: function(point) {
+    return this.isMouseOver(point);
+  },
+  isMouseOver: function(point){
     var item = document.getElementById(this.id + '_line_adorner');
     var bbox = item.getBoundingClientRect();
     if (point.x >= bbox.left && point.x < (bbox.left + bbox.width) && point.y >= bbox.top && point.y < (bbox.top + bbox.height)) {
@@ -685,20 +711,28 @@ var Edge = Class.create({
     return false;
   },
   mouseDown: function(point, action){
-    this.startPoint = point;
+    if(this.startPoint === undefined){
+      this.startPoint = point;
+    }
     if(action === 'MODIFY'){
       this.dom = document.getElementById(this.id + '_line_adorner');
     }
   },
   mouseDrag: function(point, action){
     if(action === 'MODIFY'){
-      this.currentPoint = point;
-      var dx = this.currentPoint.x - this.startPoint.x;
-      var dy = this.currentPoint.y - this.startPoint.y;
-      this.dom.setAttribute('transform', 'translate(' + dx + ' ' + dy + ')');
+      if(this.isMouseOver(point)){
+        this.currentPoint = point;
+
+        var dx = this.currentPoint.x - this.startPoint.x;
+        var dy = this.currentPoint.y - this.startPoint.y;
+
+        this.dom.setAttribute('transform', 'translate(' + dx + ' ' + dy + ')');
+      }
     }
   },
-  mouseUp: function(point, action){}
+  mouseUp: function(point, action){
+
+  }
   /*draggable: function() {
     var dom = document.getElementById(this.id + '_line_adorner');
     var svg = document.getElementById(this.parentElement.id + "_svg");
