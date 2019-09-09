@@ -254,7 +254,7 @@ var Canvas = Class.create({
   render: function() {
     /*Renders the canvas along with Nodes and edges*/
     var html = "<div id='" + this.id + "' ";
-    html += "class='" + this.css + "' ";
+    //html += "class='" + this.css + "' ";
     if (this.height != undefined && this.width != undefined) {
       html += "style='height:" + this.height;
       html += "; width:" + this.width + ";'  ";
@@ -265,7 +265,7 @@ var Canvas = Class.create({
     }
     html += " data-type='canvas'>";
     for(var i=0; i < this.tools.length; i++){
-      html += "<input type='radio' name='tools' id='" + this.tools[i].name;
+      html += "<input type='radio' name='tools' id='" + this.id + "_" + this.tools[i].name + "_tool";
       if(i < 1){
         html += "' checked>" + this.tools[i].name;
       } else {
@@ -273,7 +273,7 @@ var Canvas = Class.create({
       }
       html += "</input>"
     }
-    html += "<svg style='position:absolute; top: 0px; height: 100%; width: 100%' id='" + this.id + "_svg' ></svg>"
+    html += "<svg class='" + this.css + "' style='position:absolute; top: 25px; left: 5px; height: 100%; width: 100%' id='" + this.id + "_svg' ></svg>"
     /*Iterate through all the child nodes or edges of
      * canvas and render each of it by concatnating its
      * HTML to canvas's HTML
@@ -292,7 +292,7 @@ var Canvas = Class.create({
     $j('[name="tools"]').bind('click', function(e){
       var name = e.currentTarget.id;
       for(var i=0; i < that.tools.length; i++){
-        if(that.tools[i].name === name){
+        if((that.id + "_" + that.tools[i].name + "_tool") === name){
           that.selectedTool = that.tools[i];
         }
       }
@@ -307,7 +307,7 @@ var Canvas = Class.create({
     this.registerActions();
   },
   registerActions: function() {
-    var canvas = document.getElementById(this.id);
+    var canvas = document.getElementById(this.id + '_svg');
     var that = this;
 
     canvas.addEventListener('mousedown', deviceDown);
@@ -336,10 +336,20 @@ var Canvas = Class.create({
         }
       } else if(that.selectedTool.name === 'LINE'){
         var id = prompt('Item Name: ');
-        var endPoint = new Point(that.clickTapPosition.x, that.clickTapPosition.y + 100);
-        var line = that.selectedTool.obj(id, that, that.clickTapPosition, endPoint); //Create an instance of the selected tool
-        line.mouseDown(that.clickTapPosition, 'NEW'); //Notify the tool about click/touch event
-        that.selectedItem = line;
+        if(id !== null && id !== ''){
+          var line = new that.selectedTool.obj(id, that, {x: that.clickTapPosition.x, y: that.clickTapPosition.y}, {x: that.clickTapPosition.x, y: that.clickTapPosition.y + 100});
+
+          //Create an instance of the selected tool and it to canvas's item collection
+          that.addEdge(line);
+          //Mark the new item as selected as well visual selected too
+          that.selectedItem = line;
+          line.select();
+          //Change the tool from Line to Select tool
+          //that.selectedTool = that.tools[0];
+          that._changeTool(0);
+          //Restore the mouse status back to UP
+          that.mouseTouchStatus = 'UP';
+       }
       }
     }
 
@@ -423,6 +433,13 @@ var Canvas = Class.create({
         }
       }
       that.mouseTouchStatus = 'UP';
+    }
+  },
+  _changeTool(index){
+    if(index < this.tools.length){
+      this.selectedTool = this.tools[index];
+      var toolName = this.id + "_" + this.tools[index].name + "_tool";
+      $j('#' + toolName).prop('checked', true);
     }
   },
   getNode: function(id) {
@@ -596,7 +613,7 @@ var Edge = Class.create({
       .append('path')
       .attr('id', this.id + '_border')
       .attr('d', lineFunction(dragHandleData))
-      .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 10; fill: transparent;');
+      .attr('style', 'stroke: green; stroke-width: 1px; stroke-dasharray: 2; fill: transparent;');
 
     this.resize_handle = this.g
       .append('circle')
@@ -604,7 +621,7 @@ var Edge = Class.create({
       .attr('cx', this.lineDimension.start.x)
       .attr('cy', this.lineDimension.start.y)
       .attr('r', 20)
-      .attr('style', 'stroke: red; stroke-width: 2px; fill: transparent;');
+      .attr('style', 'stroke: red; stroke-width: 1px; stroke-dasharray: 2; fill: transparent;');
 
     this.startAdoner = this.g
       .append('rect')
@@ -649,7 +666,7 @@ var Edge = Class.create({
           .attr('class', 'line_rotate_adorner');
       }
     } else { //Y Axis dominant
-      if (dy < 0) { //bottom to top
+      if (direction === 'BT') { //bottom to top
         this.rotateAdorner = this.g
           .append('svg:image')
           .attr('x', this.lineDimension.start.x + 36)
@@ -714,9 +731,7 @@ var Edge = Class.create({
     if(this.startPoint === undefined){
       this.startPoint = point;
     }
-    if(action === 'MODIFY'){
-      this.dom = document.getElementById(this.id + '_line_adorner');
-    }
+    this.dom = document.getElementById(this.id + '_line_adorner');
   },
   mouseDrag: function(point, action){
     if(action === 'MODIFY'){
