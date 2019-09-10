@@ -253,7 +253,8 @@ var Canvas = Class.create({
    */
   render: function() {
     /*Renders the canvas along with Nodes and edges*/
-    var html = "<div id='" + this.id + "' ";
+    var html = "<table style='height:100%; width: 100%'><tr><td width='85%'>";
+    html += "<div id='" + this.id + "' style='height: 100%; width: 100%;'";
     //html += "class='" + this.css + "' ";
     if (this.height != undefined && this.width != undefined) {
       html += "style='height:" + this.height;
@@ -264,16 +265,7 @@ var Canvas = Class.create({
       html += "style='width:" + this.width + ";' ";
     }
     html += " data-type='canvas'>";
-    for(var i=0; i < this.tools.length; i++){
-      html += "<input type='radio' name='tools' id='" + this.id + "_" + this.tools[i].name + "_tool";
-      if(i < 1){
-        html += "' checked>" + this.tools[i].name;
-      } else {
-        html += "'>" + this.tools[i].name;
-      }
-      html += "</input>"
-    }
-    html += "<svg class='" + this.css + "' style='position:absolute; top: 25px; left: 5px; height: 100%; width: 100%' id='" + this.id + "_svg' ></svg>"
+    html += "<svg class='" + this.css + "' style='top: 0px; left: 0px; height: 100%; width: 100%' id='" + this.id + "_svg' ></svg>"
     /*Iterate through all the child nodes or edges of
      * canvas and render each of it by concatnating its
      * HTML to canvas's HTML
@@ -281,7 +273,20 @@ var Canvas = Class.create({
     for (var i = 0; i < this.nodes.length; i++) {
       html += this.nodes[i].render();
     }
-    html += "</div>";
+    html += "</div></td><td>";
+    html += "<table><tr><td>";
+    for(var i=0; i < this.tools.length; i++){
+      html += "<input type='radio' name='tools' id='" + this.id + "_" + this.tools[i].name + "_tool";
+      if(i < 1){
+        html += "' checked>" + this.tools[i].name;
+      } else {
+        html += "'>" + this.tools[i].name;
+      }
+      html += "</input><br/>";
+    }
+    html += "</td></tr><tr><td style='text-align: center;'>X: <span id='x_label'></span> Y: <span id='y_label'></span></td></tr></table>";
+    html += "</td></tr></table>";
+
     if (this.containerId === undefined) {
       this.dom = $j('body').prepend(html);
     } else {
@@ -364,6 +369,9 @@ var Canvas = Class.create({
         mouseX = e.clientX;
         mouseY = e.clientY;
       }
+      //update labels
+      $j('#x_label').text(mouseX);
+      $j('#y_label').text(mouseY);
       if(that.selectedTool.name === 'SELECT'){
         action = 'MODIFY';
       } else if(that.selectedTool.name === 'LINE'){
@@ -499,9 +507,12 @@ var Edge = Class.create({
   dragHandle: undefined,
   resizeHandle: undefined,
   isSelected: false,
-  startPoint: undefined,
-  currentPoint: undefined,
-  endPoint: undefined,
+  startDragPoint: undefined,
+  currentDragPoint: undefined,
+  translateTransform: undefined,
+  rotateTransform: undefined,
+  scaleTransform: undefined,
+  operation: '',
   initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowType, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -524,9 +535,12 @@ var Edge = Class.create({
     this.dragHandle = undefined;
     this.resizeHandle = undefined;
     this.isSelected = false;
-    this.startPoint = undefined;
-    this.currentPoint = undefined;
-    this.endPoint = undefined;
+    this.startDragPoint = undefined;
+    this.currentDragPoint = undefined;
+    this.operation = undefined;
+    this.translateTransform = undefined;
+    this.rotateTransform = undefined;
+    this.scaleTransform = undefined;
   },
   render: function() {
     if (!is_dict(this.elementLeft) && !is_dict(this.elementRight)) {
@@ -554,9 +568,12 @@ var Edge = Class.create({
   makeElement: function() {
 
     var svg_id = '#' + this.parentElement.id + '_svg';
-    this.svg = d3.select(svg_id);
+    //Points to HTML DOM element containing SVG canvas
+    this.svg = document.getElementById(this.parentElement.id + '_svg');
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
 
-    this.svg.append('svg:defs').append('svg:marker')
+    svg.append('svg:defs').append('svg:marker')
       .attr("id", "arrow")
       .attr("refX", 6)
       .attr("refY", 6)
@@ -576,10 +593,10 @@ var Edge = Class.create({
     var endYOffset = 0;
 
     if (direction === 'LR' || direction === 'RL') { //X-Axis dominant
-      startXOffset = 10;
-      startYOffset = 5;
-      endXOffset = -5;
-      endYOffset = 5;
+        startXOffset = 10;
+        startYOffset = 5;
+        endXOffset = -5;
+        endYOffset = 5;
     } else { //Y-Axis dominant
       startXOffset = 5;
       startYOffset = 10;
@@ -587,7 +604,7 @@ var Edge = Class.create({
       endYOffset = -5;
     }
 
-    this.g = this.svg.append('g')
+    this.g = svg.append('g')
       .attr('id', this.id + '_line_adorner')
       .attr('class', 'ui-selectable')
       .attr('style', '');
@@ -623,6 +640,13 @@ var Edge = Class.create({
       .attr('r', 20)
       .attr('style', 'stroke: red; stroke-width: 1px; stroke-dasharray: 2; fill: transparent;');
 
+
+    var slope = 2;
+    if((this.lineDimension.end.x - this.lineDimension.start.x) !== 0){
+                slope = (this.lineDimension.end.y-this.lineDimension.start.y)/
+                        (this.lineDimension.end.x - this.lineDimension.start.x);
+              }
+
     this.startAdoner = this.g
       .append('rect')
       .attr('id', this.id + '_start_adorner')
@@ -633,6 +657,13 @@ var Edge = Class.create({
       .attr('rx', 3)
       .attr('ry', 3)
       .attr('class', 'adorner-line-unselected');
+
+    if(slope <= 1 && slope > 0){
+      endYOffset -= slope * 8;
+    }
+    if(slope > 1 && slope < 2){
+      endXOffset -= slope * 6;
+    }
 
     this.endAdoner = this.g
       .append('rect')
@@ -658,7 +689,7 @@ var Edge = Class.create({
       } else { //right to left
         this.rotateAdorner = this.g
           .append('svg:image')
-          .attr('x', this.lineDimension.end.x + (this.lineDimension.start.x-this.lineDimension.endYOffsetq.x)/2)
+          .attr('x', this.lineDimension.end.x + (this.lineDimension.start.x-this.lineDimension.end.x)/2)
           .attr('y', this.lineDimension.end.y + 36)
           .attr('height', 15)
           .attr('width', 15)
@@ -719,6 +750,14 @@ var Edge = Class.create({
   isSelectable: function(point) {
     return this.isMouseOver(point);
   },
+  isMouseOverResizeHandle: function(point){
+    var handle = document.getElementById(this.id + '_resizer');
+    var bbox = handle.getBoundingClientRect();
+    if (point.x >= bbox.left && point.x < (bbox.left + bbox.width) && point.y >= bbox.top && point.y < (bbox.top + bbox.height)) {
+      return true;
+    }
+    return false;
+  },
   isMouseOver: function(point){
     var item = document.getElementById(this.id + '_line_adorner');
     var bbox = item.getBoundingClientRect();
@@ -728,25 +767,39 @@ var Edge = Class.create({
     return false;
   },
   mouseDown: function(point, action){
-    if(this.startPoint === undefined){
-      this.startPoint = point;
-    }
     this.dom = document.getElementById(this.id + '_line_adorner');
+    if(this.isMouseOverResizeHandle(point)){
+      this.operation = 'RESIZE_ROTATE';
+      this.rotateTransform = this.svg.createSVGTransform();
+      this.dom.transform.baseVal.appendItem(this.rotateTransform);
+      var centerX = this.lineDimension.end.x;
+      var centerY = this.lineDimension.end.y;
+      this.initAngle = Math.atan2(point.y - centerY, point.x - centerX) * (180 / Math.PI);
+    } else {
+      this.startDragPoint = point;
+      this.operation = 'DRAG';
+      this.translateTransform = this.svg.createSVGTransform();
+      this.dom.transform.baseVal.appendItem(this.translateTransform);
+    }
   },
   mouseDrag: function(point, action){
-    if(action === 'MODIFY'){
+    if(this.operation === 'DRAG'){
       if(this.isMouseOver(point)){
-        this.currentPoint = point;
+        this.currentDragPoint = point;
 
-        var dx = this.currentPoint.x - this.startPoint.x;
-        var dy = this.currentPoint.y - this.startPoint.y;
+        var dx = this.currentDragPoint.x - this.startDragPoint.x;
+        var dy = this.currentDragPoint.y - this.startDragPoint.y;
 
-        this.dom.setAttribute('transform', 'translate(' + dx + ' ' + dy + ')');
+        this.translateTransform.setTranslate(dx, dy);
       }
+    } else if(this.operation === 'RESIZE_ROTATE'){
+      var centerX = this.lineDimension.end.x;
+      var centerY = this.lineDimension.end.y;
+      var angle = Math.atan2(point.y - centerY, point.x - centerX) * (180 / Math.PI) + Math.abs(this.initAngle);
+      this.rotateTransform.setRotate(angle, centerX, centerY);
     }
   },
   mouseUp: function(point, action){
-
   }
   /*draggable: function() {
     var dom = document.getElementById(this.id + '_line_adorner');
