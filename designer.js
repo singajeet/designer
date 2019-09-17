@@ -114,6 +114,49 @@ var CircleDimension = Class.create({
     this.r = r;
   }
 });
+/**********************************************************
+ * Enum: MouseState
+ * Description: Provides different states of mouse
+ **********************************************************/
+var MouseState = {
+  UP: 0,
+  DOWN: 1,
+  DRAG: 2,
+  MOVE: 3,
+  LEAVE: 4,
+  properties: {
+    0: {name: 'UP'},
+    1: {name: 'DOWN'},
+    2: {name: 'DRAG'},
+    3: {name: 'MOVE'},
+    4: {name: 'LEAVE'}
+  }
+};
+if(Object.freeze){
+  Object.freeze(MouseState);
+}
+/***********************************************************
+ * Enum: ShapeType
+ * Description: Various shapes available
+ ***********************************************************/
+var ShapeType = {
+  LINE: 0,
+  RECTANGLE: 1,
+  CIRCLE: 2,
+  ELLIPSE: 3,
+  POLYLINE: 4,
+  PATH: 5,
+  BEZIRE_CURVE: 6,
+  properties: {
+    0: {name: 'LINE'},
+    1: {name: 'RECTANGLE'},
+    2: {name: 'CIRCLE'},
+    3: {name: 'ELLIPSE'},
+    4: {name: 'POLYLINE'},
+    5: {name: 'PATH'},
+    6: {name: 'BEZIRE_CURVE'}
+  }
+};
 
 /**********************************************************
  * Canvas: class provides the functionality to hold the
@@ -134,6 +177,14 @@ var Canvas = Class.create({
   observable: undefined,
   menus: [],
   methods: undefined,
+  mouseX: 0,
+  mouseY: 0,
+  mouseStartX: 0,
+  mouseStartY: 0,
+  mouseEndX: 0,
+  mouseEndY: 0,
+  mouseState: MouseState.UP,
+  tempElement: undefined,
   /*
    *  Constructor
    *          id (string):           A unique identifier for the canvas
@@ -157,6 +208,13 @@ var Canvas = Class.create({
     this.grid = grid || [10, 10];
     this.tools = ['SELECT', new Edge('lt', this)];
     this.observable = undefined;
+    this.mouseX = 0;
+    this.mouseY = 0;
+    this.mouseStartX = 0;
+    this.mouseStartY = 0;
+    this.mouseEndX = 0;
+    this.mouseEndY = 0;
+    this.tempElement = undefined;
     this.options = {
         container: '#' + id + '_svg',
         restrict: '#' + id + '_svg',
@@ -318,10 +376,15 @@ var Canvas = Class.create({
                           `</td>
                         </tr>
                         <tr>
-                          <td style='text-align: center;font-size: 9px'>`;
+                          <td style='text-align: center; font-size: 9px;'>`;
                           html += `X: <span id='x_label'></span>
                                    Y: <span id='y_label'></span>
                           </td>
+                        </tr>
+                        <tr>
+                          <td style='text-align: center; font-size: 9px;'>`;
+                          html += `STATE: <span id='mouse_state'></span>`;
+                 html += `</td>
                         </tr>
                       </table>`;
                     html +=
@@ -353,20 +416,90 @@ var Canvas = Class.create({
     this._registerActions();
     this._registerMarkers();
     this._registerObserver();
-    
+
   },
   _registerObserver(){
-    document.getElementById(this.id + '_svg').addEventListener('mousemove', updateMouseLoc);
-    document.getElementById(this.id + '_svg').addEventListener('touchmove', updateMouseLoc);
-    function updateMouseLoc(e){
-	    var mouseX = e.clientX;
-	    var mouseY = e.clientY;
-	    if(mouseX === undefined || mouseY === undefined){
-		    mouseX = e.touches[0].clientX;
-		    mouseY = e.touches[0].clientY;
+    this.mouseState = MouseState.UP;
+    var svg = document.getElementById(this.id + '_svg');
+    svg.addEventListener('mousemove', mouseMove);
+    svg.addEventListener('touchmove', mouseMove);
+    svg.addEventListener('mousedown', mouseDown);
+    svg.addEventListener('touchstart', mouseDown);
+    svg.addEventListener('mouseup', mouseUp);
+    svg.addEventListener('touchend', mouseUp);
+    var that = this;
+
+    function mouseMove(e){
+      e.preventDefault();
+      that.mouseX = e.clientX;
+	    that.mouseY = e.clientY;
+	    if(that.mouseX === undefined || that.mouseY === undefined){
+		    that.mouseX = e.touches[0].clientX;
+		    that.mouseY = e.touches[0].clientY;
 	    }
-	    $j('#x_label').text(parseInt(mouseX));
-	    $j('#y_label').text(parseInt(mouseY));
+	    $j('#x_label').text(parseInt(that.mouseX));
+	    $j('#y_label').text(parseInt(that.mouseY));
+      if(that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG){
+        that.mouseState = MouseState.DRAG;
+        if(that.tempElement !== undefined){
+          that.tempElement.setAttribute('x2', that.mouseX);
+          that.tempElement.setAttribute('y2', that.mouseY);
+        }
+      } else {
+        that.mouseState = MouseState.MOVE;
+      }
+      $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
+
+   }
+
+   function mouseDown(e){
+      e.preventDefault();
+      if(that.mouseState === MouseState.UP || that.mouseState === MouseState.MOVE){
+        that.mouseState = MouseState.DOWN;
+        $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
+
+        that.mouseStartX = e.clientX;
+        that.mouseStartY = e.clientY;
+        if(that.mouseStartX === undefined || that.mouseStartY === undefined){
+          that.mouseStartX = e.touches[0].clientX;
+          that.mouseStartY = e.touches[0].clientY;
+        }
+        if(e.currentTarget.id === (that.id + '_svg')){
+          switch(that.selectedTool.getShapeType()){
+            case ShapeType.LINE:
+              var svg_id = that.id + '_svg';
+              var svg = d3.select(svg_id);
+              that.tempElement = svg.append('line')
+                .attr('x1', that.mouseStartX)
+                .attr('y1', that.mouseStartY)
+                .attr('x2', that.mouseStartX+5)
+                .attr('y2', that.mouseStartY+5)
+                .attr('style', 'stroke:green;stroke-width:1px;stroke-dasharray:10');
+            break;
+          }
+        }
+      }
+   }
+
+   function mouseUp(e){
+      e.preventDefault();
+      if(that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG){
+        that.mouseState = MouseState.UP;
+        $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
+
+        that.mouseEndX = e.clientX;
+        that.mouseEndY = e.clientY;
+        if(that.mouseEndX === undefined || that.mouseEndY === undefined){
+          that.mouseEndX = e.touches[0].clientX;
+          that.mouseEndY = e.touches[0].clientY;
+        }
+        if(that.tempElement !== undefined){
+          that.tempElement.remove();
+          var name = prompt("Element Name:");
+          var line = new Edge(name, that, {x: that.mouseStartX, y: that.mouseStartY}, {x: that.mouseEndX, y: that.mouseEndY});
+          that.addEdge(line);
+        }
+      }
    }
   },
   _render_select_tool_item(id, tool, index){
@@ -401,18 +534,18 @@ var Canvas = Class.create({
         .drag(this.options);
 
     this.svg.forEach(item => {
-        subjx(item.controls).on('dblclick', () => {
+        subjx(item.controls).on('click', () => {
             item.disable();
         });
     });
 
     that = this;
-    subjx('.drag-svg').on('dblclick', e => {
+    subjx('.drag-svg').on('click', e => {
         if (e.currentTarget.classList.contains('sjx-drag')) return;
         const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
         // adding event to controls
         const controls = xDraggable.controls;
-        subjx(controls).on('dblclick', () => {
+        subjx(controls).on('click', () => {
             xDraggable.disable();
         });
     });
@@ -488,6 +621,7 @@ var Edge = Class.create({
   lineColor: "black",
   lineWidth: "3",
   lineStroke: "Solid",
+  shapeType: ShapeType.LINE,
   initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowType, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -501,6 +635,10 @@ var Edge = Class.create({
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "3";
     this.lineStroke = lineStroke || "Solid";
+    this.shapeType = ShapeType.LINE;
+  },
+  getShapeType() {
+    return this.shapeType;
   },
   render: function() {
     if (!is_dict(this.elementLeft) && !is_dict(this.elementRight)) {
