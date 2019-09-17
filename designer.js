@@ -133,6 +133,7 @@ var Canvas = Class.create({
   tools: [],
   observable: undefined,
   menus: [],
+  methods: undefined,
   /*
    *  Constructor
    *          id (string):           A unique identifier for the canvas
@@ -154,7 +155,7 @@ var Canvas = Class.create({
     this.nodes = nodes || [];
     this.edges = edges || [];
     this.grid = grid || [10, 10];
-    this.tools = ['SELECT', 'LINE'];
+    this.tools = ['SELECT', new Edge('lt', this)];
     this.observable = undefined;
     this.options = {
         container: '#' + id + '_svg',
@@ -310,14 +311,14 @@ var Canvas = Class.create({
                               if(i === 0){
                                 html += this._render_select_tool_item(this.id, this.tools[i], i);
                               } else {
-                                html += this._render_select_tool_item(this.id, this.tools[i], i);
+                                html += this.tools[i].render_tool_item();
                               }
                             }
                             html +=
                           `</td>
                         </tr>
                         <tr>
-                          <td style='text-align: center;'>`;
+                          <td style='text-align: center;font-size: 9px'>`;
                           html += `X: <span id='x_label'></span>
                                    Y: <span id='y_label'></span>
                           </td>
@@ -351,6 +352,22 @@ var Canvas = Class.create({
     }
     this._registerActions();
     this._registerMarkers();
+    this._registerObserver();
+    
+  },
+  _registerObserver(){
+    document.getElementById(this.id + '_svg').addEventListener('mousemove', updateMouseLoc);
+    document.getElementById(this.id + '_svg').addEventListener('touchmove', updateMouseLoc);
+    function updateMouseLoc(e){
+	    var mouseX = e.clientX;
+	    var mouseY = e.clientY;
+	    if(mouseX === undefined || mouseY === undefined){
+		    mouseX = e.touches[0].clientX;
+		    mouseY = e.touches[0].clientY;
+	    }
+	    $j('#x_label').text(parseInt(mouseX));
+	    $j('#y_label').text(parseInt(mouseY));
+   }
   },
   _render_select_tool_item(id, tool, index){
     var html = '';
@@ -521,5 +538,27 @@ var Edge = Class.create({
       .attr('marker-end', 'url(#arrow)')
       .attr('data-type', 'edge-base')
       .attr('class', 'drag-svg');
-  }
+  },
+  render_tool_item(){
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_LINE_tool' >";
+    html += `<input type='radio' name='tools' id='`
+          + this.parentElement.id + "_LINE_tool";
+      html += "'>";
+      html += "</input>";
+      html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                    <defs>
+                      <marker id="toolAdrnrCirl" refX="6" refY="6" markerWidth="30" markerHeight="30" markerUnits="userSpaceOnUse" orient="auto">
+
+                          <circle cx='6' cy='6' r='3' style='stroke:blue;fill:blue;'></circle>
+                      </marker>
+                    </defs>
+                      <line x1='23' y1='23' x2='38' y2='38' style='stroke: black; stroke-width: 2px;' marker-start='url(#toolAdrnrCirl)' marker-end= 'url(#toolAdrnrCirl)' transform='rotate(180 25 25)'></line>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">LINE</text>
+                    </svg>
+                 </div>`;
+      html += "</label>";
+      return html;
+  },
 });
