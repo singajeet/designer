@@ -114,6 +114,7 @@ var CircleDimension = Class.create({
     this.r = r;
   }
 });
+
 /**********************************************************
  * Canvas: class provides the functionality to hold the
  * nodes and edges objects
@@ -124,16 +125,14 @@ var Canvas = Class.create({
   height: undefined,
   width: undefined,
   css: 'canvas',
-  dom: undefined,
+  svg: undefined,
+  options: undefined,
   nodes: [],
   edges: [],
   grid: [10, 10],
-  dragItems: {},
   tools: [],
-  clickTapPosition: undefined,
-  mouseTouchStatus: 'UP',
-  selectedTool: undefined,
-  selectedItem: undefined,
+  observable: undefined,
+  menus: [],
   /*
    *  Constructor
    *          id (string):           A unique identifier for the canvas
@@ -151,16 +150,32 @@ var Canvas = Class.create({
     this.height = height;
     this.width = width;
     this.css = 'canvas';
-    this.dom = undefined;
+    this.svg = undefined;
     this.nodes = nodes || [];
     this.edges = edges || [];
     this.grid = grid || [10, 10];
-    this.dragItems = {};
-    this.tools = [{name: 'SELECT', obj: undefined}, {name: 'LINE', obj: Edge}];
-    this.clickTapPosition = undefined;
-    this.mouseTouchStatus = 'UP';
-    this.selectedTool = this.tools[0];
-    this.selectedItem = undefined;
+    this.tools = ['SELECT', 'LINE'];
+    this.observable = undefined;
+    this.options = {
+        container: '#' + id + '_svg',
+        restrict: '#' + id + '_svg',
+        proportions: true,
+        rotationPoint: true,
+        //themeColor: 'white',
+        each: {
+            resize: true,
+            // move: true,
+            // rotate: true
+        },
+        snap: {
+            x: 20,
+            y: 20,
+            angle: 25
+        },
+        cursorMove: 'move',
+        cursorRotate: 'crosshair',
+        cursorResize: 'pointer'
+    };
   },
   /*
    * Method: initEdge
@@ -253,39 +268,65 @@ var Canvas = Class.create({
    */
   render: function() {
     /*Renders the canvas along with Nodes and edges*/
-    var html = "<table style='height:100%; width: 100%'><tr><td width='85%'>";
-    html += "<div id='" + this.id + "' style='height: 100%; width: 100%;'";
-    //html += "class='" + this.css + "' ";
-    if (this.height != undefined && this.width != undefined) {
-      html += "style='height:" + this.height;
-      html += "; width:" + this.width + ";'  ";
-    } else if (this.height != undefined && this.width === undefined) {
-      html += "style='height:" + this.height + ";' ";
-    } else if (this.height === undefined && this.width != undefined) {
-      html += "style='width:" + this.width + ";' ";
-    }
-    html += " data-type='canvas'>";
-    html += "<svg class='" + this.css + "' style='top: 0px; left: 0px; height: 100%; width: 100%' id='" + this.id + "_svg' ></svg>"
-    /*Iterate through all the child nodes or edges of
-     * canvas and render each of it by concatnating its
-     * HTML to canvas's HTML
-     */
-    for (var i = 0; i < this.nodes.length; i++) {
-      html += this.nodes[i].render();
-    }
-    html += "</div></td><td>";
-    html += "<table><tr><td>";
-    for(var i=0; i < this.tools.length; i++){
-      html += "<input type='radio' name='tools' id='" + this.id + "_" + this.tools[i].name + "_tool";
-      if(i < 1){
-        html += "' checked>" + this.tools[i].name;
-      } else {
-        html += "'>" + this.tools[i].name;
-      }
-      html += "</input><br/>";
-    }
-    html += "</td></tr><tr><td style='text-align: center;'>X: <span id='x_label'></span> Y: <span id='y_label'></span></td></tr></table>";
-    html += "</td></tr></table>";
+    var html = `<table style='height:100%; width: 100%'>
+                  <tr>
+                    <td style='width: 95%'>`;
+                      //An outer div for SVG canvas
+                      html +=
+                        "<div id='" + this.id + "' style='height: 100%;'";
+                        if (this.height != undefined && this.width != undefined) {
+                          html += "style='height:" + this.height;
+                          html += "; width:" + this.width + ";'  ";
+                        } else if (this.height != undefined && this.width === undefined) {
+                          html += "style='height:" + this.height + ";' ";
+                        } else if (this.height === undefined && this.width != undefined) {
+                          html += "style='width:" + this.width + ";' ";
+                        }
+                        html +=
+                        " data-type='canvas'>";
+                        html +=
+                        "<svg class='" + this.css + `' style='top: 0px; left: 0px;
+                                                              height: 100%; width: 100%'
+                                                              id='` + this.id + "_svg' ></svg>"
+                          /*Iterate through all the child nodes or edges of
+                           * canvas and render each of it by concatnating its
+                           * HTML to canvas's HTML
+                           */
+                          for (var i = 0; i < this.nodes.length; i++) {
+                            html += this.nodes[i].render();
+                          }
+                        html +=
+                        `</div>
+                    </td>
+                    <td style='width: 5%;vertical-align:top;'>`;
+                    html +=
+                      `<table style='width: 50px' class='middle toolbox'>
+                        <tr>
+                          <th>Toolbox</th>
+                        </tr>
+                        <tr>
+                          <td>`;
+                            for(var i=0; i < this.tools.length; i++){
+                              if(i === 0){
+                                html += this._render_select_tool_item(this.id, this.tools[i], i);
+                              } else {
+                                html += this._render_select_tool_item(this.id, this.tools[i], i);
+                              }
+                            }
+                            html +=
+                          `</td>
+                        </tr>
+                        <tr>
+                          <td style='text-align: center;'>`;
+                          html += `X: <span id='x_label'></span>
+                                   Y: <span id='y_label'></span>
+                          </td>
+                        </tr>
+                      </table>`;
+                    html +=
+                    `</td>
+                  </tr>
+                </table>`;
 
     if (this.containerId === undefined) {
       this.dom = $j('body').prepend(html);
@@ -297,8 +338,8 @@ var Canvas = Class.create({
     $j('[name="tools"]').bind('click', function(e){
       var name = e.currentTarget.id;
       for(var i=0; i < that.tools.length; i++){
-        if((that.id + "_" + that.tools[i].name + "_tool") === name){
-          that.selectedTool = that.tools[i];
+        if((that.id + "_" + that.tools[i] + "_tool") === name){
+          that._changeTool(i);
         }
       }
     });
@@ -308,146 +349,78 @@ var Canvas = Class.create({
     for (var i = 0; i < this.edges.length; i++) {
       this.edges[i].render();
     }
-    var svg = document.getElementById(this.id + '_svg');
-    this.registerActions();
+    this._registerActions();
+    this._registerMarkers();
   },
-  registerActions: function() {
-    var canvas = document.getElementById(this.id + '_svg');
-    var that = this;
-
-    canvas.addEventListener('mousedown', deviceDown);
-    canvas.addEventListener('touchstart', deviceDown);
-    canvas.addEventListener('mousemove', deviceMove);
-    canvas.addEventListener('touchmove', deviceMove)
-    canvas.addEventListener('mouseup', deviceUp);
-    canvas.addEventListener('touchend', deviceUp);
-
-    function deviceDown(e) {
-      e.preventDefault();
-      var mouseX, mouseY;
-      if (e.targetTouches && e.targetTouches[0]) {
-        var pointerEvent = e.targetTouches[0];
-        mouseX = pointerEvent.pageX;
-        mouseY = pointerEvent.pageY;
+  _render_select_tool_item(id, tool, index){
+    var html = '';
+    html += "<label for='" + id + "_" + tool + "_tool' >";
+    html += `<input type='radio' name='tools' id='`
+          + id + "_" + tool + "_tool";
+      if(index < 1){
+        html += "' checked>";
       } else {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
+        html += "'>";
       }
-      that.mouseTouchStatus = 'DOWN';
-      that.clickTapPosition = new Point(mouseX, mouseY);
-      if(that.selectedTool.name === 'SELECT'){
-        if(that.selectedItem !== undefined){
-          that.selectedItem.mouseDown(that.clickTapPosition, 'MODIFY');
-        }
-      } else if(that.selectedTool.name === 'LINE'){
-        var id = prompt('Item Name: ');
-        if(id !== null && id !== ''){
-          var line = new that.selectedTool.obj(id, that, {x: that.clickTapPosition.x, y: that.clickTapPosition.y}, {x: that.clickTapPosition.x, y: that.clickTapPosition.y + 100});
+      html += "</input>";
+      html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                    <defs>
+                      <marker id="toolArrow" refX="6" refY="6" markerWidth="30" markerHeight="30" markerUnits="userSpaceOnUse" orient="auto">
+                          <path d="M 0 0 12 6 0 12 3 6" style="fill: black;"></path>
+                      </marker>
+                    </defs>
+                      <line x1='25' y1='25' x2='35' y2='35' style='stroke: black; stroke-width: 2px;' marker-end= 'url(#toolArrow)' transform='rotate(180 25 25)'></line>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">` + tool + `</text>
+                    </svg>
+                 </div>`;
+      html += "</label>";
+      return html;
+  },
+  _registerActions: function() {
+    this.observable = subjx.createObservable();
 
-          //Create an instance of the selected tool and it to canvas's item collection
-          that.addEdge(line);
-          //Mark the new item as selected as well visual selected too
-          that.selectedItem = line;
-          line.select();
-          //Change the tool from Line to Select tool
-          //that.selectedTool = that.tools[0];
-          that._changeTool(0);
-          //Restore the mouse status back to UP
-          that.mouseTouchStatus = 'UP';
-       }
-      }
-    }
+    this.svg = subjx('.drag-svg')
+        .drag(this.options);
 
-    function deviceMove(e){
-      e.preventDefault();
-      var mouseX, mouseY, action;
-      if (e.targetTouches && e.targetTouches[0]) {
-        var pointerEvent = e.targetTouches[0];
-        mouseX = pointerEvent.pageX;
-        mouseY = pointerEvent.pageY;
-      } else {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-      }
-      //update labels
-      $j('#x_label').text(mouseX);
-      $j('#y_label').text(mouseY);
-      if(that.selectedTool.name === 'SELECT'){
-        action = 'MODIFY';
-      } else if(that.selectedTool.name === 'LINE'){
-        action = 'NEW'
-      }
-      if(that.mouseTouchStatus === 'DOWN' || that.mouseTouchStatus === 'DRAG'){
-        that.clickTapPosition = new Point(mouseX, mouseY);
-        if(that.selectedItem !== undefined){
-          that.selectedItem.mouseDrag(that.clickTapPosition, action);
-        }
-        that.mouseTouchStatus = 'DRAG';
-      }
-    }
+    this.svg.forEach(item => {
+        subjx(item.controls).on('dblclick', () => {
+            item.disable();
+        });
+    });
 
-    function deviceUp(e) {
-      e.preventDefault();
-      var mouseX, mouseY, action;
-      if (e.targetTouches && e.targetTouches[0]) {
-        var pointerEvent = e.targetTouches[0];
-        mouseX = pointerEvent.pageX;
-        mouseY = pointerEvent.pageY;
-      } else {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-      }
-      if(that.selectedTool.name === 'SELECT'){
-        action = 'MODIFY';
-      } else if(that.selectedTool.name === 'LINE'){
-        action = 'NEW'
-      }
+    that = this;
+    subjx('.drag-svg').on('dblclick', e => {
+        if (e.currentTarget.classList.contains('sjx-drag')) return;
+        const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
+        // adding event to controls
+        const controls = xDraggable.controls;
+        subjx(controls).on('dblclick', () => {
+            xDraggable.disable();
+        });
+    });
+  },
+  _registerMarkers: function(){
 
-      that.clickTapPosition = new Point(mouseX, mouseY);
-      if (that.mouseTouchStatus !== 'DOWN') {   //if the last state of mouse/touch was not a down event
-        if(that.mouseTouchStatus === 'DRAG'){
-          //if the last state of mouse was drag, consider this as mouseup/touchend event
-          if(that.selectedItem !== undefined){
-            that.selectedItem.mouseUp(that.clickTapPosition, action);
-          }
-        }
-        that.mouseTouchStatus = 'UP';
-        return;
-      }
-      //if the last event was mousedown/touchstart or something else, iterate through all items
-      //on canvas and select/unselect the item if it is under mouse position and can be
-      //selected/unselected
-      that.selectedItem = undefined;
-      for (var i = 0; i < that.nodes.length; i++) {
-        if (that.nodes[i].isSelectable({
-            x: mouseX,
-            y: mouseY
-          })) {
-          that.nodes[i].select();
-          that.selectedItem = that.nodes[i];
-        } else {
-          that.nodes[i].unselect();
-        }
-      }
-      for (var i = 0; i < that.edges.length; i++) {
-        if (that.edges[i].isSelectable({
-            x: mouseX,
-            y: mouseY
-          })) {
-          that.edges[i].select();
-          that.selectedItem = that.edges[i];
-        } else {
-          that.edges[i].unselect();
-        }
-      }
-      that.mouseTouchStatus = 'UP';
-    }
+    var svg_id = '#' + this.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    svg.append('svg:defs').append('svg:marker')
+      .attr("id", "arrow")
+      .attr("refX", 6)
+      .attr("refY", 6)
+      .attr("markerWidth", 30)
+      .attr("markerHeight", 30)
+      .attr("markerUnits", "userSpaceOnUse")
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M 0 0 12 6 0 12 3 6")
+      .style("fill", "black");
   },
   _changeTool(index){
     if(index < this.tools.length){
       this.selectedTool = this.tools[index];
-      var toolName = this.id + "_" + this.tools[index].name + "_tool";
-      $j('#' + toolName).prop('checked', true);
     }
   },
   getNode: function(id) {
@@ -498,21 +471,6 @@ var Edge = Class.create({
   lineColor: "black",
   lineWidth: "3",
   lineStroke: "Solid",
-  rootNode: undefined,
-  svg: undefined,
-  dom: undefined,
-  startAdorner: undefined,
-  endAdorner: undefined,
-  rotateAdorner: undefined,
-  dragHandle: undefined,
-  resizeHandle: undefined,
-  isSelected: false,
-  startDragPoint: undefined,
-  currentDragPoint: undefined,
-  translateTransform: undefined,
-  rotateTransform: undefined,
-  scaleTransform: undefined,
-  operation: '',
   initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowType, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -526,21 +484,6 @@ var Edge = Class.create({
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "3";
     this.lineStroke = lineStroke || "Solid";
-    this.rootNode = undefined;
-    this.svg = undefined;
-    this.dom = undefined;
-    this.startAdorner = undefined;
-    this.endAdorner = undefined;
-    this.rotateAdorner = undefined;
-    this.dragHandle = undefined;
-    this.resizeHandle = undefined;
-    this.isSelected = false;
-    this.startDragPoint = undefined;
-    this.currentDragPoint = undefined;
-    this.operation = undefined;
-    this.translateTransform = undefined;
-    this.rotateTransform = undefined;
-    this.scaleTransform = undefined;
   },
   render: function() {
     if (!is_dict(this.elementLeft) && !is_dict(this.elementRight)) {
@@ -561,164 +504,14 @@ var Edge = Class.create({
     }
 
     this.makeElement();
-    //this.redraw();
-    //this.draggable();
-    //this.resizable();
   },
   makeElement: function() {
 
     var svg_id = '#' + this.parentElement.id + '_svg';
-    //Points to HTML DOM element containing SVG canvas
-    this.svg = document.getElementById(this.parentElement.id + '_svg');
     //Points the same thing but in D3 format
     var svg = d3.select(svg_id);
 
-    svg.append('svg:defs').append('svg:marker')
-      .attr("id", "arrow")
-      .attr("refX", 6)
-      .attr("refY", 6)
-      .attr("markerWidth", 30)
-      .attr("markerHeight", 30)
-      .attr("markerUnits", "userSpaceOnUse")
-      .attr("orient", "auto")
-      .append("path")
-      .attr("d", "M 0 0 12 6 0 12 3 6")
-      .style("fill", "black");
-
-    var direction = this.lineDimension.getDirection();
-
-    var startXOffset = 0;
-    var startYOffset = 0;
-    var endXOffset = 0;
-    var endYOffset = 0;
-
-    if (direction === 'LR' || direction === 'RL') { //X-Axis dominant
-        startXOffset = 10;
-        startYOffset = 5;
-        endXOffset = -5;
-        endYOffset = 5;
-    } else { //Y-Axis dominant
-      startXOffset = 5;
-      startYOffset = 10;
-      endXOffset = 5;
-      endYOffset = -5;
-    }
-
-    this.g = svg.append('g')
-      .attr('id', this.id + '_line_adorner')
-      .attr('class', 'ui-selectable')
-      .attr('style', '');
-
-    var dragHandleData = [{x: this.lineDimension.start.x-10, y: this.lineDimension.start.y},
-                          {x: this.lineDimension.end.x-10, y: this.lineDimension.end.y},
-                          {x: this.lineDimension.end.x+10, y: this.lineDimension.end.y},
-                          {x: this.lineDimension.start.x+10, y: this.lineDimension.start.y},
-                          {x: this.lineDimension.start.x-10, y: this.lineDimension.start.y}];
-    if(direction === 'LR' || direction === 'RL'){
-      dragHandleData = [{x: this.lineDimension.start.x, y: this.lineDimension.start.y + 10},
-                          {x: this.lineDimension.end.x, y: this.lineDimension.end.y + 10},
-                          {x: this.lineDimension.end.x, y: this.lineDimension.end.y - 10},
-                          {x: this.lineDimension.start.x, y: this.lineDimension.start.y - 10},
-                          {x: this.lineDimension.start.x, y: this.lineDimension.start.y + 10}];
-    }
-
-    var lineFunction =d3.line()
-                            .x(function(d) {return d.x})
-                            .y(function(d) {return d.y});
-
-    this.dragHandle = this.g
-      .append('path')
-      .attr('id', this.id + '_border')
-      .attr('d', lineFunction(dragHandleData))
-      .attr('style', 'stroke: green; stroke-width: 1px; stroke-dasharray: 2; fill: transparent;');
-
-    this.resize_handle = this.g
-      .append('circle')
-      .attr('id', this.id + '_resizer')
-      .attr('cx', this.lineDimension.start.x)
-      .attr('cy', this.lineDimension.start.y)
-      .attr('r', 20)
-      .attr('style', 'stroke: red; stroke-width: 1px; stroke-dasharray: 2; fill: transparent;');
-
-
-    var slope = 2;
-    if((this.lineDimension.end.x - this.lineDimension.start.x) !== 0){
-                slope = (this.lineDimension.end.y-this.lineDimension.start.y)/
-                        (this.lineDimension.end.x - this.lineDimension.start.x);
-              }
-
-    this.startAdoner = this.g
-      .append('rect')
-      .attr('id', this.id + '_start_adorner')
-      .attr('x', this.lineDimension.start.x - startXOffset)
-      .attr('y', this.lineDimension.start.y - startYOffset)
-      .attr('height', 10)
-      .attr('width', 10)
-      .attr('rx', 3)
-      .attr('ry', 3)
-      .attr('class', 'adorner-line-unselected');
-
-    if(slope <= 1 && slope > 0){
-      endYOffset -= slope * 8;
-    }
-    if(slope > 1 && slope < 2){
-      endXOffset -= slope * 6;
-    }
-
-    this.endAdoner = this.g
-      .append('rect')
-      .attr('id', this.id + '_end_adorner')
-      .attr('x', this.lineDimension.end.x - endXOffset)
-      .attr('y', this.lineDimension.end.y - endYOffset)
-      .attr('height', 10)
-      .attr('width', 10)
-      .attr('rx', 3)
-      .attr('ry', 3)
-      .attr('class', 'adorner-line-unselected');
-
-    if (direction === 'LR' || direction === 'RL') { //X-Axis dominant
-      if (direction === 'LR') { //left to right
-        this.rotateAdorner = this.g
-          .append('svg:image')
-          .attr('x', this.lineDimension.start.x + (this.lineDimension.end.x-this.lineDimension.start.x)/2)
-          .attr('y', this.lineDimension.start.y + 36)
-          .attr('height', 15)
-          .attr('width', 15)
-          .attr('xlink:href', 'images/handle-rotate.png')
-          .attr('class', 'line_rotate_adorner');
-      } else { //right to left
-        this.rotateAdorner = this.g
-          .append('svg:image')
-          .attr('x', this.lineDimension.end.x + (this.lineDimension.start.x-this.lineDimension.end.x)/2)
-          .attr('y', this.lineDimension.end.y + 36)
-          .attr('height', 15)
-          .attr('width', 15)
-          .attr('xlink:href', 'images/handle-rotate.png')
-          .attr('class', 'line_rotate_adorner');
-      }
-    } else { //Y Axis dominant
-      if (direction === 'BT') { //bottom to top
-        this.rotateAdorner = this.g
-          .append('svg:image')
-          .attr('x', this.lineDimension.start.x + 36)
-          .attr('y', this.lineDimension.end.y + (this.lineDimension.start.y-this.lineDimension.end.y)/2)
-          .attr('height', 15)
-          .attr('width', 15)
-          .attr('xlink:href', 'images/handle-rotate.png')
-          .attr('class', 'line_rotate_adorner');
-      } else { //top to bottom
-        this.rotateAdorner = this.g
-          .append('svg:image')
-          .attr('x', this.lineDimension.end.x + 36)
-          .attr('y', this.lineDimension.start.y + (this.lineDimension.end.y-this.lineDimension.start.y)/2)
-          .attr('height', 15)
-          .attr('width', 15)
-          .attr('xlink:href', 'images/handle-rotate.png')
-          .attr('class', 'line_rotate_adorner');
-      }
-    }
-
-    this.line = this.g.append('line')
+    this.line = svg.append('line')
       .attr('id', this.id)
       .attr('x1', this.lineDimension.start.x)
       .attr('y1', this.lineDimension.start.y)
@@ -726,134 +519,7 @@ var Edge = Class.create({
       .attr('y2', this.lineDimension.end.y)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
       .attr('marker-end', 'url(#arrow)')
-      .attr('data-type', 'edge-base');
-  },
-  isSelected: function() {
-    return this.is_selected;
-  },
-  select: function() {
-    this.is_selected = true;
-    var item = document.getElementById(this.id + '_line_adorner');
-    var childs = $j(item).children('[class*="adorner"]');
-    childs.each(function(index, value) {
-      value.style.display = 'inline';
-    });
-  },
-  unselect: function() {
-    this.is_selected = false;
-    var item = document.getElementById(this.id + '_line_adorner');
-    var childs = $j(item).children('[class*="adorner"]');
-    childs.each(function(index, value) {
-      value.style.display = 'none';
-    });
-  },
-  isSelectable: function(point) {
-    return this.isMouseOver(point);
-  },
-  isMouseOverResizeHandle: function(point){
-    var handle = document.getElementById(this.id + '_resizer');
-    var bbox = handle.getBoundingClientRect();
-    if (point.x >= bbox.left && point.x < (bbox.left + bbox.width) && point.y >= bbox.top && point.y < (bbox.top + bbox.height)) {
-      return true;
-    }
-    return false;
-  },
-  isMouseOver: function(point){
-    var item = document.getElementById(this.id + '_line_adorner');
-    var bbox = item.getBoundingClientRect();
-    if (point.x >= bbox.left && point.x < (bbox.left + bbox.width) && point.y >= bbox.top && point.y < (bbox.top + bbox.height)) {
-      return true;
-    }
-    return false;
-  },
-  mouseDown: function(point, action){
-    this.dom = document.getElementById(this.id + '_line_adorner');
-    if(this.isMouseOverResizeHandle(point)){
-      this.operation = 'RESIZE_ROTATE';
-      this.rotateTransform = this.svg.createSVGTransform();
-      this.dom.transform.baseVal.appendItem(this.rotateTransform);
-      var centerX = this.lineDimension.end.x;
-      var centerY = this.lineDimension.end.y;
-      this.initAngle = Math.atan2(point.y - centerY, point.x - centerX) * (180 / Math.PI);
-    } else {
-      this.startDragPoint = point;
-      this.operation = 'DRAG';
-      this.translateTransform = this.svg.createSVGTransform();
-      this.dom.transform.baseVal.appendItem(this.translateTransform);
-    }
-  },
-  mouseDrag: function(point, action){
-    if(this.operation === 'DRAG'){
-      if(this.isMouseOver(point)){
-        this.currentDragPoint = point;
-
-        var dx = this.currentDragPoint.x - this.startDragPoint.x;
-        var dy = this.currentDragPoint.y - this.startDragPoint.y;
-
-        this.translateTransform.setTranslate(dx, dy);
-      }
-    } else if(this.operation === 'RESIZE_ROTATE'){
-      var centerX = this.lineDimension.end.x;
-      var centerY = this.lineDimension.end.y;
-      var angle = Math.atan2(point.y - centerY, point.x - centerX) * (180 / Math.PI) + Math.abs(this.initAngle);
-      this.rotateTransform.setRotate(angle, centerX, centerY);
-    }
-  },
-  mouseUp: function(point, action){
+      .attr('data-type', 'edge-base')
+      .attr('class', 'drag-svg');
   }
-  /*draggable: function() {
-    var dom = document.getElementById(this.id + '_line_adorner');
-    var svg = document.getElementById(this.parentElement.id + "_svg");
-    makeDraggable(svg, dom);
-  },
-  resizable: function() {
-    var line_adorner = document.getElementById(this.id + '_line_adorner');
-    var resizer = document.getElementById(this.id + '_resizer');
-    var centerX;
-    var centerY;
-    var initAngle;
-    var that = this;
-
-    resizer.addEventListener('mousedown', startResize);
-    resizer.addEventListener('touchstart', startResize);
-
-    function startResize(e) {
-      e.preventDefault();
-      resizer.addEventListener('mousemove', resize);
-      resizer.addEventListener('touchmove', resize);
-      resizer.addEventListener('touchend', stopResize);
-      resizer.addEventListener('mouseup', stopResize);
-      centerX = that.endX;
-      centerY = that.endY;
-      var cursorX = that.startX;
-      var cursorY = that.startY;
-      dragEnabled = false;
-      initAngle = Math.atan2(cursorY - centerY, cursorX - centerX) * (180 / Math.PI);
-      console.log("Start cursor x,y: " + cursorX + ", " + cursorY);
-      console.log("Start angle: " + initAngle);
-    }
-
-    function resize(e) {
-      var cursorX = e.pageX;
-      var cursorY = e.pageY;
-      if (cursorX === undefined) {
-        var touchObj = e.changedTouches[0];
-        cursorX = parseInt(touchObj.clientX);
-      }
-      if (cursorY === undefined) {
-        var touchObj = e.changedTouches[0];
-        cursorY = parseInt(touchObj.clientY);
-      }
-      var angle = Math.atan2(cursorY - centerY, cursorX - centerX) * (180 / Math.PI) + Math.abs(initAngle);
-      line_adorner.setAttribute("transform", "rotate(" + angle + " " + centerX + " " + centerY + ")");
-      console.log("cursor x,y: " + cursorX + ", " + cursorY);
-      console.log("angle: " + angle);
-    }
-
-    function stopResize(e) {
-      dragEnabled = true;
-      resizer.removeEventListener('mousemove', resize);
-      resizer.removeEventListener('touchmove', resize);
-    }
-  }*/
 });

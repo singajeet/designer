@@ -6,12 +6,38 @@
 .canvas {
 	height: 100%;
         max-width: 100%;
-        border: 1px grey solid;
         background-image: url('images/grid.gif');
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 	top:0;
 	bottom:0;
 	right:0;
 	left:0;
+}
+.toolbox {
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+.toolbox th {
+        background: #007e90;
+        color: white;
+}
+.middle {
+  width: 100%;
+  text-align: center;
+}
+.middle input[type="radio"] {
+  display: none;
+}
+.middle input[type="radio"]:checked + .tool-button{
+        background: #007e90;
+}
+.middle .tool-button {
+        height: 50px;
+        border-style: outline;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        background: white;
+        color: black;
+        border-radius: 5px;
+        margin: 5px;
 }
 .ui-selecting{
         background: lightblue !important;
