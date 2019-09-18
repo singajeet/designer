@@ -140,6 +140,7 @@ if(Object.freeze){
  * Description: Various shapes available
  ***********************************************************/
 var ShapeType = {
+  NONE: 9999,
   LINE: 0,
   RECTANGLE: 1,
   CIRCLE: 2,
@@ -148,6 +149,7 @@ var ShapeType = {
   PATH: 5,
   BEZIRE_CURVE: 6,
   properties: {
+ 9999: {name: 'NONE'},
     0: {name: 'LINE'},
     1: {name: 'RECTANGLE'},
     2: {name: 'CIRCLE'},
@@ -185,6 +187,8 @@ var Canvas = Class.create({
   mouseEndY: 0,
   mouseState: MouseState.UP,
   tempElement: undefined,
+  shapeType: ShapeType.NONE,
+  toolName: 'SELECT',
   /*
    *  Constructor
    *          id (string):           A unique identifier for the canvas
@@ -206,7 +210,7 @@ var Canvas = Class.create({
     this.nodes = nodes || [];
     this.edges = edges || [];
     this.grid = grid || [10, 10];
-    this.tools = ['SELECT', new Edge('lt', this)];
+    this.tools = [this, new Edge('lt', this)];
     this.observable = undefined;
     this.mouseX = 0;
     this.mouseY = 0;
@@ -215,6 +219,8 @@ var Canvas = Class.create({
     this.mouseEndX = 0;
     this.mouseEndY = 0;
     this.tempElement = undefined;
+    this.shapeType = ShapeType.NONE;
+    this.toolName = 'SELECT';
     this.options = {
         container: '#' + id + '_svg',
         restrict: '#' + id + '_svg',
@@ -223,8 +229,8 @@ var Canvas = Class.create({
         //themeColor: 'white',
         each: {
             resize: true,
-            // move: true,
-            // rotate: true
+            //move: true,
+            //rotate: true
         },
         snap: {
             x: 20,
@@ -235,6 +241,12 @@ var Canvas = Class.create({
         cursorRotate: 'crosshair',
         cursorResize: 'pointer'
     };
+  },
+  getToolName: function(){
+	  return this.toolName;
+  },
+  getShapeType: function(){
+	  return this.shapeType;
   },
   /*
    * Method: initEdge
@@ -254,6 +266,7 @@ var Canvas = Class.create({
   addEdge: function(edge) {
     this.edges.push(edge);
     edge.render();
+    subjx('#' + edge.id).drag(this.options);
   },
   /*
    * Method: removeEdge
@@ -367,7 +380,7 @@ var Canvas = Class.create({
                           <td>`;
                             for(var i=0; i < this.tools.length; i++){
                               if(i === 0){
-                                html += this._render_select_tool_item(this.id, this.tools[i], i);
+                                html += this.render_tool_item();
                               } else {
                                 html += this.tools[i].render_tool_item();
                               }
@@ -402,7 +415,7 @@ var Canvas = Class.create({
     $j('[name="tools"]').bind('click', function(e){
       var name = e.currentTarget.id;
       for(var i=0; i < that.tools.length; i++){
-        if((that.id + "_" + that.tools[i] + "_tool") === name){
+        if((that.id + "_" + that.tools[i].getToolName() + "_tool") === name){
           that._changeTool(i);
         }
       }
@@ -418,7 +431,7 @@ var Canvas = Class.create({
     this._registerObserver();
 
   },
-  _registerObserver(){
+  _registerObserver: function(){
     this.mouseState = MouseState.UP;
     var svg = document.getElementById(this.id + '_svg');
     svg.addEventListener('mousemove', mouseMove);
@@ -469,7 +482,8 @@ var Canvas = Class.create({
             case ShapeType.LINE:
               var svg_id = that.id + '_svg';
               var svg = d3.select(svg_id);
-              that.tempElement = svg.append('line')
+		that.tempElement = svg.append('line')
+		.attr('id', 'temp_id')
                 .attr('x1', that.mouseStartX)
                 .attr('y1', that.mouseStartY)
                 .attr('x2', that.mouseStartX+5)
@@ -493,7 +507,7 @@ var Canvas = Class.create({
           that.mouseEndX = e.touches[0].clientX;
           that.mouseEndY = e.touches[0].clientY;
         }
-        if(that.tempElement !== undefined){
+        if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE){
           that.tempElement.remove();
           var name = prompt("Element Name:");
           var line = new Edge(name, that, {x: that.mouseStartX, y: that.mouseStartY}, {x: that.mouseEndX, y: that.mouseEndY});
@@ -502,16 +516,11 @@ var Canvas = Class.create({
       }
    }
   },
-  _render_select_tool_item(id, tool, index){
+  render_tool_item: function(){
     var html = '';
-    html += "<label for='" + id + "_" + tool + "_tool' >";
+    html += "<label for='" + this.id + "_SELECT_tool' >";
     html += `<input type='radio' name='tools' id='`
-          + id + "_" + tool + "_tool";
-      if(index < 1){
-        html += "' checked>";
-      } else {
-        html += "'>";
-      }
+          	+ this.id + "_SELECT_tool' checked>";
       html += "</input>";
       html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
@@ -521,7 +530,7 @@ var Canvas = Class.create({
                       </marker>
                     </defs>
                       <line x1='25' y1='25' x2='35' y2='35' style='stroke: black; stroke-width: 2px;' marker-end= 'url(#toolArrow)' transform='rotate(180 25 25)'></line>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">` + tool + `</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">SELECT</text>
                     </svg>
                  </div>`;
       html += "</label>";
@@ -534,18 +543,18 @@ var Canvas = Class.create({
         .drag(this.options);
 
     this.svg.forEach(item => {
-        subjx(item.controls).on('click', () => {
+        subjx(item.controls).on('dblclick', () => {
             item.disable();
         });
     });
 
     that = this;
-    subjx('.drag-svg').on('click', e => {
+    subjx('.drag-svg').on('dblclick', e => {
         if (e.currentTarget.classList.contains('sjx-drag')) return;
         const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
         // adding event to controls
         const controls = xDraggable.controls;
-        subjx(controls).on('click', () => {
+        subjx(controls).on('dblclick', () => {
             xDraggable.disable();
         });
     });
@@ -622,6 +631,7 @@ var Edge = Class.create({
   lineWidth: "3",
   lineStroke: "Solid",
   shapeType: ShapeType.LINE,
+  toolName: 'EDGE',
   initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowType, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -636,8 +646,12 @@ var Edge = Class.create({
     this.lineWidth = lineWidth || "3";
     this.lineStroke = lineStroke || "Solid";
     this.shapeType = ShapeType.LINE;
+    this.toolName = 'EDGE';
   },
-  getShapeType() {
+  getToolName: function(){
+	  return this.toolName;
+  },
+  getShapeType: function() {
     return this.shapeType;
   },
   render: function() {
@@ -679,9 +693,9 @@ var Edge = Class.create({
   },
   render_tool_item(){
     var html = '';
-    html += "<label for='" + this.parentElement.id + "_LINE_tool' >";
+    html += "<label for='" + this.parentElement.id + "_EDGE_tool' >";
     html += `<input type='radio' name='tools' id='`
-          + this.parentElement.id + "_LINE_tool";
+          + this.parentElement.id + "_EDGE_tool";
       html += "'>";
       html += "</input>";
       html += `<div class="tool-button">
@@ -693,7 +707,7 @@ var Edge = Class.create({
                       </marker>
                     </defs>
                       <line x1='23' y1='23' x2='38' y2='38' style='stroke: black; stroke-width: 2px;' marker-start='url(#toolAdrnrCirl)' marker-end= 'url(#toolAdrnrCirl)' transform='rotate(180 25 25)'></line>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">LINE</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">EDGE</text>
                     </svg>
                  </div>`;
       html += "</label>";
