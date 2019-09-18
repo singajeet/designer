@@ -189,6 +189,7 @@ var Canvas = Class.create({
   tempElement: undefined,
   shapeType: ShapeType.NONE,
   toolName: 'SELECT',
+  selectedTool: undefined,
   /*
    *  Constructor
    *          id (string):           A unique identifier for the canvas
@@ -210,7 +211,7 @@ var Canvas = Class.create({
     this.nodes = nodes || [];
     this.edges = edges || [];
     this.grid = grid || [10, 10];
-    this.tools = [this, new Edge('lt', this)];
+    this.tools = [this];
     this.observable = undefined;
     this.mouseX = 0;
     this.mouseY = 0;
@@ -221,6 +222,7 @@ var Canvas = Class.create({
     this.tempElement = undefined;
     this.shapeType = ShapeType.NONE;
     this.toolName = 'SELECT';
+    this.selectedTool = this.tools[0];
     this.options = {
         container: '#' + id + '_svg',
         restrict: '#' + id + '_svg',
@@ -228,7 +230,7 @@ var Canvas = Class.create({
         rotationPoint: true,
         //themeColor: 'white',
         each: {
-            resize: true,
+            //resize: true,
             //move: true,
             //rotate: true
         },
@@ -242,9 +244,17 @@ var Canvas = Class.create({
         cursorResize: 'pointer'
     };
   },
+  /*
+   * Method: getToolName
+   * Description: Returns the name of the curret tool
+   */
   getToolName: function(){
 	  return this.toolName;
   },
+  /*
+   * Method: getShapeType
+   * Description: Returns the shape type the current tool supports
+   */
   getShapeType: function(){
 	  return this.shapeType;
   },
@@ -302,6 +312,7 @@ var Canvas = Class.create({
     } else {
       addedNode.appendTo($j('body'));
     }
+    subjx('#' + node.id).drag(this.options);
   },
   /*
    * Method: removeNode
@@ -455,8 +466,8 @@ var Canvas = Class.create({
       if(that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG){
         that.mouseState = MouseState.DRAG;
         if(that.tempElement !== undefined){
-          that.tempElement.setAttribute('x2', that.mouseX);
-          that.tempElement.setAttribute('y2', that.mouseY);
+          that.tempElement.attr('x2', that.mouseX);
+          that.tempElement.attr('y2', that.mouseY);
         }
       } else {
         that.mouseState = MouseState.MOVE;
@@ -480,15 +491,15 @@ var Canvas = Class.create({
         if(e.currentTarget.id === (that.id + '_svg')){
           switch(that.selectedTool.getShapeType()){
             case ShapeType.LINE:
-              var svg_id = that.id + '_svg';
+              var svg_id = '#' + that.id + '_svg';
               var svg = d3.select(svg_id);
-		that.tempElement = svg.append('line')
-		.attr('id', 'temp_id')
+            		that.tempElement = svg.append('line')
+            		.attr('id', 'temp_id')
                 .attr('x1', that.mouseStartX)
                 .attr('y1', that.mouseStartY)
-                .attr('x2', that.mouseStartX+5)
-                .attr('y2', that.mouseStartY+5)
-                .attr('style', 'stroke:green;stroke-width:1px;stroke-dasharray:10');
+                .attr('x2', that.mouseStartX)
+                .attr('y2', that.mouseStartY)
+                .attr('style', 'stroke:green;stroke-width:2px;stroke-dasharray:5');
             break;
           }
         }
@@ -508,9 +519,9 @@ var Canvas = Class.create({
           that.mouseEndY = e.touches[0].clientY;
         }
         if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE){
-          that.tempElement.remove();
           var name = prompt("Element Name:");
           var line = new Edge(name, that, {x: that.mouseStartX, y: that.mouseStartY}, {x: that.mouseEndX, y: that.mouseEndY});
+          that.tempElement.remove();
           that.addEdge(line);
         }
       }
@@ -614,6 +625,19 @@ var Canvas = Class.create({
     return node.getNextEmptyPort();
   }
 });
+/*********************************************************************
+ * Base class for all shapes that could be added to the cavas
+ *********************************************************************/
+ var Shape = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  shapeType: ShapeType.NONE,
+  toolName: 'NONE',
+  initialize: function(id, title, description){
+
+  }
+ });
 /**********************************************************************
  * Defined an edge that will be used to connect two or more nodes with
  * each other. An can have direction and will be denoted by an Arrow
