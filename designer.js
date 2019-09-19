@@ -391,9 +391,9 @@ var Canvas = Class.create({
                           <td>`;
                             for(var i=0; i < this.tools.length; i++){
                               if(i === 0){
-                                html += this.render_tool_item();
+                                html += this.renderToolItem();
                               } else {
-                                html += this.tools[i].render_tool_item();
+                                html += this.tools[i].renderToolItem();
                               }
                             }
                             html +=
@@ -465,10 +465,13 @@ var Canvas = Class.create({
 	    $j('#y_label').text(parseInt(that.mouseY));
       if(that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG){
         that.mouseState = MouseState.DRAG;
-        if(that.tempElement !== undefined){
+        if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE){
           that.tempElement.attr('x2', that.mouseX);
           that.tempElement.attr('y2', that.mouseY);
-        }
+        } else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE){
+	  that.tempElement.attr('width', that.mouseX-that.mouseStartX);
+	  that.tempElement.attr('height', that.mouseY-that.mouseStartY);
+	}
       } else {
         that.mouseState = MouseState.MOVE;
       }
@@ -489,10 +492,10 @@ var Canvas = Class.create({
           that.mouseStartY = e.touches[0].clientY;
         }
         if(e.currentTarget.id === (that.id + '_svg')){
+          var svg_id = '#' + that.id + '_svg';
+          var svg = d3.select(svg_id);
           switch(that.selectedTool.getShapeType()){
             case ShapeType.LINE:
-              var svg_id = '#' + that.id + '_svg';
-              var svg = d3.select(svg_id);
             		that.tempElement = svg.append('line')
             		.attr('id', 'temp_id')
                 .attr('x1', that.mouseStartX)
@@ -501,6 +504,15 @@ var Canvas = Class.create({
                 .attr('y2', that.mouseStartY)
                 .attr('style', 'stroke:green;stroke-width:2px;stroke-dasharray:5');
             break;
+	   case ShapeType.RECTANGLE:
+		that.tempElement = svg.append('rect')
+			  	.attr('id', 'temp_id')
+				.attr('x', that.mouseStartX)
+			  	.attr('y', that.mouseStartY)
+			  	.attr('height', '5')
+			  	.attr('width', '5')
+			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:5; fill:none');
+	    break;
           }
         }
       }
@@ -511,23 +523,33 @@ var Canvas = Class.create({
       if(that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG){
         that.mouseState = MouseState.UP;
         $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
-
         that.mouseEndX = e.clientX;
         that.mouseEndY = e.clientY;
         if(that.mouseEndX === undefined || that.mouseEndY === undefined){
-          that.mouseEndX = e.touches[0].clientX;
-          that.mouseEndY = e.touches[0].clientY;
+          if(e.touches.length > 0){  
+		that.mouseEndX = e.touches[0].clientX;
+          	that.mouseEndY = e.touches[0].clientY;
+	  } else {
+		that.mouseEndX = that.mouseX;
+		that.mouseEndY = that.mouseY;
+	  }
         }
         if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE){
           var name = prompt("Element Name:");
           var line = new Edge(name, that, {x: that.mouseStartX, y: that.mouseStartY}, {x: that.mouseEndX, y: that.mouseEndY});
           that.tempElement.remove();
           that.addEdge(line);
-        }
+        } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE){
+	  var name = prompt("Element Name:");
+	  var rectDim = new RectDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndY-that.mouseStartY), (that.mouseEndX-that.mouseStartX));
+	  var node = new Node(name, that, rectDim);
+	  that.tempElement.remove();
+	  that.addNode(node);
+	}
       }
    }
   },
-  render_tool_item: function(){
+  renderToolItem: function(){
     var html = '';
     html += "<label for='" + this.id + "_SELECT_tool' >";
     html += `<input type='radio' name='tools' id='`
@@ -635,7 +657,21 @@ var Canvas = Class.create({
   shapeType: ShapeType.NONE,
   toolName: 'NONE',
   initialize: function(id, title, description){
-
+	this.id = id;
+	this.title = title;
+	this.description = description;
+	this.shapeType = ShapeType.NONE;
+	this.toolName = 'NONE';
+  },
+  getToolName: function(){
+	  return this.toolName;
+  },
+  getShapeType: function(){
+	  return this.shapeType;
+  },
+  render: function(){
+  },
+  renderToolItem: function(){
   }
  });
 /**********************************************************************
@@ -715,7 +751,7 @@ var Edge = Class.create({
       .attr('data-type', 'edge-base')
       .attr('class', 'drag-svg');
   },
-  render_tool_item(){
+  renderToolItem(){
     var html = '';
     html += "<label for='" + this.parentElement.id + "_EDGE_tool' >";
     html += `<input type='radio' name='tools' id='`
@@ -732,6 +768,78 @@ var Edge = Class.create({
                     </defs>
                       <line x1='23' y1='23' x2='38' y2='38' style='stroke: black; stroke-width: 2px;' marker-start='url(#toolAdrnrCirl)' marker-end= 'url(#toolAdrnrCirl)' transform='rotate(180 25 25)'></line>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">EDGE</text>
+                    </svg>
+                 </div>`;
+      html += "</label>";
+      return html;
+  },
+});
+/**********************************************************************
+ * Defined an Node that will represent an model in the graph diagram
+ * A node contain user configurable data known as attribute
+ * which can be changed through property window.
+ **********************************************************************/
+var Node = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  rectDimension: undefined, //an instance of the RectDimension class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "3",
+  lineStroke: "Solid",
+  shapeType: ShapeType.RECTANGLE,
+  toolName: 'NODE',
+  initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.rectDimension = rectDimension || new RectDimension(10, 10, 100, 100);
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "3";
+    this.lineStroke = lineStroke || "Solid";
+    this.shapeType = ShapeType.RECTANGLE;
+    this.toolName = 'NODE';
+  },
+  getToolName: function(){
+	  return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    this.line = svg.append('rect')
+      .attr('id', this.id)
+      .attr('x', this.rectDimension.left)
+      .attr('y', this.rectDimension.top)
+      .attr('height', this.rectDimension.height)
+      .attr('width', this.rectDimension.width)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
+      .attr('data-type', 'node-base')
+      .attr('class', 'drag-svg');
+  },
+  renderToolItem(){
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_NODE_tool' >";
+    html += `<input type='radio' name='tools' id='`
+          + this.parentElement.id + "_NODE_tool";
+      html += "'>";
+      html += "</input>";
+      html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <rect x='23' y='23' height='15' width='15' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 25 25)'></rect>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">NODE</text>
                     </svg>
                  </div>`;
       html += "</label>";
