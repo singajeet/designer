@@ -114,6 +114,21 @@ var CircleDimension = Class.create({
     this.r = r;
   }
 });
+/****
+ * Ellipse Dimension
+ ***/
+var EllipseDimension = Class.create({
+  cx: 0,
+  cy: 0,
+  rx: 0,
+  ry: 0,
+  initialize: function(cx, cy, rx, ry){
+	  this.cx = cx;
+	  this.cy = cy;
+	  this.rx = rx;
+	  this.ry = ry;
+  }
+});
 /**********************************************************
  * Enum: MouseState
  * Description: Provides different states of mouse
@@ -452,6 +467,8 @@ var Canvas = Class.create({
     svg.addEventListener('mouseup', mouseUp);
     svg.addEventListener('touchend', mouseUp);
     var that = this;
+    this.isCmdInPrgrs = false;
+    this.polyPoints = [];
 
     function mouseMove(e){
       e.preventDefault();
@@ -473,6 +490,9 @@ var Canvas = Class.create({
 	  that.tempElement.attr('height', that.mouseY-that.mouseStartY);
 	} else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.CIRCLE){
 	  that.tempElement.attr('r', that.mouseX-that.mouseStartX);
+	} else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.ELLIPSE){
+	  that.tempElement.attr('rx', that.mouseX-that.mouseStartX);
+	  that.tempElement.attr('ry', that.mouseY-that.mouseStartY);
 	}
 
       } else {
@@ -505,7 +525,7 @@ var Canvas = Class.create({
                 .attr('y1', that.mouseStartY)
                 .attr('x2', that.mouseStartX)
                 .attr('y2', that.mouseStartY)
-                .attr('style', 'stroke:green;stroke-width:2px;stroke-dasharray:5');
+                .attr('style', 'stroke:green;stroke-width:2px;stroke-dasharray:2');
             break;
 	   case ShapeType.RECTANGLE:
 		that.tempElement = svg.append('rect')
@@ -514,7 +534,7 @@ var Canvas = Class.create({
 			  	.attr('y', that.mouseStartY)
 			  	.attr('height', '5')
 			  	.attr('width', '5')
-			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:5; fill:none');
+			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:2; fill:none');
 	    break;
 	   case ShapeType.CIRCLE:
 		that.tempElement = svg.append('circle')
@@ -522,8 +542,38 @@ var Canvas = Class.create({
 				.attr('cx', that.mouseStartX)
 			  	.attr('cy', that.mouseStartY)
 			  	.attr('r', '5')
-			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:5; fill:none');
+			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:2; fill:none');
 	    break;
+	   case ShapeType.ELLIPSE:
+		that.tempElement = svg.append('ellipse')
+			  	.attr('id', 'temp_id')
+			  	.attr('cx', that.mouseStartX)
+			  	.attr('cy', that.mouseStartY)
+			  	.attr('rx', '5')
+			  	.attr('ry', '5')
+			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill:none');
+	    break;
+	   case ShapeType.POLYGON:
+		if(!that.isCmdInPrgrs){
+			that.isCmdInPrgrs = true;
+			var point = new Point(that.mouseStartX, that.mouseStartY);
+			that.polyPoints.push(point);
+		} else {
+			var point = new Point(that.mouseStartX, that.mouseStartY);
+			that.polyPoints.push(point);
+			if(that.polyPoints.length > 1){
+			 var pointString = '';
+			 for(var i=0; i < that.polyPoints.length; i++){
+				 pointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
+			 }
+			 if(that.tempElement !== undefined || that.tempElement !== null){
+				 that.tempElement.remove();
+			 }
+			 that.tempElement = svg.append('polygon')
+					.attr('points', pointString)
+					.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
+			}
+		}
           }
         }
       }
@@ -562,7 +612,14 @@ var Canvas = Class.create({
 	  var circ = new Circle(name, that, circDim);
 	  that.tempElement.remove();
 	  that.addNode(circ);
+	} else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.ELLIPSE){
+	  var name = prompt("Element Name:");
+	  var ellipDim = new EllipseDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndX-that.mouseStartX), (that.mouseEndY-that.mouseStartY));
+	  var ellip = new Ellipse(name, that, ellipDim);
+	  that.tempElement.remove();
+	  that.addNode(ellip);
 	}
+
       }
    }
   },
@@ -931,6 +988,147 @@ var Circle = Class.create({
                     <svg style='width: 50px; height: 50px;'>
                       <circle cx='19' cy='19' r='10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></circle>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">CIRCLE</text>
+                    </svg>
+                 </div>`;
+      html += "</label>";
+      return html;
+  },
+});
+/**********************************************************************
+ * Defines an ellipse that will represent an model in the graph diagram
+ * A ellipse contain user configurable data known as attribute
+ * which can be changed through property window.
+ **********************************************************************/
+var Ellipse = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  ellipDimension: undefined, //an instance of the EllipseDimension class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "3",
+  lineStroke: "Solid",
+  shapeType: ShapeType.ELLIPSE,
+  toolName: 'ELLIPSE',
+  initialize: function(id, parentElement, ellipDimension, ports, title, lineColor, lineWidth, lineStroke, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.ellipDimension = ellipDimension || new EllipseDimension(10, 10, 50, 100);
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "3";
+    this.lineStroke = lineStroke || "Solid";
+    this.shapeType = ShapeType.ELLIPSE;
+    this.toolName = 'ELLIPSE';
+  },
+  getToolName: function(){
+	  return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    this.line = svg.append('ellipse')
+      .attr('id', this.id)
+      .attr('cx', this.ellipDimension.cx)
+      .attr('cy', this.ellipDimension.cy)
+      .attr('rx', this.ellipDimension.rx)
+      .attr('ry', this.ellipDimension.ry)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
+      .attr('data-type', 'node-base')
+      .attr('class', 'drag-svg');
+  },
+  renderToolItem(){
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_ELLIPSE_tool' >";
+    html += `<input type='radio' name='tools' id='`
+          + this.parentElement.id + "_ELLIPSE_tool";
+      html += "'>";
+      html += "</input>";
+      html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <ellipse cx='19' cy='19' rx='15' ry='10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></ellipse>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">ELLIPSE</text>
+                    </svg>
+                 </div>`;
+      html += "</label>";
+      return html;
+  },
+});
+/**********************************************************************
+ * Defines an polygon that will represent an model in the graph diagram
+ * A polygon contain user configurable data known as attribute
+ * which can be changed through property window.
+ **********************************************************************/
+var Polygon = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  polyPoints: '10,10 50,50 100,100', //an instance of the EllipseDimension class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "3",
+  lineStroke: "Solid",
+  shapeType: ShapeType.POLYGON,
+  toolName: 'POLYGON',
+  initialize: function(id, parentElement, polyPoints, ports, title, lineColor, lineWidth, lineStroke, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.polyPoints = polyPoints || '10,10 50,50 100,100';
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "3";
+    this.lineStroke = lineStroke || "Solid";
+    this.shapeType = ShapeType.POLYGON;
+    this.toolName = 'POLYGON';
+  },
+  getToolName: function(){
+	  return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    this.line = svg.append('polygon')
+      .attr('id', this.id)
+      .attr('points', this.polyPoints)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
+      .attr('data-type', 'node-base')
+      .attr('class', 'drag-svg');
+  },
+  renderToolItem(){
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_POLYGON_tool' >";
+    html += `<input type='radio' name='tools' id='`
+          + this.parentElement.id + "_POLYGON_tool";
+      html += "'>";
+      html += "</input>";
+      html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <polygon points='15,15 15,28 25,25 28,10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></polygon>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POLYGON</text>
                     </svg>
                  </div>`;
       html += "</label>";
