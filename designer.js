@@ -34,15 +34,15 @@ is_dict = function(obj) {
 var Point = Class.create({
   x: 0,
   y: 0,
-  initialize: function(x, y){
+  initialize: function(x, y) {
     this.x = x;
     this.y = y;
   },
-  add: function(point){
+  add: function(point) {
     this.x = this.x + point.x;
     this.y = this.y + point.y;
   },
-  substract: function(point){
+  substract: function(point) {
     this.x = this.x - point.x;
     this.y = this.y - point.y;
   }
@@ -50,57 +50,57 @@ var Point = Class.create({
 /***********************************************************
  * RectDimension - Dimension class containing dimension of an rectangle
  ***********************************************************/
- var RectDimension = Class.create({
+var RectDimension = Class.create({
   top: 0,
   left: 0,
   height: 0,
   width: 0,
-  initialize: function(left, top, height, width){
+  initialize: function(left, top, height, width) {
     this.left = left;
     this.top = top;
     this.height = height;
     this.width = width;
   }
- });
- /**********************************************************
-  * LineDimension - Dimension class containing dimension for line
-  **********************************************************/
-  var LineDimension = Class.create({
-    start: undefined,
-    end: undefined,
-    hasArrow: true,
-    arrowType: 'standard',
-    _direction: '', //BT=>Bottom-Top; TB=>Top-Bottom; LR=>Left-Right; RL=>Right-Left
-    initialize: function(start, end, hasArrow, arrowType){
-      this.start = start || new Point();
-      this.end = end || new Point();
-      this.hasArrow = hasArrow;
-      this.arrowType = arrowType;
-      this._direction = '';
-    },
-    _calculateDirection: function(){
-      var dx = Math.abs(this.end.x - this.start.x);
-      var dy = Math.abs(this.end.y - this.start.y);
+});
+/**********************************************************
+ * LineDimension - Dimension class containing dimension for line
+ **********************************************************/
+var LineDimension = Class.create({
+  start: undefined,
+  end: undefined,
+  hasArrow: true,
+  arrowType: 'standard',
+  _direction: '', //BT=>Bottom-Top; TB=>Top-Bottom; LR=>Left-Right; RL=>Right-Left
+  initialize: function(start, end, hasArrow, arrowType) {
+    this.start = start || new Point();
+    this.end = end || new Point();
+    this.hasArrow = hasArrow;
+    this.arrowType = arrowType;
+    this._direction = '';
+  },
+  _calculateDirection: function() {
+    var dx = Math.abs(this.end.x - this.start.x);
+    var dy = Math.abs(this.end.y - this.start.y);
 
-      if (dy <= dx) { //X-Axis dominant
-        if (dx >= 0) { //left to right
-          this._direction = 'LR';
-        } else { //right to left
-          this._direction = 'RL';
-        }
-      } else { //Y-Axis dominant
-        if (dy < 0) { //bottom to top
-          this._direction = 'BT';
-        } else { //top to bottom
-          this._direction = 'TB';
-        }
+    if (dy <= dx) { //X-Axis dominant
+      if (dx >= 0) { //left to right
+        this._direction = 'LR';
+      } else { //right to left
+        this._direction = 'RL';
       }
-      return this._direction;
-    },
-    getDirection: function(){
-      return this._calculateDirection();
+    } else { //Y-Axis dominant
+      if (dy < 0) { //bottom to top
+        this._direction = 'BT';
+      } else { //top to bottom
+        this._direction = 'TB';
+      }
     }
-  });
+    return this._direction;
+  },
+  getDirection: function() {
+    return this._calculateDirection();
+  }
+});
 /***********************************************************
  * Circle dimension
  ***********************************************************/
@@ -108,7 +108,7 @@ var CircleDimension = Class.create({
   cx: 0,
   cy: 0,
   r: 0,
-  initialize: function(cx, cy, r){
+  initialize: function(cx, cy, r) {
     this.cx = cx;
     this.cy = cy;
     this.r = r;
@@ -122,11 +122,11 @@ var EllipseDimension = Class.create({
   cy: 0,
   rx: 0,
   ry: 0,
-  initialize: function(cx, cy, rx, ry){
-	  this.cx = cx;
-	  this.cy = cy;
-	  this.rx = rx;
-	  this.ry = ry;
+  initialize: function(cx, cy, rx, ry) {
+    this.cx = cx;
+    this.cy = cy;
+    this.rx = rx;
+    this.ry = ry;
   }
 });
 /**********************************************************
@@ -140,14 +140,24 @@ var MouseState = {
   MOVE: 3,
   LEAVE: 4,
   properties: {
-    0: {name: 'UP'},
-    1: {name: 'DOWN'},
-    2: {name: 'DRAG'},
-    3: {name: 'MOVE'},
-    4: {name: 'LEAVE'}
+    0: {
+      name: 'UP'
+    },
+    1: {
+      name: 'DOWN'
+    },
+    2: {
+      name: 'DRAG'
+    },
+    3: {
+      name: 'MOVE'
+    },
+    4: {
+      name: 'LEAVE'
+    }
   }
 };
-if(Object.freeze){
+if (Object.freeze) {
   Object.freeze(MouseState);
 }
 /***********************************************************
@@ -161,17 +171,37 @@ var ShapeType = {
   CIRCLE: 2,
   ELLIPSE: 3,
   POLYLINE: 4,
-  PATH: 5,
-  BEZIRE_CURVE: 6,
+  POLYGON: 5,
+  PATH: 6,
+  BEZIRE_CURVE: 7,
   properties: {
- 9999: {name: 'NONE'},
-    0: {name: 'LINE'},
-    1: {name: 'RECTANGLE'},
-    2: {name: 'CIRCLE'},
-    3: {name: 'ELLIPSE'},
-    4: {name: 'POLYLINE'},
-    5: {name: 'PATH'},
-    6: {name: 'BEZIRE_CURVE'}
+    9999: {
+      name: 'NONE'
+    },
+    0: {
+      name: 'LINE'
+    },
+    1: {
+      name: 'RECTANGLE'
+    },
+    2: {
+      name: 'CIRCLE'
+    },
+    3: {
+      name: 'ELLIPSE'
+    },
+    4: {
+      name: 'POLYLINE'
+    },
+    5: {
+      name: 'POLYGONE'
+    },
+    6: {
+      name: 'PATH'
+    },
+    7: {
+      name: 'BEZIRE_CURVE'
+    }
   }
 };
 
@@ -239,39 +269,39 @@ var Canvas = Class.create({
     this.toolName = 'SELECT';
     this.selectedTool = this.tools[0];
     this.options = {
-        container: '#' + id + '_svg',
-        restrict: '#' + id + '_svg',
-        proportions: true,
-        rotationPoint: true,
-        //themeColor: 'white',
-        each: {
-            //resize: true,
-            //move: true,
-            //rotate: true
-        },
-        snap: {
-            x: 20,
-            y: 20,
-            angle: 25
-        },
-        cursorMove: 'move',
-        cursorRotate: 'crosshair',
-        cursorResize: 'pointer'
+      container: '#' + id + '_svg',
+      restrict: '#' + id + '_svg',
+      proportions: true,
+      rotationPoint: true,
+      //themeColor: 'white',
+      each: {
+        //resize: true,
+        //move: true,
+        //rotate: true
+      },
+      snap: {
+        x: 20,
+        y: 20,
+        angle: 25
+      },
+      cursorMove: 'move',
+      cursorRotate: 'crosshair',
+      cursorResize: 'pointer'
     };
   },
   /*
    * Method: getToolName
    * Description: Returns the name of the curret tool
    */
-  getToolName: function(){
-	  return this.toolName;
+  getToolName: function() {
+    return this.toolName;
   },
   /*
    * Method: getShapeType
    * Description: Returns the shape type the current tool supports
    */
-  getShapeType: function(){
-	  return this.shapeType;
+  getShapeType: function() {
+    return this.shapeType;
   },
   /*
    * Method: initEdge
@@ -291,7 +321,19 @@ var Canvas = Class.create({
   addEdge: function(edge) {
     this.edges.push(edge);
     edge.render();
-    subjx('#' + edge.id).drag(this.options);
+    var item = subjx('#' + edge.id).drag(this.options)[0];
+    subjx(item.controls).on('dblclick', () => {
+          item.disable();
+    });
+    subjx('#' + edge.id).on('dblclick', e => {
+      if (e.currentTarget.classList.contains('sjx-drag')) return;
+      const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
+      // adding event to controls
+      const controls = xDraggable.controls;
+      subjx(controls).on('dblclick', () => {
+        xDraggable.disable();
+      });
+    });
   },
   /*
    * Method: removeEdge
@@ -327,7 +369,19 @@ var Canvas = Class.create({
     } else {
       addedNode.appendTo($j('body'));
     }
-    subjx('#' + node.id).drag(this.options);
+    var item = subjx('#' + node.id).drag(this.options)[0];
+    subjx(item.controls).on('dblclick', () => {
+          item.disable();
+    });
+    subjx('#' + node.id).on('dblclick', e => {
+      if (e.currentTarget.classList.contains('sjx-drag')) return;
+      const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
+      // adding event to controls
+      const controls = xDraggable.controls;
+      subjx(controls).on('dblclick', () => {
+        xDraggable.disable();
+      });
+    });
   },
   /*
    * Method: removeNode
@@ -345,18 +399,18 @@ var Canvas = Class.create({
    * Method: addTool
    * Description: adds an tool to the toolbox of the canvas
    *********************************************************/
-  addTool: function(tool){
+  addTool: function(tool) {
     this.tools.push(tool);
   },
   /*********************************************************
    * Method: removeTool
    * Description: removes an tool from the toolbox of the canvas
    *********************************************************/
-  removeTool: function(tool){
+  removeTool: function(tool) {
     var index = this.tools.indexOf(tool);
     this.tools.splice(index, 1);
     var toolToRemove = document.getElementById(tool.id);
-    if(toolToRemove != undefined){
+    if (toolToRemove != undefined) {
       toolToRemove.parentNode.removeChild(toolToRemove);
     }
   },
@@ -369,65 +423,65 @@ var Canvas = Class.create({
     var html = `<table style='height:100%; width: 100%'>
                   <tr>
                     <td style='width: 95%'>`;
-                      //An outer div for SVG canvas
-                      html +=
-                        "<div id='" + this.id + "' style='height: 100%;'";
-                        if (this.height != undefined && this.width != undefined) {
-                          html += "style='height:" + this.height;
-                          html += "; width:" + this.width + ";'  ";
-                        } else if (this.height != undefined && this.width === undefined) {
-                          html += "style='height:" + this.height + ";' ";
-                        } else if (this.height === undefined && this.width != undefined) {
-                          html += "style='width:" + this.width + ";' ";
-                        }
-                        html +=
-                        " data-type='canvas'>";
-                        html +=
-                        "<svg class='" + this.css + `' style='top: 0px; left: 0px;
+    //An outer div for SVG canvas
+    html +=
+      "<div id='" + this.id + "' style='height: 100%;'";
+    if (this.height != undefined && this.width != undefined) {
+      html += "style='height:" + this.height;
+      html += "; width:" + this.width + ";'  ";
+    } else if (this.height != undefined && this.width === undefined) {
+      html += "style='height:" + this.height + ";' ";
+    } else if (this.height === undefined && this.width != undefined) {
+      html += "style='width:" + this.width + ";' ";
+    }
+    html +=
+      " data-type='canvas'>";
+    html +=
+      "<svg class='" + this.css + `' style='top: 0px; left: 0px;
                                                               height: 100%; width: 100%'
                                                               id='` + this.id + "_svg' ></svg>"
-                          /*Iterate through all the child nodes or edges of
-                           * canvas and render each of it by concatnating its
-                           * HTML to canvas's HTML
-                           */
-                          for (var i = 0; i < this.nodes.length; i++) {
-                            html += this.nodes[i].render();
-                          }
-                        html +=
-                        `</div>
+    /*Iterate through all the child nodes or edges of
+     * canvas and render each of it by concatnating its
+     * HTML to canvas's HTML
+     */
+    for (var i = 0; i < this.nodes.length; i++) {
+      html += this.nodes[i].render();
+    }
+    html +=
+      `</div>
                     </td>
                     <td style='width: 5%;vertical-align:top;'>`;
-                    html +=
-                      `<table style='width: 50px' class='middle toolbox'>
+    html +=
+      `<table style='width: 50px' class='middle toolbox'>
                         <tr>
                           <th>Toolbox</th>
                         </tr>
                         <tr>
                           <td>`;
-                            for(var i=0; i < this.tools.length; i++){
-                              if(i === 0){
-                                html += this.renderToolItem();
-                              } else {
-                                html += this.tools[i].renderToolItem();
-                              }
-                            }
-                            html +=
-                          `</td>
+    for (var i = 0; i < this.tools.length; i++) {
+      if (i === 0) {
+        html += this.renderToolItem();
+      } else {
+        html += this.tools[i].renderToolItem();
+      }
+    }
+    html +=
+      `</td>
                         </tr>
                         <tr>
                           <td style='text-align: center; font-size: 9px;'>`;
-                          html += `X: <span id='x_label'></span>
+    html += `X: <span id='x_label'></span>
                                    Y: <span id='y_label'></span>
                           </td>
                         </tr>
                         <tr>
                           <td style='text-align: center; font-size: 9px;'>`;
-                          html += `STATE: <span id='mouse_state'></span>`;
-                 html += `</td>
+    html += `STATE: <span id='mouse_state'></span>`;
+    html += `</td>
                         </tr>
                       </table>`;
-                    html +=
-                    `</td>
+    html +=
+      `</td>
                   </tr>
                 </table>`;
 
@@ -438,10 +492,10 @@ var Canvas = Class.create({
       this.dom = $j(html).appendTo($j(container));
     }
     var that = this;
-    $j('[name="tools"]').bind('click', function(e){
+    $j('[name="tools"]').bind('click', function(e) {
       var name = e.currentTarget.id;
-      for(var i=0; i < that.tools.length; i++){
-        if((that.id + "_" + that.tools[i].getToolName() + "_tool") === name){
+      for (var i = 0; i < that.tools.length; i++) {
+        if ((that.id + "_" + that.tools[i].getToolName() + "_tool") === name) {
           that._changeTool(i);
         }
       }
@@ -457,7 +511,7 @@ var Canvas = Class.create({
     this._registerObserver();
 
   },
-  _registerObserver: function(){
+  _registerObserver: function() {
     this.mouseState = MouseState.UP;
     var svg = document.getElementById(this.id + '_svg');
     svg.addEventListener('mousemove', mouseMove);
@@ -466,170 +520,199 @@ var Canvas = Class.create({
     svg.addEventListener('touchstart', mouseDown);
     svg.addEventListener('mouseup', mouseUp);
     svg.addEventListener('touchend', mouseUp);
+    svg.addEventListener('dblclick', mouseDblClick);
     var that = this;
     this.isCmdInPrgrs = false;
     this.polyPoints = [];
 
-    function mouseMove(e){
+    function mouseMove(e) {
       e.preventDefault();
       that.mouseX = e.clientX;
-	    that.mouseY = e.clientY;
-	    if(that.mouseX === undefined || that.mouseY === undefined){
-		    that.mouseX = e.touches[0].clientX;
-		    that.mouseY = e.touches[0].clientY;
-	    }
-	    $j('#x_label').text(parseInt(that.mouseX));
-	    $j('#y_label').text(parseInt(that.mouseY));
-      if(that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG){
+      that.mouseY = e.clientY;
+      if (that.mouseX === undefined || that.mouseY === undefined) {
+        that.mouseX = e.touches[0].clientX;
+        that.mouseY = e.touches[0].clientY;
+      }
+      $j('#x_label').text(parseInt(that.mouseX));
+      $j('#y_label').text(parseInt(that.mouseY));
+      if (that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG) {
         that.mouseState = MouseState.DRAG;
-        if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE){
+        if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE) {
           that.tempElement.attr('x2', that.mouseX);
           that.tempElement.attr('y2', that.mouseY);
-        } else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE){
-	  that.tempElement.attr('width', that.mouseX-that.mouseStartX);
-	  that.tempElement.attr('height', that.mouseY-that.mouseStartY);
-	} else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.CIRCLE){
-	  that.tempElement.attr('r', that.mouseX-that.mouseStartX);
-	} else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.ELLIPSE){
-	  that.tempElement.attr('rx', that.mouseX-that.mouseStartX);
-	  that.tempElement.attr('ry', that.mouseY-that.mouseStartY);
-	}
+        } else if (that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE) {
+          that.tempElement.attr('width', that.mouseX - that.mouseStartX);
+          that.tempElement.attr('height', that.mouseY - that.mouseStartY);
+        } else if (that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.CIRCLE) {
+          that.tempElement.attr('r', that.mouseX - that.mouseStartX);
+        } else if (that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.ELLIPSE) {
+          that.tempElement.attr('rx', that.mouseX - that.mouseStartX);
+          that.tempElement.attr('ry', that.mouseY - that.mouseStartY);
+        }
 
       } else {
         that.mouseState = MouseState.MOVE;
       }
       $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
 
-   }
+    }
 
-   function mouseDown(e){
+    function mouseDown(e) {
       e.preventDefault();
-      if(that.mouseState === MouseState.UP || that.mouseState === MouseState.MOVE){
+      if (that.mouseState === MouseState.UP || that.mouseState === MouseState.MOVE) {
         that.mouseState = MouseState.DOWN;
         $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
 
         that.mouseStartX = e.clientX;
         that.mouseStartY = e.clientY;
-        if(that.mouseStartX === undefined || that.mouseStartY === undefined){
+        if (that.mouseStartX === undefined || that.mouseStartY === undefined) {
           that.mouseStartX = e.touches[0].clientX;
           that.mouseStartY = e.touches[0].clientY;
         }
-        if(e.currentTarget.id === (that.id + '_svg')){
+        if (e.currentTarget.id === (that.id + '_svg')) {
           var svg_id = '#' + that.id + '_svg';
           var svg = d3.select(svg_id);
-          switch(that.selectedTool.getShapeType()){
+          switch (that.selectedTool.getShapeType()) {
             case ShapeType.LINE:
-            		that.tempElement = svg.append('line')
-            		.attr('id', 'temp_id')
+              that.tempElement = svg.append('line')
+                .attr('id', 'temp_id')
                 .attr('x1', that.mouseStartX)
                 .attr('y1', that.mouseStartY)
                 .attr('x2', that.mouseStartX)
                 .attr('y2', that.mouseStartY)
                 .attr('style', 'stroke:green;stroke-width:2px;stroke-dasharray:2');
-            break;
-	   case ShapeType.RECTANGLE:
-		that.tempElement = svg.append('rect')
-			  	.attr('id', 'temp_id')
-				.attr('x', that.mouseStartX)
-			  	.attr('y', that.mouseStartY)
-			  	.attr('height', '5')
-			  	.attr('width', '5')
-			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:2; fill:none');
-	    break;
-	   case ShapeType.CIRCLE:
-		that.tempElement = svg.append('circle')
-			  	.attr('id', 'temp_id')
-				.attr('cx', that.mouseStartX)
-			  	.attr('cy', that.mouseStartY)
-			  	.attr('r', '5')
-			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:2; fill:none');
-	    break;
-	   case ShapeType.ELLIPSE:
-		that.tempElement = svg.append('ellipse')
-			  	.attr('id', 'temp_id')
-			  	.attr('cx', that.mouseStartX)
-			  	.attr('cy', that.mouseStartY)
-			  	.attr('rx', '5')
-			  	.attr('ry', '5')
-			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill:none');
-	    break;
-	   case ShapeType.POLYGON:
-		if(!that.isCmdInPrgrs){
-			that.isCmdInPrgrs = true;
-			var point = new Point(that.mouseStartX, that.mouseStartY);
-			that.polyPoints.push(point);
-		} else {
-			var point = new Point(that.mouseStartX, that.mouseStartY);
-			that.polyPoints.push(point);
-			if(that.polyPoints.length > 1){
-			 var pointString = '';
-			 for(var i=0; i < that.polyPoints.length; i++){
-				 pointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
-			 }
-			 if(that.tempElement !== undefined || that.tempElement !== null){
-				 that.tempElement.remove();
-			 }
-			 that.tempElement = svg.append('polygon')
-					.attr('points', pointString)
-					.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
-			}
-		}
+              break;
+            case ShapeType.RECTANGLE:
+              that.tempElement = svg.append('rect')
+                .attr('id', 'temp_id')
+                .attr('x', that.mouseStartX)
+                .attr('y', that.mouseStartY)
+                .attr('height', '5')
+                .attr('width', '5')
+                .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:2; fill:none');
+              break;
+            case ShapeType.CIRCLE:
+              that.tempElement = svg.append('circle')
+                .attr('id', 'temp_id')
+                .attr('cx', that.mouseStartX)
+                .attr('cy', that.mouseStartY)
+                .attr('r', '5')
+                .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:2; fill:none');
+              break;
+            case ShapeType.ELLIPSE:
+              that.tempElement = svg.append('ellipse')
+                .attr('id', 'temp_id')
+                .attr('cx', that.mouseStartX)
+                .attr('cy', that.mouseStartY)
+                .attr('rx', '5')
+                .attr('ry', '5')
+                .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill:none');
+              break;
+            case ShapeType.POLYGON:
+              if (!that.isCmdInPrgrs) {
+                that.isCmdInPrgrs = true;
+                var point = new Point(that.mouseStartX, that.mouseStartY);
+                that.polyPoints.push(point);
+              } else {
+                var point = new Point(that.mouseStartX, that.mouseStartY);
+                that.polyPoints.push(point);
+                if (that.polyPoints.length > 1) {
+                  var pointString = '';
+                  for (var i = 0; i < that.polyPoints.length; i++) {
+                    pointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
+                  }
+                  if (that.tempElement !== undefined) {
+                    that.tempElement.remove();
+                    that.tempElement = undefined;
+                  }
+                  that.tempElement = svg.append('polygon')
+                    .attr('points', pointString)
+                    .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
+                }
+              }
           }
         }
       }
-   }
+    }
 
-   function mouseUp(e){
+    function mouseUp(e) {
       e.preventDefault();
-      if(that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG){
+      if (that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG) {
         that.mouseState = MouseState.UP;
         $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
         that.mouseEndX = e.clientX;
         that.mouseEndY = e.clientY;
-        if(that.mouseEndX === undefined || that.mouseEndY === undefined){
-          if(e.touches.length > 0){  
-		that.mouseEndX = e.touches[0].clientX;
-          	that.mouseEndY = e.touches[0].clientY;
-	  } else {
-		that.mouseEndX = that.mouseX;
-		that.mouseEndY = that.mouseY;
-	  }
+        if (that.mouseEndX === undefined || that.mouseEndY === undefined) {
+          if (e.touches.length > 0) {
+            that.mouseEndX = e.touches[0].clientX;
+            that.mouseEndY = e.touches[0].clientY;
+          } else {
+            that.mouseEndX = that.mouseX;
+            that.mouseEndY = that.mouseY;
+          }
         }
-        if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE){
+        if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE) {
           var name = prompt("Element Name:");
-          var line = new Line(name, that, {x: that.mouseStartX, y: that.mouseStartY}, {x: that.mouseEndX, y: that.mouseEndY});
+          var line = new Line(name, that, {
+            x: that.mouseStartX,
+            y: that.mouseStartY
+          }, {
+            x: that.mouseEndX,
+            y: that.mouseEndY
+          });
           that.tempElement.remove();
+          that.tempElement = undefined;
           that.addEdge(line);
-        } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE){
-	  var name = prompt("Element Name:");
-	  var rectDim = new RectDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndY-that.mouseStartY), (that.mouseEndX-that.mouseStartX));
-	  var node = new Rectangle(name, that, rectDim);
-	  that.tempElement.remove();
-	  that.addNode(node);
-        } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.CIRCLE){
-	  var name = prompt("Element Name:");
-	  var circDim = new CircleDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndX-that.mouseStartX));
-	  var circ = new Circle(name, that, circDim);
-	  that.tempElement.remove();
-	  that.addNode(circ);
-	} else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.ELLIPSE){
-	  var name = prompt("Element Name:");
-	  var ellipDim = new EllipseDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndX-that.mouseStartX), (that.mouseEndY-that.mouseStartY));
-	  var ellip = new Ellipse(name, that, ellipDim);
-	  that.tempElement.remove();
-	  that.addNode(ellip);
-	}
+        } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE) {
+          var name = prompt("Element Name:");
+          var rectDim = new RectDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndY - that.mouseStartY), (that.mouseEndX - that.mouseStartX));
+          var node = new Rectangle(name, that, rectDim);
+          that.tempElement.remove();
+          that.tempElement = undefined;
+          that.addNode(node);
+        } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.CIRCLE) {
+          var name = prompt("Element Name:");
+          var circDim = new CircleDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndX - that.mouseStartX));
+          var circ = new Circle(name, that, circDim);
+          that.tempElement.remove();
+          that.tempElement = undefined;
+          that.addNode(circ);
+        } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.ELLIPSE) {
+          var name = prompt("Element Name:");
+          var ellipDim = new EllipseDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndX - that.mouseStartX), (that.mouseEndY - that.mouseStartY));
+          var ellip = new Ellipse(name, that, ellipDim);
+          that.tempElement.remove();
+          that.tempElement = undefined;
+          that.addNode(ellip);
+        }
 
       }
-   }
+    }
+    function mouseDblClick(e){
+      if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.POLYGON) {
+          var name = prompt("Element Name:");
+          if(that.polyPoints.length > 1){
+            var polyPointString = '';
+            for(var i=0; i<that.polyPoints.length; i++){
+              polyPointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
+            }
+            var poly = new Polygon(name, that, polyPointString);
+            that.tempElement.remove();
+            that.tempElement = undefined;
+            that.addNode(poly);
+            that.isCmdInPrgrs = false;
+            that.polyPoints = [];
+        }
+      }
+    }
   },
-  renderToolItem: function(){
+  renderToolItem: function() {
     var html = '';
     html += "<label for='" + this.id + "_SELECT_tool' >";
-    html += `<input type='radio' name='tools' id='`
-          	+ this.id + "_SELECT_tool' checked>";
-      html += "</input>";
-      html += `<div class="tool-button">
+    html += `<input type='radio' name='tools' id='` +
+      this.id + "_SELECT_tool' checked>";
+    html += "</input>";
+    html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
                     <defs>
                       <marker id="toolArrow" refX="6" refY="6" markerWidth="30" markerHeight="30" markerUnits="userSpaceOnUse" orient="auto">
@@ -640,35 +723,35 @@ var Canvas = Class.create({
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">SELECT</text>
                     </svg>
                  </div>`;
-      html += "</label>";
-      return html;
+    html += "</label>";
+    return html;
   },
   _registerActions: function() {
     this.observable = subjx.createObservable();
 
     this.svg = subjx('.drag-svg')
-        .drag(this.options);
+      .drag(this.options);
 
-    if(this.svg !== undefined){
-	this.svg.forEach(item => {
-        	subjx(item.controls).on('dblclick', () => {
-            	item.disable();
-            });
-    	});
+    if (this.svg !== undefined) {
+      this.svg.forEach(item => {
+        subjx(item.controls).on('dblclick', () => {
+          item.disable();
+        });
+      });
     }
 
     that = this;
     subjx('.drag-svg').on('dblclick', e => {
-        if (e.currentTarget.classList.contains('sjx-drag')) return;
-        const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
-        // adding event to controls
-        const controls = xDraggable.controls;
-        subjx(controls).on('dblclick', () => {
-            xDraggable.disable();
-        });
+      if (e.currentTarget.classList.contains('sjx-drag')) return;
+      const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
+      // adding event to controls
+      const controls = xDraggable.controls;
+      subjx(controls).on('dblclick', () => {
+        xDraggable.disable();
+      });
     });
   },
-  _registerMarkers: function(){
+  _registerMarkers: function() {
 
     var svg_id = '#' + this.id + '_svg';
     //Points the same thing but in D3 format
@@ -686,8 +769,8 @@ var Canvas = Class.create({
       .attr("d", "M 0 0 12 6 0 12 3 6")
       .style("fill", "black");
   },
-  _changeTool(index){
-    if(index < this.tools.length){
+  _changeTool(index) {
+    if (index < this.tools.length) {
       this.selectedTool = this.tools[index];
     }
   },
@@ -726,30 +809,28 @@ var Canvas = Class.create({
 /*********************************************************************
  * Base class for all shapes that could be added to the cavas
  *********************************************************************/
- var Shape = Class.create({
+var Shape = Class.create({
   id: "",
   title: "",
   description: "",
   shapeType: ShapeType.NONE,
   toolName: 'NONE',
-  initialize: function(id, title, description){
-	this.id = id;
-	this.title = title;
-	this.description = description;
-	this.shapeType = ShapeType.NONE;
-	this.toolName = 'NONE';
+  initialize: function(id, title, description) {
+    this.id = id;
+    this.title = title;
+    this.description = description;
+    this.shapeType = ShapeType.NONE;
+    this.toolName = 'NONE';
   },
-  getToolName: function(){
-	  return this.toolName;
+  getToolName: function() {
+    return this.toolName;
   },
-  getShapeType: function(){
-	  return this.shapeType;
+  getShapeType: function() {
+    return this.shapeType;
   },
-  render: function(){
-  },
-  renderToolItem: function(){
-  }
- });
+  render: function() {},
+  renderToolItem: function() {}
+});
 /**********************************************************************
  * Defines an line that will be used to connect two or more nodes with
  * each other. A Line can have direction and will be denoted by an Arrow
@@ -784,8 +865,8 @@ var Line = Class.create({
     this.shapeType = ShapeType.LINE;
     this.toolName = 'LINE';
   },
-  getToolName: function(){
-	  return this.toolName;
+  getToolName: function() {
+    return this.toolName;
   },
   getShapeType: function() {
     return this.shapeType;
@@ -827,14 +908,14 @@ var Line = Class.create({
       .attr('data-type', 'edge-base')
       .attr('class', 'drag-svg');
   },
-  renderToolItem(){
+  renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_LINE_tool' >";
-    html += `<input type='radio' name='tools' id='`
-          + this.parentElement.id + "_LINE_tool";
-      html += "'>";
-      html += "</input>";
-      html += `<div class="tool-button">
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_LINE_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
                     <defs>
                       <marker id="toolAdrnrCirl" refX="6" refY="6" markerWidth="30" markerHeight="30" markerUnits="userSpaceOnUse" orient="auto">
@@ -846,8 +927,8 @@ var Line = Class.create({
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">LINE</text>
                     </svg>
                  </div>`;
-      html += "</label>";
-      return html;
+    html += "</label>";
+    return html;
   },
 });
 /**********************************************************************
@@ -880,8 +961,8 @@ var Rectangle = Class.create({
     this.shapeType = ShapeType.RECTANGLE;
     this.toolName = 'RECT';
   },
-  getToolName: function(){
-	  return this.toolName;
+  getToolName: function() {
+    return this.toolName;
   },
   getShapeType: function() {
     return this.shapeType;
@@ -905,21 +986,21 @@ var Rectangle = Class.create({
       .attr('data-type', 'node-base')
       .attr('class', 'drag-svg');
   },
-  renderToolItem(){
+  renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_RECT_tool' >";
-    html += `<input type='radio' name='tools' id='`
-          + this.parentElement.id + "_RECT_tool";
-      html += "'>";
-      html += "</input>";
-      html += `<div class="tool-button">
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_RECT_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
                       <rect x='21' y='21' height='17' width='17' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 23 23)'></rect>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">RECT</text>
                     </svg>
                  </div>`;
-      html += "</label>";
-      return html;
+    html += "</label>";
+    return html;
   },
 });
 
@@ -953,8 +1034,8 @@ var Circle = Class.create({
     this.shapeType = ShapeType.CIRCLE;
     this.toolName = 'CIRCLE';
   },
-  getToolName: function(){
-	  return this.toolName;
+  getToolName: function() {
+    return this.toolName;
   },
   getShapeType: function() {
     return this.shapeType;
@@ -977,21 +1058,21 @@ var Circle = Class.create({
       .attr('data-type', 'node-base')
       .attr('class', 'drag-svg');
   },
-  renderToolItem(){
+  renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_CIRCLE_tool' >";
-    html += `<input type='radio' name='tools' id='`
-          + this.parentElement.id + "_CIRCLE_tool";
-      html += "'>";
-      html += "</input>";
-      html += `<div class="tool-button">
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_CIRCLE_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
                       <circle cx='19' cy='19' r='10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></circle>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">CIRCLE</text>
                     </svg>
                  </div>`;
-      html += "</label>";
-      return html;
+    html += "</label>";
+    return html;
   },
 });
 /**********************************************************************
@@ -1024,8 +1105,8 @@ var Ellipse = Class.create({
     this.shapeType = ShapeType.ELLIPSE;
     this.toolName = 'ELLIPSE';
   },
-  getToolName: function(){
-	  return this.toolName;
+  getToolName: function() {
+    return this.toolName;
   },
   getShapeType: function() {
     return this.shapeType;
@@ -1049,21 +1130,21 @@ var Ellipse = Class.create({
       .attr('data-type', 'node-base')
       .attr('class', 'drag-svg');
   },
-  renderToolItem(){
+  renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_ELLIPSE_tool' >";
-    html += `<input type='radio' name='tools' id='`
-          + this.parentElement.id + "_ELLIPSE_tool";
-      html += "'>";
-      html += "</input>";
-      html += `<div class="tool-button">
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_ELLIPSE_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
-                      <ellipse cx='19' cy='19' rx='15' ry='10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></ellipse>
+                      <ellipse cx='15' cy='19' rx='15' ry='10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></ellipse>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">ELLIPSE</text>
                     </svg>
                  </div>`;
-      html += "</label>";
-      return html;
+    html += "</label>";
+    return html;
   },
 });
 /**********************************************************************
@@ -1096,8 +1177,8 @@ var Polygon = Class.create({
     this.shapeType = ShapeType.POLYGON;
     this.toolName = 'POLYGON';
   },
-  getToolName: function(){
-	  return this.toolName;
+  getToolName: function() {
+    return this.toolName;
   },
   getShapeType: function() {
     return this.shapeType;
@@ -1118,20 +1199,20 @@ var Polygon = Class.create({
       .attr('data-type', 'node-base')
       .attr('class', 'drag-svg');
   },
-  renderToolItem(){
+  renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_POLYGON_tool' >";
-    html += `<input type='radio' name='tools' id='`
-          + this.parentElement.id + "_POLYGON_tool";
-      html += "'>";
-      html += "</input>";
-      html += `<div class="tool-button">
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_POLYGON_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
-                      <polygon points='15,15 15,28 25,25 28,10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></polygon>
+                      <polygon points='5,10 0,30 25,25 28,10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></polygon>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POLYGON</text>
                     </svg>
                  </div>`;
-      html += "</label>";
-      return html;
+    html += "</label>";
+    return html;
   },
 });
