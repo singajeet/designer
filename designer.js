@@ -471,7 +471,10 @@ var Canvas = Class.create({
         } else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE){
 	  that.tempElement.attr('width', that.mouseX-that.mouseStartX);
 	  that.tempElement.attr('height', that.mouseY-that.mouseStartY);
+	} else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.CIRCLE){
+	  that.tempElement.attr('r', that.mouseX-that.mouseStartX);
 	}
+
       } else {
         that.mouseState = MouseState.MOVE;
       }
@@ -513,6 +516,14 @@ var Canvas = Class.create({
 			  	.attr('width', '5')
 			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:5; fill:none');
 	    break;
+	   case ShapeType.CIRCLE:
+		that.tempElement = svg.append('circle')
+			  	.attr('id', 'temp_id')
+				.attr('cx', that.mouseStartX)
+			  	.attr('cy', that.mouseStartY)
+			  	.attr('r', '5')
+			  	.attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:5; fill:none');
+	    break;
           }
         }
       }
@@ -536,15 +547,21 @@ var Canvas = Class.create({
         }
         if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE){
           var name = prompt("Element Name:");
-          var line = new Edge(name, that, {x: that.mouseStartX, y: that.mouseStartY}, {x: that.mouseEndX, y: that.mouseEndY});
+          var line = new Line(name, that, {x: that.mouseStartX, y: that.mouseStartY}, {x: that.mouseEndX, y: that.mouseEndY});
           that.tempElement.remove();
           that.addEdge(line);
         } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE){
 	  var name = prompt("Element Name:");
 	  var rectDim = new RectDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndY-that.mouseStartY), (that.mouseEndX-that.mouseStartX));
-	  var node = new Node(name, that, rectDim);
+	  var node = new Rectangle(name, that, rectDim);
 	  that.tempElement.remove();
 	  that.addNode(node);
+        } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.CIRCLE){
+	  var name = prompt("Element Name:");
+	  var circDim = new CircleDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndX-that.mouseStartX));
+	  var circ = new Circle(name, that, circDim);
+	  that.tempElement.remove();
+	  that.addNode(circ);
 	}
       }
    }
@@ -575,11 +592,13 @@ var Canvas = Class.create({
     this.svg = subjx('.drag-svg')
         .drag(this.options);
 
-    this.svg.forEach(item => {
-        subjx(item.controls).on('dblclick', () => {
-            item.disable();
-        });
-    });
+    if(this.svg !== undefined){
+	this.svg.forEach(item => {
+        	subjx(item.controls).on('dblclick', () => {
+            	item.disable();
+            });
+    	});
+    }
 
     that = this;
     subjx('.drag-svg').on('dblclick', e => {
@@ -675,11 +694,11 @@ var Canvas = Class.create({
   }
  });
 /**********************************************************************
- * Defined an edge that will be used to connect two or more nodes with
- * each other. An can have direction and will be denoted by an Arrow
- * icon on one end or both end of the edge.
+ * Defines an line that will be used to connect two or more nodes with
+ * each other. A Line can have direction and will be denoted by an Arrow
+ * icon on one end or both end of the line.
  **********************************************************************/
-var Edge = Class.create({
+var Line = Class.create({
   id: "",
   title: "",
   description: "",
@@ -691,7 +710,7 @@ var Edge = Class.create({
   lineWidth: "3",
   lineStroke: "Solid",
   shapeType: ShapeType.LINE,
-  toolName: 'EDGE',
+  toolName: 'LINE',
   initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowType, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -706,7 +725,7 @@ var Edge = Class.create({
     this.lineWidth = lineWidth || "3";
     this.lineStroke = lineStroke || "Solid";
     this.shapeType = ShapeType.LINE;
-    this.toolName = 'EDGE';
+    this.toolName = 'LINE';
   },
   getToolName: function(){
 	  return this.toolName;
@@ -753,9 +772,9 @@ var Edge = Class.create({
   },
   renderToolItem(){
     var html = '';
-    html += "<label for='" + this.parentElement.id + "_EDGE_tool' >";
+    html += "<label for='" + this.parentElement.id + "_LINE_tool' >";
     html += `<input type='radio' name='tools' id='`
-          + this.parentElement.id + "_EDGE_tool";
+          + this.parentElement.id + "_LINE_tool";
       html += "'>";
       html += "</input>";
       html += `<div class="tool-button">
@@ -767,7 +786,7 @@ var Edge = Class.create({
                       </marker>
                     </defs>
                       <line x1='23' y1='23' x2='38' y2='38' style='stroke: black; stroke-width: 2px;' marker-start='url(#toolAdrnrCirl)' marker-end= 'url(#toolAdrnrCirl)' transform='rotate(180 25 25)'></line>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">EDGE</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">LINE</text>
                     </svg>
                  </div>`;
       html += "</label>";
@@ -775,11 +794,11 @@ var Edge = Class.create({
   },
 });
 /**********************************************************************
- * Defined an Node that will represent an model in the graph diagram
- * A node contain user configurable data known as attribute
+ * Defines an Rectangle that will represent an model in the graph diagram
+ * A rectangle contain user configurable data known as attribute
  * which can be changed through property window.
  **********************************************************************/
-var Node = Class.create({
+var Rectangle = Class.create({
   id: "",
   title: "",
   description: "",
@@ -790,7 +809,7 @@ var Node = Class.create({
   lineWidth: "3",
   lineStroke: "Solid",
   shapeType: ShapeType.RECTANGLE,
-  toolName: 'NODE',
+  toolName: 'RECT',
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -802,7 +821,7 @@ var Node = Class.create({
     this.lineWidth = lineWidth || "3";
     this.lineStroke = lineStroke || "Solid";
     this.shapeType = ShapeType.RECTANGLE;
-    this.toolName = 'NODE';
+    this.toolName = 'RECT';
   },
   getToolName: function(){
 	  return this.toolName;
@@ -831,15 +850,87 @@ var Node = Class.create({
   },
   renderToolItem(){
     var html = '';
-    html += "<label for='" + this.parentElement.id + "_NODE_tool' >";
+    html += "<label for='" + this.parentElement.id + "_RECT_tool' >";
     html += `<input type='radio' name='tools' id='`
-          + this.parentElement.id + "_NODE_tool";
+          + this.parentElement.id + "_RECT_tool";
       html += "'>";
       html += "</input>";
       html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
-                      <rect x='23' y='23' height='15' width='15' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 25 25)'></rect>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">NODE</text>
+                      <rect x='21' y='21' height='17' width='17' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 23 23)'></rect>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">RECT</text>
+                    </svg>
+                 </div>`;
+      html += "</label>";
+      return html;
+  },
+});
+
+/**********************************************************************
+ * Defined an circle that will represent an model in the graph diagram
+ * A circle contain user configurable data known as attribute
+ * which can be changed through property window.
+ **********************************************************************/
+var Circle = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  circDimension: undefined, //an instance of the RectDimension class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "3",
+  lineStroke: "Solid",
+  shapeType: ShapeType.CIRCLE,
+  toolName: 'CIRCLE',
+  initialize: function(id, parentElement, circDimension, ports, title, lineColor, lineWidth, lineStroke, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.circDimension = circDimension || new CircleDimension(10, 10, 50);
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "3";
+    this.lineStroke = lineStroke || "Solid";
+    this.shapeType = ShapeType.CIRCLE;
+    this.toolName = 'CIRCLE';
+  },
+  getToolName: function(){
+	  return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    this.line = svg.append('circle')
+      .attr('id', this.id)
+      .attr('cx', this.circDimension.cx)
+      .attr('cy', this.circDimension.cy)
+      .attr('r', this.circDimension.r)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
+      .attr('data-type', 'node-base')
+      .attr('class', 'drag-svg');
+  },
+  renderToolItem(){
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_CIRCLE_tool' >";
+    html += `<input type='radio' name='tools' id='`
+          + this.parentElement.id + "_CIRCLE_tool";
+      html += "'>";
+      html += "</input>";
+      html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <circle cx='19' cy='19' r='10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></circle>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">CIRCLE</text>
                     </svg>
                  </div>`;
       html += "</label>";
