@@ -524,6 +524,7 @@ var Canvas = Class.create({
     var that = this;
     this.isCmdInPrgrs = false;
     this.polyPoints = [];
+    this.lastClick = 0;
 
     function mouseMove(e) {
       e.preventDefault();
@@ -565,9 +566,11 @@ var Canvas = Class.create({
 
         that.mouseStartX = e.clientX;
         that.mouseStartY = e.clientY;
+	that.isTap = false;
         if (that.mouseStartX === undefined || that.mouseStartY === undefined) {
           that.mouseStartX = e.touches[0].clientX;
           that.mouseStartY = e.touches[0].clientY;
+	  that.isTap = true;
         }
         if (e.currentTarget.id === (that.id + '_svg')) {
           var svg_id = '#' + that.id + '_svg';
@@ -628,6 +631,12 @@ var Canvas = Class.create({
                   that.tempElement = svg.append('polygon')
                     .attr('points', pointString)
                     .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
+		  if((Date.now() - that.lastClick) < 300 && that.isTap){
+			  mouseDblClick(e);
+			  that.lastClick = 0;
+			  that.isTap = false;
+		  }
+		  that.lastClick = Date.now();
                 }
               }
           }
