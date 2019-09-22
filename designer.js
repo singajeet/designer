@@ -174,6 +174,7 @@ var ShapeType = {
   POLYGON: 5,
   PATH: 6,
   BEZIRE_CURVE: 7,
+  SELECT: 8,
   properties: {
     9999: {
       name: 'NONE'
@@ -201,6 +202,9 @@ var ShapeType = {
     },
     7: {
       name: 'BEZIRE_CURVE'
+    },
+    8: {
+      name: 'SELECT'
     }
   }
 };
@@ -232,9 +236,13 @@ var Canvas = Class.create({
   mouseEndY: 0,
   mouseState: MouseState.UP,
   tempElement: undefined,
-  shapeType: ShapeType.NONE,
+  shapeType: ShapeType.SELECT,
   toolName: 'SELECT',
   selectedTool: undefined,
+  polyPoints: [],
+  isCmdInPrgrs: false,
+  lastClick: 0,
+  isTap: false,
   /*
    *  Constructor
    *          id (string):           A unique identifier for the canvas
@@ -265,9 +273,13 @@ var Canvas = Class.create({
     this.mouseEndX = 0;
     this.mouseEndY = 0;
     this.tempElement = undefined;
-    this.shapeType = ShapeType.NONE;
+    this.shapeType = ShapeType.SELECT;
     this.toolName = 'SELECT';
     this.selectedTool = this.tools[0];
+    this.polyPoints = [];
+    this.isCmdInPrgrs = false;
+    this.lastClick = 0;
+    this.isTap = false;
     this.options = {
       container: '#' + id + '_svg',
       restrict: '#' + id + '_svg',
@@ -423,65 +435,65 @@ var Canvas = Class.create({
     var html = `<table style='height:100%; width: 100%'>
                   <tr>
                     <td style='width: 95%'>`;
-    //An outer div for SVG canvas
-    html +=
-      "<div id='" + this.id + "' style='height: 100%;'";
-    if (this.height != undefined && this.width != undefined) {
-      html += "style='height:" + this.height;
-      html += "; width:" + this.width + ";'  ";
-    } else if (this.height != undefined && this.width === undefined) {
-      html += "style='height:" + this.height + ";' ";
-    } else if (this.height === undefined && this.width != undefined) {
-      html += "style='width:" + this.width + ";' ";
-    }
-    html +=
-      " data-type='canvas'>";
-    html +=
-      "<svg class='" + this.css + `' style='top: 0px; left: 0px;
+                    //An outer div for SVG canvas
+                    html +=
+                      "<div id='" + this.id + "' style='height: 100%;'";
+                    if (this.height != undefined && this.width != undefined) {
+                      html += "style='height:" + this.height;
+                      html += "; width:" + this.width + ";'  ";
+                    } else if (this.height != undefined && this.width === undefined) {
+                      html += "style='height:" + this.height + ";' ";
+                    } else if (this.height === undefined && this.width != undefined) {
+                      html += "style='width:" + this.width + ";' ";
+                    }
+                      html +=
+                        " data-type='canvas'>";
+                      html +=
+                        "<svg class='" + this.css + `' style='top: 0px; left: 0px;
                                                               height: 100%; width: 100%'
                                                               id='` + this.id + "_svg' ></svg>"
-    /*Iterate through all the child nodes or edges of
-     * canvas and render each of it by concatnating its
-     * HTML to canvas's HTML
-     */
-    for (var i = 0; i < this.nodes.length; i++) {
-      html += this.nodes[i].render();
-    }
-    html +=
-      `</div>
+                    /*Iterate through all the child nodes or edges of
+                     * canvas and render each of it by concatnating its
+                     * HTML to canvas's HTML
+                     */
+                    for (var i = 0; i < this.nodes.length; i++) {
+                      html += this.nodes[i].render();
+                    }
+                    html +=
+                      `</div>
                     </td>
                     <td style='width: 5%;vertical-align:top;'>`;
-    html +=
-      `<table style='width: 50px' class='middle toolbox'>
+                  html +=
+                    `<table style='width: 50px' class='middle toolbox'>
                         <tr>
                           <th>Toolbox</th>
                         </tr>
                         <tr>
                           <td>`;
-    for (var i = 0; i < this.tools.length; i++) {
-      if (i === 0) {
-        html += this.renderToolItem();
-      } else {
-        html += this.tools[i].renderToolItem();
-      }
-    }
-    html +=
-      `</td>
+                            for (var i = 0; i < this.tools.length; i++) {
+                              if (i === 0) {
+                                html += this.renderToolItem();
+                              } else {
+                                html += this.tools[i].renderToolItem();
+                              }
+                            }
+                            html +=
+                          `</td>
                         </tr>
                         <tr>
                           <td style='text-align: center; font-size: 9px;'>`;
-    html += `X: <span id='x_label'></span>
+                          html += `X: <span id='x_label'></span>
                                    Y: <span id='y_label'></span>
                           </td>
                         </tr>
                         <tr>
                           <td style='text-align: center; font-size: 9px;'>`;
-    html += `STATE: <span id='mouse_state'></span>`;
-    html += `</td>
+                  html += `STATE: <span id='mouse_state'></span>`;
+                  html += `</td>
                         </tr>
                       </table>`;
-    html +=
-      `</td>
+                html +=
+                  `</td>
                   </tr>
                 </table>`;
 
@@ -550,9 +562,16 @@ var Canvas = Class.create({
           that.tempElement.attr('rx', that.mouseX - that.mouseStartX);
           that.tempElement.attr('ry', that.mouseY - that.mouseStartY);
         }
-
       } else {
         that.mouseState = MouseState.MOVE;
+        if (that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.POLYGON) {
+          var polyPointString = '';
+          for(var i=0; i < that.polyPoints.length; i++){
+            polyPointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
+          }
+          polyPointString += that.mouseX + ',' + that.mouseY;
+          that.tempElement.attr('points', polyPointString);
+        }
       }
       $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
 
@@ -566,11 +585,11 @@ var Canvas = Class.create({
 
         that.mouseStartX = e.clientX;
         that.mouseStartY = e.clientY;
-	that.isTap = false;
+	      that.isTap = false;
         if (that.mouseStartX === undefined || that.mouseStartY === undefined) {
           that.mouseStartX = e.touches[0].clientX;
           that.mouseStartY = e.touches[0].clientY;
-	  that.isTap = true;
+	        that.isTap = true;
         }
         if (e.currentTarget.id === (that.id + '_svg')) {
           var svg_id = '#' + that.id + '_svg';
@@ -612,32 +631,30 @@ var Canvas = Class.create({
                 .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill:none');
               break;
             case ShapeType.POLYGON:
-              if (!that.isCmdInPrgrs) {
-                that.isCmdInPrgrs = true;
                 var point = new Point(that.mouseStartX, that.mouseStartY);
                 that.polyPoints.push(point);
-              } else {
-                var point = new Point(that.mouseStartX, that.mouseStartY);
-                that.polyPoints.push(point);
-                if (that.polyPoints.length > 1) {
-                  var pointString = '';
-                  for (var i = 0; i < that.polyPoints.length; i++) {
-                    pointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
-                  }
-                  if (that.tempElement !== undefined) {
-                    that.tempElement.remove();
-                    that.tempElement = undefined;
-                  }
-                  that.tempElement = svg.append('polygon')
-                    .attr('points', pointString)
-                    .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
-		  if((Date.now() - that.lastClick) < 300 && that.isTap){
-			  mouseDblClick(e);
-			  that.lastClick = 0;
-			  that.isTap = false;
-		  }
-		  that.lastClick = Date.now();
+                var pointString = '';
+                for (var i = 0; i < that.polyPoints.length; i++) {
+                  pointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
                 }
+                if (that.tempElement !== undefined) {
+                  that.tempElement.remove();
+                  that.tempElement = undefined;
+                }
+                that.tempElement = svg.append('polygon')
+                  .attr('points', pointString)
+                  .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
+          		  if((Date.now() - that.lastClick) < 300 && that.isTap){
+          			  mouseDblClick(e);
+          			  that.lastClick = 0;
+          			  that.isTap = false;
+          		  }
+          		  that.lastClick = Date.now();
+              break;
+            case ShapeType.SELECT:
+              var items = $j('.drag-svg');
+              for(var i=0; i<items.length; i++){
+                var item = subjx(items[i]);
               }
           }
         }
@@ -660,8 +677,19 @@ var Canvas = Class.create({
             that.mouseEndY = that.mouseY;
           }
         }
-        if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE) {
+        if(that.selectedTool.getShapeType() === ShapeType.SELECT){
+          //TODO = Unselect all items if clicked on the canvas
+        } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE)
+        {
           var name = prompt("Element Name:");
+          var dx = that.mouseEndX - that.mouseStartX;
+          var dy = that.mouseEndY - that.mouseStartY;
+          if(dx < 20){
+            that.mouseEndX += 20;
+          }
+          if(dy < 20){
+            that.mouseEndY += 20;
+          }
           var line = new Line(name, that, {
             x: that.mouseStartX,
             y: that.mouseStartY
