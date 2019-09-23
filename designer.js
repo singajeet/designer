@@ -571,6 +571,13 @@ var Canvas = Class.create({
           }
           polyPointString += that.mouseX + ',' + that.mouseY;
           that.tempElement.attr('points', polyPointString);
+        } else if (that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.POLYLINE) {
+          var polyPointString = '';
+          for(var i=0; i < that.polyPoints.length; i++){
+            polyPointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
+          }
+          polyPointString += that.mouseX + ',' + that.mouseY;
+          that.tempElement.attr('points', polyPointString);
         }
       }
       $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
@@ -651,6 +658,27 @@ var Canvas = Class.create({
           		  }
           		  that.lastClick = Date.now();
               break;
+            case ShapeType.POLYLINE:
+                var point = new Point(that.mouseStartX, that.mouseStartY);
+                that.polyPoints.push(point);
+                var pointString = '';
+                for (var i = 0; i < that.polyPoints.length; i++) {
+                  pointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
+                }
+                if (that.tempElement !== undefined) {
+                  that.tempElement.remove();
+                  that.tempElement = undefined;
+                }
+                that.tempElement = svg.append('polyline')
+                  .attr('points', pointString)
+                  .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
+          		  if((Date.now() - that.lastClick) < 300 && that.isTap){
+          			  mouseDblClick(e);
+          			  that.lastClick = 0;
+          			  that.isTap = false;
+          		  }
+          		  that.lastClick = Date.now();
+              break;
             case ShapeType.SELECT:
               var items = $j('.drag-svg');
               for(var i=0; i<items.length; i++){
@@ -684,11 +712,11 @@ var Canvas = Class.create({
           var name = prompt("Element Name:");
           var dx = that.mouseEndX - that.mouseStartX;
           var dy = that.mouseEndY - that.mouseStartY;
-          if(dx < 20){
-            that.mouseEndX += 20;
+          if(dx < 30){
+            that.mouseEndX += 30;
           }
-          if(dy < 20){
-            that.mouseEndY += 20;
+          if(dy < 30){
+            that.mouseEndY += 30;
           }
           var line = new Line(name, that, {
             x: that.mouseStartX,
@@ -702,6 +730,14 @@ var Canvas = Class.create({
           that.addEdge(line);
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE) {
           var name = prompt("Element Name:");
+          var dx = that.mouseEndX - that.mouseStartX;
+          var dy = that.mouseEndY - that.mouseStartY;
+          if(dx < 30){
+            that.mouseEndX += 30;
+          }
+          if(dy < 30){
+            that.mouseEndY += 30;
+          }
           var rectDim = new RectDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndY - that.mouseStartY), (that.mouseEndX - that.mouseStartX));
           var node = new Rectangle(name, that, rectDim);
           that.tempElement.remove();
@@ -709,6 +745,10 @@ var Canvas = Class.create({
           that.addNode(node);
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.CIRCLE) {
           var name = prompt("Element Name:");
+          var dx = that.mouseEndX - that.mouseStartX;
+          if(dx < 30){
+            that.mouseEndX += 30;
+          }
           var circDim = new CircleDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndX - that.mouseStartX));
           var circ = new Circle(name, that, circDim);
           that.tempElement.remove();
@@ -716,6 +756,14 @@ var Canvas = Class.create({
           that.addNode(circ);
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.ELLIPSE) {
           var name = prompt("Element Name:");
+          var dx = that.mouseEndX - that.mouseStartX;
+          var dy = that.mouseEndY - that.mouseStartY;
+          if(dx < 30){
+            that.mouseEndX += 30;
+          }
+          if(dy < 30){
+            that.mouseEndY += 30;
+          }
           var ellipDim = new EllipseDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndX - that.mouseStartX), (that.mouseEndY - that.mouseStartY));
           var ellip = new Ellipse(name, that, ellipDim);
           that.tempElement.remove();
@@ -740,8 +788,22 @@ var Canvas = Class.create({
             that.isCmdInPrgrs = false;
             that.polyPoints = [];
         }
-      }
-    }
+      } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.POLYLINE){
+          var name = prompt("Element Name:");
+          if(that.polyPoints.length > 1){
+            var polyPointString = '';
+            for(var i=0; i<that.polyPoints.length; i++){
+              polyPointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
+            }
+            var poly = new Polyline(name, that, polyPointString);
+            that.tempElement.remove();
+            that.tempElement = undefined;
+            that.addNode(poly);
+            that.isCmdInPrgrs = false;
+            that.polyPoints = [];
+      	 }
+       }
+     }
   },
   renderToolItem: function() {
     var html = '';
@@ -1193,7 +1255,7 @@ var Polygon = Class.create({
   id: "",
   title: "",
   description: "",
-  polyPoints: '10,10 50,50 100,100', //an instance of the EllipseDimension class
+  polyPoints: '10,10 50,50 100,10', //an instance of the EllipseDimension class
   ports: [],
   parentElement: undefined,
   lineColor: "black",
@@ -1206,7 +1268,7 @@ var Polygon = Class.create({
     this.parentElement = parentElement;
     this.title = title || "";
     this.description = description || "";
-    this.polyPoints = polyPoints || '10,10 50,50 100,100';
+    this.polyPoints = polyPoints || '10,10 50,50 100,10';
     this.ports = ports || [];
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "3";
@@ -1247,6 +1309,75 @@ var Polygon = Class.create({
                     <svg style='width: 50px; height: 50px;'>
                       <polygon points='5,10 0,30 25,25 28,10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></polygon>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POLYGON</text>
+                    </svg>
+                 </div>`;
+    html += "</label>";
+    return html;
+  },
+});
+/**********************************************************************
+ * Defines an polyline that will represent an model in the graph diagram
+ * A polyline contain user configurable data known as attribute
+ * which can be changed through property window.
+ **********************************************************************/
+var Polyline = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  polyPoints: '10,10 50,50 100,10', //instances of the Point class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "3",
+  lineStroke: "Solid",
+  shapeType: ShapeType.POLYLINE,
+  toolName: 'POLYLINE',
+  initialize: function(id, parentElement, polyPoints, ports, title, lineColor, lineWidth, lineStroke, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.polyPoints = polyPoints || '10,10 50,50 100,10';
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "3";
+    this.lineStroke = lineStroke || "Solid";
+    this.shapeType = ShapeType.POLYLINE;
+    this.toolName = 'POLYLINE';
+  },
+  getToolName: function() {
+    return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    this.line = svg.append('polyline')
+      .attr('id', this.id)
+      .attr('points', this.polyPoints)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
+      .attr('data-type', 'node-base')
+      .attr('class', 'drag-svg');
+  },
+  renderToolItem() {
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_POLYLINE_tool' >";
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_POLYLINE_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <polyline points='5,10 0,30 25,25 28,10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></polyline>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POLYLINE</text>
                     </svg>
                  </div>`;
     html += "</label>";
