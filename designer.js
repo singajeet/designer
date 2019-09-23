@@ -578,6 +578,15 @@ var Canvas = Class.create({
           }
           polyPointString += that.mouseX + ',' + that.mouseY;
           that.tempElement.attr('points', polyPointString);
+        } else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.BEZIRE_CURVE){
+          var len = that.polyPoints.length;
+          that.polyPoints[len-1] = {x: that.mouseX, y: that.mouseY};
+          // prepare a helper function
+          var curveFunc = d3.line()
+            .curve(d3.curveBasis)              // This is where you define the type of curve. Try curveStep for instance.
+            .x(function(d) { return d.x })
+            .y(function(d) { return d.y });
+          that.tempElement.attr('d', curveFunc(that.data));
         }
       }
       $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
@@ -679,6 +688,26 @@ var Canvas = Class.create({
           		  }
           		  that.lastClick = Date.now();
               break;
+            case ShapeType.BEZIRE_CURVE:
+              var point = new Point(that.mouseStartX, that.mouseStartY);
+              that.polyPoints.push(point);
+              var data = [];
+              for(var i=0; i < that.polyPoints.length; i++){
+                  var point = {x: that.polyPoints[i].x, y: that.polyPoints[i].y};
+                  data.push(point);
+              }
+              // prepare a helper function
+              var curveFunc = d3.line()
+                .curve(d3.curveBasis)              // This is where you define the type of curve. Try curveStep for instance.
+                .x(function(d) { return d.x })
+                .y(function(d) { return d.y });
+
+              // Add the path using this helper function
+               that.tempElement = svg.append('path')
+                .attr('d', curveFunc(data))
+                .attr('stroke', 'black')
+                .attr('fill', 'none');
+              break;
             case ShapeType.SELECT:
               var items = $j('.drag-svg');
               for(var i=0; i<items.length; i++){
@@ -769,8 +798,25 @@ var Canvas = Class.create({
           that.tempElement.remove();
           that.tempElement = undefined;
           that.addNode(ellip);
+        } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.BEZIRE_CURVE){
+          if(that.polyPoints.length === 3){
+            var name = prompt("Element Name:");
+            var data = [];
+            for(var i=0; i<that.polyPoints.length; i++){
+              var point = {x: that.polyPoints[i].x, y: that.polyPoints[i].y};
+              data.push(point);
+            }
+            if(that.tempElement !== undefined){
+              that.tempElement.remove();
+            }
+            var bcurve = new BezireCurve(name, that, data);
+            that.tempElement.remove();
+            that.tempElement = undefined;
+            that.addNode(bcurve);
+            that.isCmdInPrgrs = false;
+            that.polyPoints = [];
+          }
         }
-
       }
     }
     function mouseDblClick(e){
@@ -802,27 +848,8 @@ var Canvas = Class.create({
             that.isCmdInPrgrs = false;
             that.polyPoints = [];
       	 }
-       } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.BEZIRE_CURVE){
-          var name = prompt("Element Name:");
-          if(that.polyPoints.length === 3){
-            var polyPointString = 'M ';
-            for(var i=0; i<that.polyPoints.length; i++){
-		if(i === 0){
-              	  polyPointString += that.polyPoints[i].x + ' ' + that.polyPoints[i].y + ' ';
-		} else if(i === 1){
-		  polyPointString += 'Q ' + that.polyPoints[i].x + ' ' + that.polyPoints[i].y + ' '; 
-		} else {
-		  polyPointString += that.polyPoints[i].x + ' ' + that.polyPoints[i].y;
-		}
-            }
-            var bcurve = new BezireCurve(name, that, polyPointString);
-            that.tempElement.remove();
-            that.tempElement = undefined;
-            that.addNode(bcurve);
-            that.isCmdInPrgrs = false;
-            that.polyPoints = [];
        }
-     }
+      }
   },
   renderToolItem: function() {
     var html = '';
@@ -1448,12 +1475,17 @@ var BezireCurve = Class.create({
     //Points the same thing but in D3 format
     var svg = d3.select(svg_id);
 
-    this.line = svg.append('path')
-      .attr('id', this.id)
-      .attr('d', this.polyPoints)
-      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
-      .attr('data-type', 'node-base')
-      .attr('class', 'drag-svg');
+    // prepare a helper function
+    var curveFunc = d3.line()
+      .curve(d3.curveBasis)              // This is where you define the type of curve. Try curveStep for instance.
+      .x(function(d) { return d.x })
+      .y(function(d) { return d.y });
+
+      // Add the path using this helper function
+      svg.append('path')
+      .attr('d', curveFunc(this.curvePoints))
+      .attr('stroke', 'black')
+      .attr('fill', 'none');
   },
   renderToolItem() {
     var html = '';
