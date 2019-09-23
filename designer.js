@@ -802,6 +802,25 @@ var Canvas = Class.create({
             that.isCmdInPrgrs = false;
             that.polyPoints = [];
       	 }
+       } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.BEZIRE_CURVE){
+          var name = prompt("Element Name:");
+          if(that.polyPoints.length === 3){
+            var polyPointString = 'M ';
+            for(var i=0; i<that.polyPoints.length; i++){
+		if(i === 0){
+              	  polyPointString += that.polyPoints[i].x + ' ' + that.polyPoints[i].y + ' ';
+		} else if(i === 1){
+		  polyPointString += 'Q ' + that.polyPoints[i].x + ' ' + that.polyPoints[i].y + ' '; 
+		} else {
+		  polyPointString += that.polyPoints[i].x + ' ' + that.polyPoints[i].y;
+		}
+            }
+            var bcurve = new BezireCurve(name, that, polyPointString);
+            that.tempElement.remove();
+            that.tempElement = undefined;
+            that.addNode(bcurve);
+            that.isCmdInPrgrs = false;
+            that.polyPoints = [];
        }
      }
   },
@@ -1376,7 +1395,7 @@ var Polyline = Class.create({
     html += "</input>";
     html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
-                      <polyline points='5,10 0,30 25,25 28,10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></polyline>
+                      <polyline points='5,10 0,30 25,10 28,30' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></polyline>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POLYLINE</text>
                     </svg>
                  </div>`;
@@ -1384,3 +1403,73 @@ var Polyline = Class.create({
     return html;
   },
 });
+/**********************************************************************
+ * Defines an bezire curve that will represent an model in the graph diagram
+ * A bezire curve contain user configurable data known as attribute
+ * which can be changed through property window.
+ **********************************************************************/
+var BezireCurve = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  curvePoints: 'M 100 350 q 150 -300 300,0', //instances of the Point class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "3",
+  lineStroke: "Solid",
+  shapeType: ShapeType.BEZIRE_CURVE,
+  toolName: 'BEZIRE_CURVE',
+  initialize: function(id, parentElement, curvePoints, ports, title, lineColor, lineWidth, lineStroke, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.curvePoints = curvePoints || 'M 100 350 q 150 -300 300 0';
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "3";
+    this.lineStroke = lineStroke || "Solid";
+    this.shapeType = ShapeType.BEZIRE_CURVE;
+    this.toolName = 'BEZIRE_CURVE';
+  },
+  getToolName: function() {
+    return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    this.line = svg.append('path')
+      .attr('id', this.id)
+      .attr('d', this.polyPoints)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
+      .attr('data-type', 'node-base')
+      .attr('class', 'drag-svg');
+  },
+  renderToolItem() {
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_BEZIRE_CURVE_tool' >";
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_BEZIRE_CURVE_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <path d='M 5 10 q 0 30 25 10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></path>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">BEZIRE</text>
+                    </svg>
+                 </div>`;
+    html += "</label>";
+    return html;
+  },
+});
+
