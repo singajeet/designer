@@ -578,14 +578,16 @@ var Canvas = Class.create({
           }
           polyPointString += that.mouseX + ',' + that.mouseY;
           that.tempElement.attr('points', polyPointString);
-        } else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.BEZIRE_CURVE){
-          var len = that.polyPoints.length;
-          that.polyPoints[len-1] = new Point(that.mouseX, that.mouseY);
-	  var data=[];
-	  for(var i=0;i<that.polyPoints.length;i++){
-		  var point = {x: that.polyPoints[i].x, y: that.polyPoints[i].y};
-	   data.push(point);
-	  }
+        }
+        else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.BEZIRE_CURVE){
+          // var len = that.polyPoints.length;
+          // that.polyPoints[len-1] = new Point(that.mouseX, that.mouseY);
+      	  var data=[];
+      	  for(var i=0;i<that.polyPoints.length;i++){
+      		  var point = {x: that.polyPoints[i].x, y: that.polyPoints[i].y};
+      	    data.push(point);
+	         }
+           data.push({x: that.mouseX, y: that.mouseY});
           // prepare a helper function
           var curveFunc = d3.line()
             .curve(d3.curveBasis)              // This is where you define the type of curve. Try curveStep for instance.
@@ -663,7 +665,7 @@ var Canvas = Class.create({
                   that.tempElement = undefined;
                 }
                 that.tempElement = svg.append('polygon')
-		  .attr('id', 'temp_id')
+		              .attr('id', 'temp_id')
                   .attr('points', pointString)
                   .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
           		  if((Date.now() - that.lastClick) < 300 && that.isTap){
@@ -685,7 +687,7 @@ var Canvas = Class.create({
                   that.tempElement = undefined;
                 }
                 that.tempElement = svg.append('polyline')
-		  .attr('id', 'temp_id')
+		              .attr('id', 'temp_id')
                   .attr('points', pointString)
                   .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
           		  if((Date.now() - that.lastClick) < 300 && that.isTap){
@@ -708,19 +710,19 @@ var Canvas = Class.create({
                 .curve(d3.curveBasis)              // This is where you define the type of curve. Try curveStep for instance.
                 .x(function(d) { return d.x })
                 .y(function(d) { return d.y });
-                
-		if (that.tempElement !== undefined) {
+
+		            if (that.tempElement !== undefined) {
                   that.tempElement.remove();
                   that.tempElement = undefined;
                 }
 
               // Add the path using this helper function
                that.tempElement = svg.append('path')
-		.attr('id', 'temp_id')
+		            .attr('id', 'temp_id')
                 .attr('d', curveFunc(data))
                 .attr('stroke', 'green')
-		.attr('stroke-width', '2px')
-		.attr('stroke-dasharray', '2')
+		            .attr('stroke-width', '2px')
+		            .attr('stroke-dasharray', '2')
                 .attr('fill', 'none');
               break;
             case ShapeType.SELECT:
