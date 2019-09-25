@@ -1500,14 +1500,18 @@ var BezireCurve = Class.create({
 	  	.attr('id', this.id)
 	  	.attr('class', 'drag-svg');
 
-	  	g.append('circle')
+	  	this.controlPoint = g.append('circle')
+      .attr('id', this.id + '_control_point')
 	  	.attr('cx', this.curvePoints[1].x)
 	  	.attr('cy', this.curvePoints[1].y)
 	  	.attr('r', '5.5')
-	  	.attr('style', 'stroke: red; fill: none; stroke-width: 2px');
+	  	.attr('style', 'stroke: red; fill: none; stroke-width: 2px;')
+      .attr('class', 'drag-svg');
+
+      subjx('#' + this.id + '_control_point').drag(this.parentElement.options);
+
       this.line = g;
       g.append('path')
-      //.attr('id', this.id)
       .attr('d', curveFunc(this.curvePoints))
       .attr('stroke', 'black')
       .attr('stroke-width', '2px')
