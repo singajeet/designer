@@ -580,13 +580,18 @@ var Canvas = Class.create({
           that.tempElement.attr('points', polyPointString);
         } else if(that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.BEZIRE_CURVE){
           var len = that.polyPoints.length;
-          that.polyPoints[len-1] = {x: that.mouseX, y: that.mouseY};
+          that.polyPoints[len-1] = new Point(that.mouseX, that.mouseY);
+	  var data=[];
+	  for(var i=0;i<that.polyPoints.length;i++){
+		  var point = {x: that.polyPoints[i].x, y: that.polyPoints[i].y};
+	   data.push(point);
+	  }
           // prepare a helper function
           var curveFunc = d3.line()
             .curve(d3.curveBasis)              // This is where you define the type of curve. Try curveStep for instance.
             .x(function(d) { return d.x })
             .y(function(d) { return d.y });
-          that.tempElement.attr('d', curveFunc(that.data));
+          that.tempElement.attr('d', curveFunc(data));
         }
       }
       $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
@@ -658,6 +663,7 @@ var Canvas = Class.create({
                   that.tempElement = undefined;
                 }
                 that.tempElement = svg.append('polygon')
+		  .attr('id', 'temp_id')
                   .attr('points', pointString)
                   .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
           		  if((Date.now() - that.lastClick) < 300 && that.isTap){
@@ -679,6 +685,7 @@ var Canvas = Class.create({
                   that.tempElement = undefined;
                 }
                 that.tempElement = svg.append('polyline')
+		  .attr('id', 'temp_id')
                   .attr('points', pointString)
                   .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray: 2; fill: none;');
           		  if((Date.now() - that.lastClick) < 300 && that.isTap){
@@ -701,11 +708,19 @@ var Canvas = Class.create({
                 .curve(d3.curveBasis)              // This is where you define the type of curve. Try curveStep for instance.
                 .x(function(d) { return d.x })
                 .y(function(d) { return d.y });
+                
+		if (that.tempElement !== undefined) {
+                  that.tempElement.remove();
+                  that.tempElement = undefined;
+                }
 
               // Add the path using this helper function
                that.tempElement = svg.append('path')
+		.attr('id', 'temp_id')
                 .attr('d', curveFunc(data))
-                .attr('stroke', 'black')
+                .attr('stroke', 'green')
+		.attr('stroke-width', '2px')
+		.attr('stroke-dasharray', '2')
                 .attr('fill', 'none');
               break;
             case ShapeType.SELECT:
@@ -806,15 +821,11 @@ var Canvas = Class.create({
               var point = {x: that.polyPoints[i].x, y: that.polyPoints[i].y};
               data.push(point);
             }
-            if(that.tempElement !== undefined){
-              that.tempElement.remove();
-            }
-            var bcurve = new BezireCurve(name, that, data);
             that.tempElement.remove();
             that.tempElement = undefined;
-            that.addNode(bcurve);
-            that.isCmdInPrgrs = false;
             that.polyPoints = [];
+            var bcurve = new BezireCurve(name, that, data);
+            that.addEdge(bcurve);
           }
         }
       }
@@ -844,7 +855,7 @@ var Canvas = Class.create({
             var poly = new Polyline(name, that, polyPointString);
             that.tempElement.remove();
             that.tempElement = undefined;
-            that.addNode(poly);
+            that.addEdge(poly);
             that.isCmdInPrgrs = false;
             that.polyPoints = [];
       	 }
@@ -1439,7 +1450,7 @@ var BezireCurve = Class.create({
   id: "",
   title: "",
   description: "",
-  curvePoints: 'M 100 350 q 150 -300 300,0', //instances of the Point class
+  curvePoints: '[{100,350}, {150,-300}, {300,0}]', //instances of the Point class
   ports: [],
   parentElement: undefined,
   lineColor: "black",
@@ -1447,18 +1458,20 @@ var BezireCurve = Class.create({
   lineStroke: "Solid",
   shapeType: ShapeType.BEZIRE_CURVE,
   toolName: 'BEZIRE_CURVE',
+  controlPoint: undefined,
   initialize: function(id, parentElement, curvePoints, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
     this.title = title || "";
     this.description = description || "";
-    this.curvePoints = curvePoints || 'M 100 350 q 150 -300 300 0';
+    this.curvePoints = curvePoints || '[{100,350}, {150,-300}, {300,0}]';
     this.ports = ports || [];
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "3";
     this.lineStroke = lineStroke || "Solid";
     this.shapeType = ShapeType.BEZIRE_CURVE;
     this.toolName = 'BEZIRE_CURVE';
+    this.controlPoint = undefined;
   },
   getToolName: function() {
     return this.toolName;
@@ -1474,7 +1487,6 @@ var BezireCurve = Class.create({
     var svg_id = '#' + this.parentElement.id + '_svg';
     //Points the same thing but in D3 format
     var svg = d3.select(svg_id);
-
     // prepare a helper function
     var curveFunc = d3.line()
       .curve(d3.curveBasis)              // This is where you define the type of curve. Try curveStep for instance.
@@ -1482,10 +1494,23 @@ var BezireCurve = Class.create({
       .y(function(d) { return d.y });
 
       // Add the path using this helper function
-      svg.append('path')
+      var g = svg.append('g')
+	  	.attr('id', this.id)
+	  	.attr('class', 'drag-svg');
+
+	  	g.append('circle')
+	  	.attr('cx', this.curvePoints[1].x)
+	  	.attr('cy', this.curvePoints[1].y)
+	  	.attr('r', '5.5')
+	  	.attr('style', 'stroke: red; fill: none; stroke-width: 2px');
+      this.line = g;
+      g.append('path')
+      //.attr('id', this.id)
       .attr('d', curveFunc(this.curvePoints))
       .attr('stroke', 'black')
-      .attr('fill', 'none');
+      .attr('stroke-width', '2px')
+      .attr('fill', 'none')
+      .attr('data-type', 'node-base-inner');
   },
   renderToolItem() {
     var html = '';
