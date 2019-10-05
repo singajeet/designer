@@ -1,0 +1,126 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <script src="js/jquery-3.4.1.min.js"></script>
+    <script src="js/d3.min.js"></script>
+    <script src="js/d3-drag.js"></script>
+    <script src="js/d3-selection.js"></script>
+    <script src="js/d3-dispatch.js"></script>
+    <style>
+      .node {
+        display: table-cell;
+      };
+      .selected {
+        stroke: green !important;
+        stroke-width: 2px !important;
+        stroke-dasharray: 2 !important;
+      }
+    </style>
+  </head>
+  <body>
+    <svg id='canvas' style="height: 100%; width: 100%;"></svg>
+    <script>
+
+      d3.select('#canvas')
+        .append('rect')
+        .attr('id', 'id1')
+        .attr('x', '100')
+        .attr('y', '100')
+        .attr('height', '100')
+        .attr('width', '100')
+        .attr('style', 'fill: red; stroke: black; stroke-width: 2px')
+        .attr('class', 'node');
+
+      d3.select('#canvas')
+        .append('rect')
+        .attr('id', 'id2')
+        .attr('x', '200')
+        .attr('y', '100')
+        .attr('height', '100')
+        .attr('width', '100')
+        .attr('style', 'fill: green; stroke: black; stroke-width: 2px')
+        .attr('class', 'node');
+
+      d3.select('#canvas')
+        .append('rect')
+        .attr('id', 'id3')
+        .attr('x', '300')
+        .attr('y', '100')
+        .attr('height', '100')
+        .attr('width', '100')
+        .attr('style', 'fill: blue; stroke: black; stroke-width: 2px')
+        .attr('class', 'node');
+
+        d3.select('#canvas')
+        .append('g')
+        .attr('id', 'id4')
+        .attr('class', 'node')
+        .append('rect')
+        .attr('x', '400')
+        .attr('y', '100')
+        .attr('height', '100')
+        .attr('width', '100')
+        .attr('style', 'fill: yellow; stroke: black; stroke-width: 2px');
+
+      var drag = d3.drag()
+      .on('drag', dragMove)
+      .on('end', dropHandler)
+      .on('start', dragStart);
+
+      d3.selectAll('.node')
+      .call(drag);
+
+      function dragStart(e){
+        var styles = d3.select(this.firstChild).attr('style').split(';');
+        var color = '';
+        for(var i=0;  i < styles.length; i++ ){
+          var pair =styles[i].trim().split(':');
+          if(pair[0] === 'fill'){
+            color = pair[1];
+          }
+        }
+        d3.select(this.firstChild)
+        .attr("style", "stroke: #00a8ff; stroke-width: 2px; stroke-dasharray: 5; fill: " + color);
+
+        d3.select(this)
+        .append('circle')
+        .attr('cx', parseInt(this.firstChild.attributes.x.value))
+        .attr('cy', parseInt(this.firstChild.attributes.y.value))
+        .attr('r', 5)
+        .attr('style', 'stroke: #00a8ff; fill: #00a8ff');
+
+        d3.select(this)
+        .append('circle')
+        .attr('cx', parseInt(this.firstChild.attributes.x.value) + (parseInt(this.firstChild.attributes.width.value)/2))
+        .attr('cy', parseInt(this.firstChild.attributes.y.value))
+        .attr('r', 5)
+        .attr('style', 'stroke: #00a8ff; fill: #00a8ff');
+
+        d3.select(this)
+        .append('circle')
+        .attr('cx', parseInt(this.firstChild.attributes.x.value) + (parseInt(this.firstChild.attributes.width.value)))
+        .attr('cy', parseInt(this.firstChild.attributes.y.value))
+        .attr('r', 5)
+        .attr('style', 'stroke: #00a8ff; fill: #00a8ff');
+      }
+
+      function dropHandler(e){}
+
+      function dragMove(e){
+        var x = d3.event.x;
+        var y = d3.event.y;
+        var bbox = this.getBBox();
+        var deltaX = x - bbox.x - (bbox.width/2);
+        var deltaY = y - bbox.y - (bbox.height/2);
+        d3.select(this).attr('transform', 'translate(' + deltaX + ',' + deltaY + ')');
+        // var height = d3.select(this).attr('height');
+        // var width = d3.select(this).attr('width');
+
+        // d3.select(this).attr('x', x - (width/2));
+        // d3.select(this).attr('y', y - (height/2));
+      }
+    </script>
+  </body>
+</html>

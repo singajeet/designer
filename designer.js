@@ -283,7 +283,7 @@ var Canvas = Class.create({
     this.options = {
       container: '#' + id + '_svg',
       restrict: '#' + id + '_svg',
-      proportions: true,
+      proportions: false,
       rotationPoint: true,
       //themeColor: 'white',
       each: {
@@ -1495,28 +1495,42 @@ var BezireCurve = Class.create({
       .x(function(d) { return d.x })
       .y(function(d) { return d.y });
 
-      // Add the path using this helper function
-      var g = svg.append('g')
-	  	.attr('id', this.id)
-	  	.attr('class', 'drag-svg');
+      this.line = svg.append('g')
+        .attr('id', this.id)
+        .attr('class', 'drag-svg');
 
-	  	this.controlPoint = g.append('circle')
-      .attr('id', this.id + '_control_point')
-	  	.attr('cx', this.curvePoints[1].x)
-	  	.attr('cy', this.curvePoints[1].y)
-	  	.attr('r', '5.5')
-	  	.attr('style', 'stroke: red; fill: none; stroke-width: 2px;')
-      .attr('class', 'drag-svg');
-
-      subjx('#' + this.id + '_control_point').drag(this.parentElement.options);
-
-      this.line = g;
-      g.append('path')
+      this.line.append('path')
+      .attr('id', this.id + '_line')
       .attr('d', curveFunc(this.curvePoints))
       .attr('stroke', 'black')
       .attr('stroke-width', '2px')
       .attr('fill', 'none')
       .attr('data-type', 'node-base-inner');
+      //.attr('class', 'drag-svg');
+
+      var drag = d3.drag()
+      .on('drag', dragMove)
+      .on('end', dropHandler);
+
+      this.controlPoint = this.line.append('circle')
+      .attr('id', this.id + '_control_point')
+      .attr('cx', this.curvePoints[1].x)
+      .attr('cy', this.curvePoints[1].y)
+      .attr('r', '5')
+      .attr('style', 'stroke: #DAA520; fill: #DAA520; stroke-width: 2px;')
+      .attr('class', 'drag-svg')
+      .call(drag);
+
+      function dropHandler(e){}
+
+      function dragMove(e){
+        var x = d3.event.x;
+        var y = d3.event.y;
+        //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
+        d3.select(this).attr('cx', x);
+        d3.select(this).attr('cy', y);
+      }
+
   },
   renderToolItem() {
     var html = '';
