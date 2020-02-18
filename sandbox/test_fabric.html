@@ -1,0 +1,79 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Fabric JS Test</title>
+    <script src='../js/fabric.min.js'></script>
+  </head>
+  <body>
+    <canvas id="c" width="500" height="500" style="border:1px solid #ccc"></canvas>
+    <script id='main'>
+      fabric.Object.prototype.noScaleCache = false;
+      var canvas = this.__canvas = new fabric.Canvas('c');
+      fabric.Object.prototype.originX = fabric.Object.prototype.originY = 'center';
+      // create a rectangle object
+      var rect = new fabric.Rect({
+        left: 100,
+        top: 50,
+        fill: '#D81B60',
+        width: 50,
+        height: 50,
+        strokeWidth: 2,
+        stroke: "#880E4F",
+        rx: 10,
+        ry: 10,
+        angle: 45,
+        scaleX: 3,
+        scaleY: 3,
+        hasControls: true
+      });
+
+      canvas.add(rect);
+
+      var line1 = new fabric.Line([100, 100, 300, 300],{
+        fill: 'red',
+        stroke: 'red',
+        strokeWidth: 5,
+        selectable: true,
+        evented: true
+      });
+
+      var circle1 = new fabric.Circle({
+        radius: 65,
+        fill: '#039BE5',
+        left: line1.get('x1'),
+        top: line1.get('y1'),
+        stroke: 'red',
+        strokeWidth: 3
+      });
+
+      var circle2 = new fabric.Circle({
+        radius: 65,
+        fill: '#4FC3F7',
+        left: 110,
+        opacity: 0.7,
+        stroke: 'blue',
+        strokeWidth: 3,
+        strokeUniform: true
+      });
+
+
+
+
+      circle1.line1 = line1;
+
+      canvas.add(circle1);
+      canvas.add(circle2);
+      canvas.add(line1);
+
+      canvas.on('object:moving', function(e) {
+      var p = e.target;
+      p.line1 && p.line1.set({ 'x1': p.left, 'y1': p.top });
+      // p.line2 && p.line2.set({ 'x1': p.left, 'y1': p.top });
+      // p.line3 && p.line3.set({ 'x1': p.left, 'y1': p.top });
+      // p.line4 && p.line4.set({ 'x1': p.left, 'y1': p.top });
+      canvas.renderAll();
+  });
+
+    </script>
+  </body>
+</html>

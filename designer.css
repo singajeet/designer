@@ -3,8 +3,13 @@
  * Author: Ajeet Singh
  * Date: 25-Aug-2019
  * ***********************************/
+.canvas-container {
+    height: 100% !important;
+    width: 100% !important;
+}
 .canvas {
-	height: 100%;
+	height: 100% !important;
+    width: 100% !important;
         max-width: 100%;
         background-image: url('images/grid.gif');
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);

@@ -333,19 +333,19 @@ var Canvas = Class.create({
   addEdge: function(edge) {
     this.edges.push(edge);
     edge.render();
-    var item = subjx('#' + edge.id).drag(this.options)[0];
-    subjx(item.controls).on('dblclick', () => {
-          item.disable();
-    });
-    subjx('#' + edge.id).on('dblclick', e => {
-      if (e.currentTarget.classList.contains('sjx-drag')) return;
-      const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
-      // adding event to controls
-      const controls = xDraggable.controls;
-      subjx(controls).on('dblclick', () => {
-        xDraggable.disable();
-      });
-    });
+    //var item = subjx('#' + edge.id).drag(this.options)[0];
+    // subjx(item.controls).on('dblclick', () => {
+    //       item.disable();
+    // });
+    // subjx('#' + edge.id).on('dblclick', e => {
+    //   if (e.currentTarget.classList.contains('sjx-drag')) return;
+    //   const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
+    //   // adding event to controls
+    //   const controls = xDraggable.controls;
+    //   subjx(controls).on('dblclick', () => {
+    //     xDraggable.disable();
+    //   });
+    // });
   },
   /*
    * Method: removeEdge
@@ -435,7 +435,7 @@ var Canvas = Class.create({
     var html = `<table style='height:100%; width: 100%'>
                   <tr>
                     <td style='width: 95%'>`;
-                    //An outer div for SVG canvas
+                    //An outer div for canvas canvas
                     html +=
                       "<div id='" + this.id + "' style='height: 100%;'";
                     if (this.height != undefined && this.width != undefined) {
@@ -518,7 +518,7 @@ var Canvas = Class.create({
     for (var i = 0; i < this.edges.length; i++) {
       this.edges[i].render();
     }
-    this._registerActions();
+    //this._registerActions();
     this._registerMarkers();
     this._registerObserver();
 
@@ -537,6 +537,7 @@ var Canvas = Class.create({
     this.isCmdInPrgrs = false;
     this.polyPoints = [];
     this.lastClick = 0;
+    var selectedHandler = null;
 
     function mouseMove(e) {
       e.preventDefault();
@@ -550,6 +551,22 @@ var Canvas = Class.create({
       $j('#y_label').text(parseInt(that.mouseY));
       if (that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG) {
         that.mouseState = MouseState.DRAG;
+        if(that.selectedTool.getShapeType() === ShapeType.SELECT){
+          if(selectedHandler !== null){
+            selectedHandler.attr('cx', that.mouseX);
+            selectedHandler.attr('cy', that.mouseY);
+            var lineName = selectedHandler.attr('line');
+            var line = d3.select('#' + lineName);
+            var selectedHandlerId = selectedHandler.attr('id');
+            if(selectedHandlerId.endsWith('start_handler')){
+              line.attr('x1', that.mouseX);
+              line.attr('y1', that.mouseY);
+            } else if (selectedHandlerId.endsWith('end_handler')){
+              line.attr('x2', that.mouseX);
+              line.attr('y2', that.mouseY);
+            }
+          }
+        }
         if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE) {
           that.tempElement.attr('x2', that.mouseX);
           that.tempElement.attr('y2', that.mouseY);
@@ -613,6 +630,11 @@ var Canvas = Class.create({
           that.mouseStartX = e.touches[0].clientX;
           that.mouseStartY = e.touches[0].clientY;
 	        that.isTap = true;
+        }
+        if(that.selectedTool.getShapeType() === ShapeType.SELECT){
+          if(e.target.id.endsWith('start_handler') || e.target.id.endsWith('end_handler')){
+            selectedHandler = d3.select('#' + e.target.id);
+          }
         }
         if (e.currentTarget.id === (that.id + '_svg')) {
           var svg_id = '#' + that.id + '_svg';
@@ -752,6 +774,9 @@ var Canvas = Class.create({
           }
         }
         if(that.selectedTool.getShapeType() === ShapeType.SELECT){
+          if(selectedHandler !== null){
+            selectedHandler = null;
+          }
           //TODO = Unselect all items if clicked on the canvas
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE)
         {
@@ -768,8 +793,8 @@ var Canvas = Class.create({
             x: that.mouseStartX,
             y: that.mouseStartY
           }, {
-            x: that.mouseEndX,
-            y: that.mouseEndY
+            x: that.mouseX, //that.mouseEndX,
+            y: that.mouseY //that.mouseEndY
           });
           that.tempElement.remove();
           that.tempElement = undefined;
@@ -1065,6 +1090,33 @@ var Line = Class.create({
       .attr('marker-end', 'url(#arrow)')
       .attr('data-type', 'edge-base')
       .attr('class', 'drag-svg');
+
+      this.createHandlers();
+  },
+  createHandlers: function() {
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+    this.startHandler = svg.append('circle')
+        .attr('id', this.id + '_start_handler')
+        .attr('cx', this.lineDimension.start.x)
+        .attr('cy', this.lineDimension.start.y)
+        .attr('r', 5)
+        .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
+        .attr('line', this.id);
+    this.endHandler = svg.append('circle')
+        .attr('id', this.id + '_end_handler')
+        .attr('cx', this.lineDimension.end.x)
+        .attr('cy', this.lineDimension.end.y)
+        .attr('r', 5)
+        .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
+        .attr('line', this.id);
+    this.handlerVisible = true;
+    var line = document.getElementById(this.id);
+    line.addEventListener('dblclick', mouseDblClick);
+    function mouseDblClick(e){
+      alert('Line double clicked');
+    }
   },
   renderToolItem() {
     var html = '';
