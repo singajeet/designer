@@ -213,7 +213,7 @@ var ShapeType = {
  * Canvas: class provides the functionality to hold the
  * nodes and edges objects
  ***********************************************************/
-var Canvas = Class.create({
+const Canvas = Class.create({
   id: '',
   containerId: undefined,
   height: undefined,
@@ -292,9 +292,9 @@ var Canvas = Class.create({
         //rotate: true
       },
       snap: {
-        x: 20,
-        y: 20,
-        angle: 25
+        x: 10,
+        y: 10,
+        angle: 5
       },
       cursorMove: 'move',
       cursorRotate: 'crosshair',
@@ -995,7 +995,7 @@ var Canvas = Class.create({
 /*********************************************************************
  * Base class for all shapes that could be added to the cavas
  *********************************************************************/
-var Shape = Class.create({
+const Shape = Class.create({
   id: "",
   title: "",
   description: "",
@@ -1022,7 +1022,7 @@ var Shape = Class.create({
  * each other. A Line can have direction and will be denoted by an Arrow
  * icon on one end or both end of the line.
  **********************************************************************/
-var Line = Class.create({
+const Line = Class.create({
   id: "",
   title: "",
   description: "",
@@ -1035,6 +1035,12 @@ var Line = Class.create({
   lineStroke: "Solid",
   shapeType: ShapeType.LINE,
   toolName: 'LINE',
+  startHandler: undefined,
+  endHandler: undefined,
+  line: undefined,
+  g: undefined,
+  handlerVisible: true,
+  dragHandlers: undefined,
   initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowType, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -1083,16 +1089,8 @@ var Line = Class.create({
     //Points the same thing but in D3 format
     var svg = d3.select(svg_id);
 
-    // var dragLine = d3.drag()
-    //   .on('start', startHandler)
-    //   .on('drag', dragHandler)
-    //   .on('end', dropHandler);
-
     this.g = svg.append('g')
       .attr('id', this.id + '_g');
-      // .datum({x:20, y:20})
-      // .attr("transform", function(d) { return 'translate(' + d.x + ' ' + d.y + ')'; })
-      // .call(dragLine);
 
     this.line = this.g.append('line')
       .attr('id', this.id)
@@ -1102,23 +1100,15 @@ var Line = Class.create({
       .attr('y2', this.lineDimension.end.y)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
       .attr('marker-end', 'url(#arrow)')
-      .attr('data-type', 'edge-base');
-
-    // function startHandler(d) {}
-    // function dragHandler(d) {
-    //   d.x += d3.event.dx;
-    //   d.y += d3.event.dy;
-
-    //   d3.select(this).attr("transform", function(d,i){
-    //     return "translate(" + [ d.x,d.y ] + ")"
-    //   });
-    // }
-    // function dropHandler(d) {}
+      .attr('data-type', 'edge-base')
+      .attr('startHandler', this.id + '_start_handler')
+      .attr('endHandler', this.id + '_end_handler')
+      .attr('handlersVisible', true);
 
     this.createHandlers();
   },
   createHandlers: function() {
-    var dragHandlers = d3.drag()
+    this.dragHandlers = d3.drag()
       .on('drag', hDragMoveHandler)
       .on('end', hDropHandler);
 
@@ -1129,7 +1119,7 @@ var Line = Class.create({
         .attr('r', 5)
         .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
         .attr('line', this.id)
-        .call(dragHandlers);
+        .call(this.dragHandlers);
     this.endHandler = this.g.append('circle')
         .attr('id', this.id + '_end_handler')
         .attr('cx', this.lineDimension.end.x)
@@ -1137,7 +1127,7 @@ var Line = Class.create({
         .attr('r', 5)
         .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
         .attr('line', this.id)
-        .call(dragHandlers);
+        .call(this.dragHandlers);
 
     this.handlerVisible = true;
     var line = document.getElementById(this.id);
@@ -1153,25 +1143,35 @@ var Line = Class.create({
       d3.select(this).attr('cx', x);
       d3.select(this).attr('cy', y);
       var target = d3.event.sourceEvent.target;
+      var lineName = d3.select(this).attr('line');
+      var line = d3.select('#' + lineName);
 
-      if(target.id === that.startHandler.attr('id')){
-        that.line.attr('x1', x);
-        that.line.attr('y1', y);
-      } else if (target.id === that.endHandler.attr('id')){
-        that.line.attr('x2', x);
-        that.line.attr('y2', y);
+      if(target.id.endsWith('start_handler')){
+        line.attr('x1', x);
+        line.attr('y1', y);
+      } else if (target.id.endsWith('end_handler')){
+        line.attr('x2', x);
+        line.attr('y2', y);
       }
     }
 
     function mouseDblClick(e){
-      if(that.handlerVisible){
-        that.startHandler.attr('visibility', 'hidden');
-        that.endHandler.attr('visibility', 'hidden');
-        that.handlerVisible = false;
+      var lineName = e.target.id;
+      var line = d3.select('#' + lineName);
+      var handlersVisible = line.attr('handlersVisible');
+      var startHandlerName = line.attr('startHandler');
+      var startHandler = d3.select('#' + startHandlerName);
+      var endHandlerName = line.attr('endHandler');
+      var endHandler = d3.select('#' + endHandlerName);
+
+      if(JSON.parse(handlersVisible)){
+        startHandler.attr('visibility', 'hidden');
+        endHandler.attr('visibility', 'hidden');
+        line.attr('handlersVisible', false);
       } else {
-        that.startHandler.attr('visibility', 'visible');
-        that.endHandler.attr('visibility', 'visible');
-        that.handlerVisible = true;
+        startHandler.attr('visibility', 'visible');
+        endHandler.attr('visibility', 'visible');
+        line.attr('handlersVisible', true);
       }
     }
   },
@@ -1573,12 +1573,14 @@ var Polyline = Class.create({
       d3.select(this).attr('cx', x);
       d3.select(this).attr('cy', y);
       var target = d3.event.sourceEvent.target;
+      var lineName = d3.select('#' + target.id).attr('line');
+      var line = d3.select('#' + lineName);
 
-      var handlerString = target.id.replace(that.id + '_', '');
+      var handlerString = target.id.replace(lineName + '_', '');
       var index = handlerString.indexOf('N_handler');
       var pointIndexAsString = handlerString.substr(0, index);
       var pointIndex = parseInt(pointIndexAsString);
-      var points = that.line.attr('points');
+      var points = line.attr('points');
       points = points.trim();
       var pointsArray = points.split(' ');
       pointsArray[pointIndex] = x + ',' + y;
@@ -1586,7 +1588,7 @@ var Polyline = Class.create({
       for(var i=0; i < pointsArray.length; i++){
         pointString += pointsArray[i] + ' ';
       }
-      that.line.attr('points', pointString);
+      line.attr('points', pointString);
     }
 
     this.handlerVisible = true;
