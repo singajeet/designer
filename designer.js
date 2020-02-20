@@ -333,11 +333,11 @@ var Canvas = Class.create({
   addEdge: function(edge) {
     this.edges.push(edge);
     edge.render();
-    //var item = subjx('#' + edge.id).drag(this.options)[0];
+    // var item = subjx('#' + edge.id + '_g').drag(this.options)[0];
     // subjx(item.controls).on('dblclick', () => {
     //       item.disable();
     // });
-    // subjx('#' + edge.id).on('dblclick', e => {
+    // subjx('#' + edge.id + '_g').on('dblclick', e => {
     //   if (e.currentTarget.classList.contains('sjx-drag')) return;
     //   const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
     //   // adding event to controls
@@ -374,13 +374,8 @@ var Canvas = Class.create({
    */
   addNode: function(node) {
     this.nodes.push(node);
-    var addedNode = $j(node.render());
-    if (this.containerId != undefined) {
-      var container = $j(('#' + this.containerId));
-      addedNode.appendTo(container);
-    } else {
-      addedNode.appendTo($j('body'));
-    }
+    node.render();
+
     var item = subjx('#' + node.id).drag(this.options)[0];
     subjx(item.controls).on('dblclick', () => {
           item.disable();
@@ -551,22 +546,22 @@ var Canvas = Class.create({
       $j('#y_label').text(parseInt(that.mouseY));
       if (that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG) {
         that.mouseState = MouseState.DRAG;
-        if(that.selectedTool.getShapeType() === ShapeType.SELECT){
-          if(selectedHandler !== null){
-            selectedHandler.attr('cx', that.mouseX);
-            selectedHandler.attr('cy', that.mouseY);
-            var lineName = selectedHandler.attr('line');
-            var line = d3.select('#' + lineName);
-            var selectedHandlerId = selectedHandler.attr('id');
-            if(selectedHandlerId.endsWith('start_handler')){
-              line.attr('x1', that.mouseX);
-              line.attr('y1', that.mouseY);
-            } else if (selectedHandlerId.endsWith('end_handler')){
-              line.attr('x2', that.mouseX);
-              line.attr('y2', that.mouseY);
-            }
-          }
-        }
+        // if(that.selectedTool.getShapeType() === ShapeType.SELECT){
+        //   if(selectedHandler !== null){
+        //     selectedHandler.attr('cx', that.mouseX);
+        //     selectedHandler.attr('cy', that.mouseY);
+        //     var lineName = selectedHandler.attr('line');
+        //     var line = d3.select('#' + lineName);
+        //     var selectedHandlerId = selectedHandler.attr('id');
+        //     if(selectedHandlerId.endsWith('start_handler')){
+        //       line.attr('x1', that.mouseX);
+        //       line.attr('y1', that.mouseY);
+        //     } else if (selectedHandlerId.endsWith('end_handler')){
+        //       line.attr('x2', that.mouseX);
+        //       line.attr('y2', that.mouseY);
+        //     }
+        //   }
+        // }
         if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE) {
           that.tempElement.attr('x2', that.mouseX);
           that.tempElement.attr('y2', that.mouseY);
@@ -631,11 +626,11 @@ var Canvas = Class.create({
           that.mouseStartY = e.touches[0].clientY;
 	        that.isTap = true;
         }
-        if(that.selectedTool.getShapeType() === ShapeType.SELECT){
-          if(e.target.id.endsWith('start_handler') || e.target.id.endsWith('end_handler')){
-            selectedHandler = d3.select('#' + e.target.id);
-          }
-        }
+        // if(that.selectedTool.getShapeType() === ShapeType.SELECT){
+        //   if(e.target.id.endsWith('start_handler') || e.target.id.endsWith('end_handler')){
+        //     selectedHandler = d3.select('#' + e.target.id);
+        //   }
+        // }
         if (e.currentTarget.id === (that.id + '_svg')) {
           var svg_id = '#' + that.id + '_svg';
           var svg = d3.select(svg_id);
@@ -861,6 +856,10 @@ var Canvas = Class.create({
       if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.POLYGON) {
           var name = prompt("Element Name:");
           if(that.polyPoints.length > 1){
+            //Remove the duplicate point inserted at the last of the array due to
+            //double click action used to end the drawing of polygon on canvas
+            that.polyPoints.pop();
+
             var polyPointString = '';
             for(var i=0; i<that.polyPoints.length; i++){
               polyPointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
@@ -875,6 +874,10 @@ var Canvas = Class.create({
       } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.POLYLINE){
           var name = prompt("Element Name:");
           if(that.polyPoints.length > 1){
+            //Remove the duplicate point inserted at the last of the array due to
+            //double click action used to end the drawing of polyline on canvas
+            that.polyPoints.pop();
+
             var polyPointString = '';
             for(var i=0; i<that.polyPoints.length; i++){
               polyPointString += that.polyPoints[i].x + ',' + that.polyPoints[i].y + ' ';
@@ -1080,7 +1083,18 @@ var Line = Class.create({
     //Points the same thing but in D3 format
     var svg = d3.select(svg_id);
 
-    this.line = svg.append('line')
+    // var dragLine = d3.drag()
+    //   .on('start', startHandler)
+    //   .on('drag', dragHandler)
+    //   .on('end', dropHandler);
+
+    this.g = svg.append('g')
+      .attr('id', this.id + '_g');
+      // .datum({x:20, y:20})
+      // .attr("transform", function(d) { return 'translate(' + d.x + ' ' + d.y + ')'; })
+      // .call(dragLine);
+
+    this.line = this.g.append('line')
       .attr('id', this.id)
       .attr('x1', this.lineDimension.start.x)
       .attr('y1', this.lineDimension.start.y)
@@ -1088,34 +1102,77 @@ var Line = Class.create({
       .attr('y2', this.lineDimension.end.y)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
       .attr('marker-end', 'url(#arrow)')
-      .attr('data-type', 'edge-base')
-      .attr('class', 'drag-svg');
+      .attr('data-type', 'edge-base');
 
-      this.createHandlers();
+    // function startHandler(d) {}
+    // function dragHandler(d) {
+    //   d.x += d3.event.dx;
+    //   d.y += d3.event.dy;
+
+    //   d3.select(this).attr("transform", function(d,i){
+    //     return "translate(" + [ d.x,d.y ] + ")"
+    //   });
+    // }
+    // function dropHandler(d) {}
+
+    this.createHandlers();
   },
   createHandlers: function() {
-    var svg_id = '#' + this.parentElement.id + '_svg';
-    //Points the same thing but in D3 format
-    var svg = d3.select(svg_id);
-    this.startHandler = svg.append('circle')
+    var dragHandlers = d3.drag()
+      .on('drag', hDragMoveHandler)
+      .on('end', hDropHandler);
+
+    this.startHandler = this.g.append('circle')
         .attr('id', this.id + '_start_handler')
         .attr('cx', this.lineDimension.start.x)
         .attr('cy', this.lineDimension.start.y)
         .attr('r', 5)
         .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
-        .attr('line', this.id);
-    this.endHandler = svg.append('circle')
+        .attr('line', this.id)
+        .call(dragHandlers);
+    this.endHandler = this.g.append('circle')
         .attr('id', this.id + '_end_handler')
         .attr('cx', this.lineDimension.end.x)
         .attr('cy', this.lineDimension.end.y)
         .attr('r', 5)
         .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
-        .attr('line', this.id);
+        .attr('line', this.id)
+        .call(dragHandlers);
+
     this.handlerVisible = true;
     var line = document.getElementById(this.id);
     line.addEventListener('dblclick', mouseDblClick);
+    that = this;
+
+    function hDropHandler(e){}
+
+    function hDragMoveHandler(e){
+      var x = d3.event.x;
+      var y = d3.event.y;
+      //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
+      d3.select(this).attr('cx', x);
+      d3.select(this).attr('cy', y);
+      var target = d3.event.sourceEvent.target;
+
+      if(target.id === that.startHandler.attr('id')){
+        that.line.attr('x1', x);
+        that.line.attr('y1', y);
+      } else if (target.id === that.endHandler.attr('id')){
+        that.line.attr('x2', x);
+        that.line.attr('y2', y);
+      }
+    }
+
     function mouseDblClick(e){
-      alert('Line double clicked');
+      if(that.handlerVisible){
+        that.startHandler.attr('visibility', 'hidden');
+        that.endHandler.attr('visibility', 'hidden');
+        that.handlerVisible = false;
+      } else {
+        that.startHandler.attr('visibility', 'visible');
+        that.endHandler.attr('visibility', 'visible');
+        that.handlerVisible = true;
+      }
     }
   },
   renderToolItem() {
@@ -1471,12 +1528,84 @@ var Polyline = Class.create({
     //Points the same thing but in D3 format
     var svg = d3.select(svg_id);
 
-    this.line = svg.append('polyline')
+    this.g = svg.append('g')
+      .attr('id', this.id + '_g');
+    this.line = this.g.append('polyline')
       .attr('id', this.id)
       .attr('points', this.polyPoints)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
       .attr('data-type', 'node-base')
       .attr('class', 'drag-svg');
+
+    this.createHandlers();
+  },
+  createHandlers: function() {
+    var polyPointsArray = this.polyPoints.trim().split(' ');
+    that = this;
+    this.handlers = [];
+
+    var dragHandlers = d3.drag()
+      .on('drag', dragMoveHandler)
+      .on('end', dropHandler);
+
+    polyPointsArray.forEach(function(item, index){
+      var point = item.split(',');
+      var pointX = parseInt(point[0]);
+      var pointY = parseInt(point[1]);
+
+      var handler = that.g.append('circle')
+        .attr('id', that.id + '_' + index + 'N_handler')
+        .attr('cx', pointX)
+        .attr('cy', pointY)
+        .attr('r', 5)
+        .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
+        .attr('line', that.id)
+        .call(dragHandlers);
+      that.handlers.push(handler);
+    });
+
+    function dropHandler(e){}
+
+    function dragMoveHandler(e){
+      var x = d3.event.x;
+      var y = d3.event.y;
+      //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
+      d3.select(this).attr('cx', x);
+      d3.select(this).attr('cy', y);
+      var target = d3.event.sourceEvent.target;
+
+      var handlerString = target.id.replace(that.id + '_', '');
+      var index = handlerString.indexOf('N_handler');
+      var pointIndexAsString = handlerString.substr(0, index);
+      var pointIndex = parseInt(pointIndexAsString);
+      var points = that.line.attr('points');
+      points = points.trim();
+      var pointsArray = points.split(' ');
+      pointsArray[pointIndex] = x + ',' + y;
+      var pointString = '';
+      for(var i=0; i < pointsArray.length; i++){
+        pointString += pointsArray[i] + ' ';
+      }
+      that.line.attr('points', pointString);
+    }
+
+    this.handlerVisible = true;
+    var line = document.getElementById(this.id);
+    line.addEventListener('dblclick', mouseDblClick);
+
+    function mouseDblClick(e){
+      if(that.handlerVisible){
+        that.handlers.forEach(function(handler){
+          handler.attr('visibility', 'hidden');
+        });
+        that.handlerVisible = false;
+      } else {
+        that.handlers.forEach(function(handler){
+          handler.attr('visibility', 'visible');
+        });
+        that.handlerVisible = true;
+      }
+    }
   },
   renderToolItem() {
     var html = '';
@@ -1542,47 +1671,113 @@ var BezireCurve = Class.create({
     //Points the same thing but in D3 format
     var svg = d3.select(svg_id);
     // prepare a helper function
-    var curveFunc = d3.line()
+    this.curveFunc = d3.line()
       .curve(d3.curveBasis)              // This is where you define the type of curve. Try curveStep for instance.
       .x(function(d) { return d.x })
       .y(function(d) { return d.y });
 
-      this.line = svg.append('g')
+      this.g = svg.append('g')
         .attr('id', this.id)
         .attr('class', 'drag-svg');
 
-      this.line.append('path')
+      this.line = this.g.append('path')
       .attr('id', this.id + '_line')
-      .attr('d', curveFunc(this.curvePoints))
-      .attr('stroke', 'black')
-      .attr('stroke-width', '2px')
+      .attr('d', this.curveFunc(this.curvePoints))
+      .attr('stroke', this.lineColor)
+      .attr('stroke-width', this.lineWidth)
       .attr('fill', 'none')
       .attr('data-type', 'node-base-inner');
-      //.attr('class', 'drag-svg');
 
-      var drag = d3.drag()
-      .on('drag', dragMove)
-      .on('end', dropHandler);
+    this.createHandlers();
+  },
+  createHandlers: function() {
+    var dragControlPoint = d3.drag()
+      .on('drag', cpDragMoveHandler)
+      .on('end', cpDropHandler);
 
-      this.controlPoint = this.line.append('circle')
+    var dragHandlers = d3.drag()
+      .on('drag', hDragMoveHandler)
+      .on('end', hDropHandler);
+
+    this.controlPoint = this.g.append('circle')
       .attr('id', this.id + '_control_point')
       .attr('cx', this.curvePoints[1].x)
       .attr('cy', this.curvePoints[1].y)
       .attr('r', '5')
       .attr('style', 'stroke: #DAA520; fill: #DAA520; stroke-width: 2px;')
       .attr('class', 'drag-svg')
-      .call(drag);
+      .call(dragControlPoint);
 
-      function dropHandler(e){}
+    this.startHandler = this.g.append('circle')
+      .attr('id', this.id + '_start_handler')
+      .attr('cx', this.curvePoints[0].x)
+      .attr('cy', this.curvePoints[0].y)
+      .attr('r', '5')
+      .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
+      .attr('class', 'drag-svg')
+      .call(dragHandlers);
 
-      function dragMove(e){
-        var x = d3.event.x;
-        var y = d3.event.y;
-        //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
-        d3.select(this).attr('cx', x);
-        d3.select(this).attr('cy', y);
+    this.endHandler = this.g.append('circle')
+      .attr('id', this.id + '_end_handler')
+      .attr('cx', this.curvePoints[2].x)
+      .attr('cy', this.curvePoints[2].y)
+      .attr('r', '5')
+      .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
+      .attr('class', 'drag-svg')
+      .call(dragHandlers);
+
+    that = this;
+    function cpDropHandler(e){}
+
+    function cpDragMoveHandler(e){
+      var x = d3.event.x;
+      var y = d3.event.y;
+      //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
+      d3.select(this).attr('cx', x);
+      d3.select(this).attr('cy', y);
+      that.curvePoints[1].x = x;
+      that.curvePoints[1].y = y;
+      that.line.attr('d', that.curveFunc(that.curvePoints));
+    }
+
+    function hDropHandler(e){}
+
+    function hDragMoveHandler(e){
+      var x = d3.event.x;
+      var y = d3.event.y;
+      //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
+      d3.select(this).attr('cx', x);
+      d3.select(this).attr('cy', y);
+      var target = d3.event.sourceEvent.target;
+
+      var index = -1;
+      if(target.id === that.startHandler.attr('id')){
+        index = 0;
+      } else if (target.id === that.endHandler.attr('id')){
+        index = 2;
       }
+      that.curvePoints[index].x = x;
+      that.curvePoints[index].y = y;
+      that.line.attr('d', that.curveFunc(that.curvePoints));
+    }
 
+    this.handlerVisible = true;
+    var line = document.getElementById(this.id);
+    line.addEventListener('dblclick', mouseDblClick);
+
+    function mouseDblClick(e){
+      if(that.handlerVisible){
+        that.startHandler.attr('visibility', 'hidden');
+        that.endHandler.attr('visibility', 'hidden');
+        that.controlPoint.attr('visibility', 'hidden');
+        that.handlerVisible = false;
+      } else {
+        that.startHandler.attr('visibility', 'visible');
+        that.endHandler.attr('visibility', 'visible');
+        that.controlPoint.attr('visibility', 'visible');
+        that.handlerVisible = true;
+      }
+    }
   },
   renderToolItem() {
     var html = '';
