@@ -1742,7 +1742,7 @@ var BezireCurve = Class.create({
   id: "",
   title: "",
   description: "",
-  curvePoints: '[{100,350}, {150,-300}, {300,0}]', //instances of the Point class
+  curvePoints: '[{x: 100, y: 350}, {x: 150, y: -300}, {x: 300, y: 0}]', //instances of the Point class
   ports: [],
   parentElement: undefined,
   lineColor: "black",
@@ -1756,7 +1756,7 @@ var BezireCurve = Class.create({
     this.parentElement = parentElement;
     this.title = title || "";
     this.description = description || "";
-    this.curvePoints = curvePoints || '[{100,350}, {150,-300}, {300,0}]';
+    this.curvePoints = curvePoints || '[{x: 100, y: 350}, {x: 150, y: -300}, {x: 300, y: 0}]';
     this.ports = ports || [];
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "3";
@@ -1786,27 +1786,34 @@ var BezireCurve = Class.create({
       .y(function(d) { return d.y });
 
       this.g = svg.append('g')
-        .attr('id', this.id)
+        .attr('id', this.id + '_g')
         .attr('class', 'drag-svg');
 
       this.line = this.g.append('path')
-      .attr('id', this.id + '_line')
+      .attr('id', this.id)
       .attr('d', this.curveFunc(this.curvePoints))
       .attr('stroke', this.lineColor)
       .attr('stroke-width', this.lineWidth)
       .attr('fill', 'none')
-      .attr('data-type', 'node-base-inner');
+      .attr('data-type', 'node-base-inner')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName)
+      .attr('handlersVisible', true)
+      .attr('controlPoint', this.id + '_control_point')
+      .attr('startHandler', this.id + '_start_handler')
+      .attr('endHandler', this.id + '_end_handler')
+      .attr('points', JSON.stringify(this.curvePoints));
 
     this.createHandlers();
   },
   createHandlers: function() {
-    var dragControlPoint = d3.drag()
-      .on('drag', cpDragMoveHandler)
-      .on('end', cpDropHandler);
 
     var dragHandlers = d3.drag()
-      .on('drag', hDragMoveHandler)
-      .on('end', hDropHandler);
+      .on('drag', dragMoveHandler)
+      .on('end', dropHandler);
 
     this.controlPoint = this.g.append('circle')
       .attr('id', this.id + '_control_point')
@@ -1815,7 +1822,8 @@ var BezireCurve = Class.create({
       .attr('r', '5')
       .attr('style', 'stroke: #DAA520; fill: #DAA520; stroke-width: 2px;')
       .attr('class', 'drag-svg')
-      .call(dragControlPoint);
+      .attr('line', this.id)
+      .call(dragHandlers);
 
     this.startHandler = this.g.append('circle')
       .attr('id', this.id + '_start_handler')
@@ -1824,6 +1832,7 @@ var BezireCurve = Class.create({
       .attr('r', '5')
       .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
       .attr('class', 'drag-svg')
+      .attr('line', this.id)
       .call(dragHandlers);
 
     this.endHandler = this.g.append('circle')
@@ -1833,41 +1842,45 @@ var BezireCurve = Class.create({
       .attr('r', '5')
       .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
       .attr('class', 'drag-svg')
+      .attr('line', this.id)
       .call(dragHandlers);
 
     that = this;
-    function cpDropHandler(e){}
 
-    function cpDragMoveHandler(e){
-      var x = d3.event.x;
-      var y = d3.event.y;
-      //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
-      d3.select(this).attr('cx', x);
-      d3.select(this).attr('cy', y);
-      that.curvePoints[1].x = x;
-      that.curvePoints[1].y = y;
-      that.line.attr('d', that.curveFunc(that.curvePoints));
-    }
+    function dropHandler(e){}
 
-    function hDropHandler(e){}
-
-    function hDragMoveHandler(e){
+    function dragMoveHandler(e){
       var x = d3.event.x;
       var y = d3.event.y;
       //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
       d3.select(this).attr('cx', x);
       d3.select(this).attr('cy', y);
       var target = d3.event.sourceEvent.target;
+      //Get the linename from the 'line' attribute of the handler
+      var lineName = d3.select(this).attr('line');
+      if(lineName !== undefined && lineName !== null){
+        //Selects the line for further interactive operations
+        var line = d3.select('#' + lineName);
+        if(line !== undefined && line !== null){
+          var index = -1;
+          if(target.id.endsWith('start_handler')){
+            index = 0;
+          } else if (target.id.endsWith('end_handler')){
+            index = 2;
+          } else if (target.id.endsWith('control_point')){
+            index = 1;
+          }
 
-      var index = -1;
-      if(target.id === that.startHandler.attr('id')){
-        index = 0;
-      } else if (target.id === that.endHandler.attr('id')){
-        index = 2;
+          var curvePointsAsString = line.attr('points');
+          var curvePoints = JSON.parse(curvePointsAsString);
+          if(curvePoints !== undefined && curvePoints !== null && index !== -1){
+            curvePoints[index].x = x;
+            curvePoints[index].y = y;
+            line.attr('d', that.curveFunc(curvePoints));
+            line.attr('points', JSON.stringify(curvePoints));
+          }
+        }
       }
-      that.curvePoints[index].x = x;
-      that.curvePoints[index].y = y;
-      that.line.attr('d', that.curveFunc(that.curvePoints));
     }
 
     this.handlerVisible = true;
@@ -1875,16 +1888,32 @@ var BezireCurve = Class.create({
     line.addEventListener('dblclick', mouseDblClick);
 
     function mouseDblClick(e){
-      if(that.handlerVisible){
-        that.startHandler.attr('visibility', 'hidden');
-        that.endHandler.attr('visibility', 'hidden');
-        that.controlPoint.attr('visibility', 'hidden');
-        that.handlerVisible = false;
+      //Find out the line which has been double clicked and selects the same
+      //to the get the ids of the handlers attached to this line
+      var lineName = e.target.id;
+      var line = d3.select('#' + lineName);
+
+      //Read the line's attribute 'handlersVisible' to find out whether handlers are
+      //visible or not
+      var handlersVisible = line.attr('handlersVisible');
+      //Get all the handlers for this curve
+      var startHandlerName = line.attr('startHandler');
+      var startHandler = d3.select('#' + startHandlerName);
+      var endHandlerName = line.attr('endHandler');
+      var endHandler = d3.select('#' + endHandlerName);
+      var controlPointName = line.attr('controlPoint');
+      var controlPoint = d3.select('#' + controlPointName);
+
+      if(JSON.parse(handlersVisible)){
+        startHandler.attr('visibility', 'hidden');
+        endHandler.attr('visibility', 'hidden');
+        controlPoint.attr('visibility', 'hidden');
+        line.attr('handlersVisible', false);
       } else {
-        that.startHandler.attr('visibility', 'visible');
-        that.endHandler.attr('visibility', 'visible');
-        that.controlPoint.attr('visibility', 'visible');
-        that.handlerVisible = true;
+        startHandler.attr('visibility', 'visible');
+        endHandler.attr('visibility', 'visible');
+        controlPoint.attr('visibility', 'visible');
+        line.attr('handlersVisible', true);
       }
     }
   },
