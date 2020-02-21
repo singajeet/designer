@@ -1,15 +1,15 @@
-/******
+/**
  * Module: designer.js
  * Description: Provides api to build interactive visual language editor
  * Author: Ajeet Singh
  * Date: 25-Aug-2019
- * *****/
+ */
 
-/*********************************************************
+/**
  * A simple string formatter function, example:
  * console.log("Hello, {0}!".format("World"))
  * Source: https://coderwall.com/p/flonoa/simple-string-format-in-javascript
- **********************************************************/
+ */
 String.prototype.format = function() {
   a = this;
   for (k in arguments) {
@@ -18,9 +18,9 @@ String.prototype.format = function() {
   return a
 }
 
-/****************
+/**
  * Returns true if obj is plain obj {} or dict
- * ***************/
+ */
 is_dict = function(obj) {
   if (!obj) return false;
   if (Array.isArray(obj)) return false;
@@ -28,9 +28,12 @@ is_dict = function(obj) {
   return true;
 }
 
-/***********************************************************
- * Point class
- ***********************************************************/
+/**
+ * Point class represents an pixel on the canvas with x and y location
+ * @constructor
+ * @param {int} x - The x position of the point
+ * @param {int} y - The y position of the point
+ */
 var Point = Class.create({
   x: 0,
   y: 0,
@@ -47,9 +50,14 @@ var Point = Class.create({
     this.y = this.y - point.y;
   }
 });
-/***********************************************************
+/**
  * RectDimension - Dimension class containing dimension of an rectangle
- ***********************************************************/
+ * @constructor
+ * @param {int} left - The left position of the rectangle
+ * @param {int} top - Top position of the rectangle
+ * @param {int} height - Height of the rectangle
+ * @param {int} width - Width of the rectangle
+ */
 var RectDimension = Class.create({
   top: 0,
   left: 0,
@@ -62,9 +70,14 @@ var RectDimension = Class.create({
     this.width = width;
   }
 });
-/**********************************************************
+/**
  * LineDimension - Dimension class containing dimension for line
- **********************************************************/
+ * @constructor
+ * @param {Point} start - An instance of the Point class providing start location of line
+ * @param {Point} end - Instance of the Point class providing end location of line
+ * @param {boolean} hasArrow - Specify whether the line will have an arrow
+ * @param {string} arrowType - Kind of the arrow this line will have
+ */
 var LineDimension = Class.create({
   start: undefined,
   end: undefined,
@@ -97,13 +110,20 @@ var LineDimension = Class.create({
     }
     return this._direction;
   },
+  /** Returns the direction of the arrow in the following form:
+  * BT=>Bottom-Top; TB=>Top-Bottom; LR=>Left-Right; RL=>Right-Left
+  */
   getDirection: function() {
     return this._calculateDirection();
   }
 });
-/***********************************************************
- * Circle dimension
- ***********************************************************/
+/**
+ * Circle dimension - Dimension class containing dimension of an circle
+ * @constructor
+ * @param {int} cx - The x position of the circle on canvas
+ * @param {int} cy - The y position of the circle on canvas
+ * @param {int} r - radius of the circle
+ */
 var CircleDimension = Class.create({
   cx: 0,
   cy: 0,
@@ -114,9 +134,14 @@ var CircleDimension = Class.create({
     this.r = r;
   }
 });
-/****
- * Ellipse Dimension
- ***/
+/**
+ * Ellipse Dimension - Dimension class containing dimension of an ellipse
+ * @constructor
+ * @param {int} cx - The x position of the ellipse on canvas
+ * @param {int} cy - The y position of the ellipse on canvas
+ * @param {int} rx - horizontal radius of the ellipse
+ * @param {int} ry - vertical radius of the ellipse
+ */
 var EllipseDimension = Class.create({
   cx: 0,
   cy: 0,
@@ -129,10 +154,10 @@ var EllipseDimension = Class.create({
     this.ry = ry;
   }
 });
-/**********************************************************
+/**
  * Enum: MouseState
  * Description: Provides different states of mouse
- **********************************************************/
+ */
 var MouseState = {
   UP: 0,
   DOWN: 1,
@@ -160,10 +185,10 @@ var MouseState = {
 if (Object.freeze) {
   Object.freeze(MouseState);
 }
-/***********************************************************
+/**
  * Enum: ShapeType
  * Description: Various shapes available
- ***********************************************************/
+ */
 var ShapeType = {
   NONE: 9999,
   LINE: 0,
@@ -209,10 +234,20 @@ var ShapeType = {
   }
 };
 
-/**********************************************************
+/**
  * Canvas: class provides the functionality to hold the
  * nodes and edges objects
- ***********************************************************/
+ *
+ * @Constructor
+ * @param {string} id - A unique identifier for the canvas
+ * @param {string} container_id - Id of the parent container, if not
+ *                                provided Canvas will be attached to
+ *                                body of the page
+ * @param {string} height - Height of the canvas with unit
+ * @param {string} width - Width of the canvas with unit
+ * @param {Array} items - A list of direct child elements
+ * @param {Array} grid - Size of each cell in the grid (in pixels)
+ */
 const Canvas = Class.create({
   id: '',
   containerId: undefined,
@@ -243,17 +278,6 @@ const Canvas = Class.create({
   isCmdInPrgrs: false,
   lastClick: 0,
   isTap: false,
-  /*
-   *  Constructor
-   *          id (string):           A unique identifier for the canvas
-   *          container_id (string): Id of the parent container, if not
-   *                      provided Canvas will be attached to
-   *                      body of the page
-   *          height (string):    Height of the canvas with unit
-   *          width (string):     Width of the canvas with unit
-   *          items (Array):      A list of direct child elements
-   *          grid (Array):       Size of each cell in the grid (in pixels)
-   */
   initialize: function(id, containerId, height, width, nodes, edges, grid) {
     this.id = id;
     this.containerId = containerId;
@@ -301,21 +325,21 @@ const Canvas = Class.create({
       cursorResize: 'pointer'
     };
   },
-  /*
+  /**
    * Method: getToolName
    * Description: Returns the name of the curret tool
    */
   getToolName: function() {
     return this.toolName;
   },
-  /*
+  /**
    * Method: getShapeType
    * Description: Returns the shape type the current tool supports
    */
   getShapeType: function() {
     return this.shapeType;
   },
-  /*
+  /**
    * Method: initEdge
    * Description: Adds edge to canvas before
    * it is rendered. If you wish to add edge after canvas
@@ -324,7 +348,7 @@ const Canvas = Class.create({
   initEdge: function(edge) {
     this.edges.push(edge);
   },
-  /*
+  /**
    * Method: addEdge
    * Description: Adds an edge to canvas after canvas is
    * rendered. This function adds selectable, resizable,
@@ -347,7 +371,7 @@ const Canvas = Class.create({
     //   });
     // });
   },
-  /*
+  /**
    * Method: removeEdge
    * Description: Removes an edge from the array
    */
@@ -357,7 +381,7 @@ const Canvas = Class.create({
     var edgeEle = document.getElementById(edge.id);
     edgeEle.parentNode.removeChild(edgeEle);
   },
-  /*
+  /**
    * Method: initNode
    * Description: Adds an node to canvas before
    * it is rendered. If you wish to add node after canvas
@@ -366,7 +390,7 @@ const Canvas = Class.create({
   initNode: function(node) {
     this.nodes.push(node);
   },
-  /*
+  /**
    * Method: addNode
    * Description: Adds an node to canvas after canvas is
    * rendered. This function adds selectable, resizable,
@@ -390,7 +414,7 @@ const Canvas = Class.create({
       });
     });
   },
-  /*
+  /**
    * Method: removeNode
    * Description: Removes an node from the array
    */
@@ -402,17 +426,17 @@ const Canvas = Class.create({
       nodeToRemove.parentNode.removeChild(nodeToRemove);
     }
   },
-  /*********************************************************
+  /**
    * Method: addTool
    * Description: adds an tool to the toolbox of the canvas
-   *********************************************************/
+   */
   addTool: function(tool) {
     this.tools.push(tool);
   },
-  /*********************************************************
+  /**
    * Method: removeTool
    * Description: removes an tool from the toolbox of the canvas
-   *********************************************************/
+   */
   removeTool: function(tool) {
     var index = this.tools.indexOf(tool);
     this.tools.splice(index, 1);
@@ -421,7 +445,7 @@ const Canvas = Class.create({
       toolToRemove.parentNode.removeChild(toolToRemove);
     }
   },
-  /*
+  /**
    * Method: render
    * Description: Renders the HTML for Canvas component in parent element
    */
@@ -992,9 +1016,9 @@ const Canvas = Class.create({
     return node.getNextEmptyPort();
   }
 });
-/*********************************************************************
+/**
  * Base class for all shapes that could be added to the cavas
- *********************************************************************/
+ */
 const Shape = Class.create({
   id: "",
   title: "",
@@ -1017,11 +1041,11 @@ const Shape = Class.create({
   render: function() {},
   renderToolItem: function() {}
 });
-/**********************************************************************
+/**
  * Defines an line that will be used to connect two or more nodes with
  * each other. A Line can have direction and will be denoted by an Arrow
  * icon on one end or both end of the line.
- **********************************************************************/
+ */
 const Line = Class.create({
   id: "",
   title: "",
@@ -1101,6 +1125,13 @@ const Line = Class.create({
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
       .attr('marker-end', 'url(#arrow)')
       .attr('data-type', 'edge-base')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('hasArrow', this.lineDimension.hasArrow)
+      .attr('arrowType', this.lineDimension.arrowType)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName)
       .attr('startHandler', this.id + '_start_handler')
       .attr('endHandler', this.id + '_end_handler')
       .attr('handlersVisible', true);
@@ -1108,10 +1139,16 @@ const Line = Class.create({
     this.createHandlers();
   },
   createHandlers: function() {
+
+    //Drag function to drag the handlers/controls which appears at each edge
+    //of the line in form of filled circles
     this.dragHandlers = d3.drag()
       .on('drag', hDragMoveHandler)
       .on('end', hDropHandler);
 
+    //Handlers/Controls attached to both edge of the line. These provides the
+    //functionality to modify the length & direction of the line interactively
+    //using mouse drag operation
     this.startHandler = this.g.append('circle')
         .attr('id', this.id + '_start_handler')
         .attr('cx', this.lineDimension.start.x)
@@ -1129,41 +1166,59 @@ const Line = Class.create({
         .attr('line', this.id)
         .call(this.dragHandlers);
 
-    this.handlerVisible = true;
-    var line = document.getElementById(this.id);
-    line.addEventListener('dblclick', mouseDblClick);
-    that = this;
-
     function hDropHandler(e){}
 
     function hDragMoveHandler(e){
       var x = d3.event.x;
       var y = d3.event.y;
-      //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
+
+      //Change the position of the handler (circle) by setting the new cx & cy coordinates
       d3.select(this).attr('cx', x);
       d3.select(this).attr('cy', y);
+      //Find outs the line attached to this handler by reading its attribute 'line'
       var target = d3.event.sourceEvent.target;
       var lineName = d3.select(this).attr('line');
+      //Selects the line for further interactive operations
       var line = d3.select('#' + lineName);
 
+      //if dragged handler is attached to the start of the line, change the x1 & y1
+      //coordinates of the line to the new x,y position
       if(target.id.endsWith('start_handler')){
         line.attr('x1', x);
         line.attr('y1', y);
-      } else if (target.id.endsWith('end_handler')){
+      }
+      //if dragged handler is attached to the end of the line, change the x2 & y2
+      //coordinates of the line to the new x,y position
+      else if (target.id.endsWith('end_handler')){
         line.attr('x2', x);
         line.attr('y2', y);
       }
     }
 
+    //Functionality to hide or show the handlers attached to the line at both
+    //edges whenever the line is double clicked
+    this.handlerVisible = true;
+    var line = document.getElementById(this.id);
+    line.addEventListener('dblclick', mouseDblClick);
+
     function mouseDblClick(e){
+      //Find out the line which has been double clicked and selects the same
+      //to the get the ids of the handlers attached to this line
       var lineName = e.target.id;
       var line = d3.select('#' + lineName);
+
+      //Read the line's attribute 'handlersVisible' to find out whether handlers are
+      //visible or not
       var handlersVisible = line.attr('handlersVisible');
+
+      //Read the line's attributes 'startHandler' & 'endHandler' to get the names of the
+      //handlers attached to the line and select same for further operation
       var startHandlerName = line.attr('startHandler');
       var startHandler = d3.select('#' + startHandlerName);
       var endHandlerName = line.attr('endHandler');
       var endHandler = d3.select('#' + endHandlerName);
 
+      //Show or hide the handlers based on the value of the 'handlersVisible' attribute
       if(JSON.parse(handlersVisible)){
         startHandler.attr('visibility', 'hidden');
         endHandler.attr('visibility', 'hidden');
@@ -1251,7 +1306,12 @@ var Rectangle = Class.create({
       .attr('width', this.rectDimension.width)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
       .attr('data-type', 'node-base')
-      .attr('class', 'drag-svg');
+      .attr('class', 'drag-svg')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName);
   },
   renderToolItem() {
     var html = '';
@@ -1323,7 +1383,12 @@ var Circle = Class.create({
       .attr('r', this.circDimension.r)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
       .attr('data-type', 'node-base')
-      .attr('class', 'drag-svg');
+      .attr('class', 'drag-svg')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName);
   },
   renderToolItem() {
     var html = '';
@@ -1395,7 +1460,12 @@ var Ellipse = Class.create({
       .attr('ry', this.ellipDimension.ry)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
       .attr('data-type', 'node-base')
-      .attr('class', 'drag-svg');
+      .attr('class', 'drag-svg')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName);
   },
   renderToolItem() {
     var html = '';
@@ -1464,7 +1534,12 @@ var Polygon = Class.create({
       .attr('points', this.polyPoints)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
       .attr('data-type', 'node-base')
-      .attr('class', 'drag-svg');
+      .attr('class', 'drag-svg')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName);
   },
   renderToolItem() {
     var html = '';
@@ -1535,7 +1610,13 @@ var Polyline = Class.create({
       .attr('points', this.polyPoints)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
       .attr('data-type', 'node-base')
-      .attr('class', 'drag-svg');
+      .attr('class', 'drag-svg')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName)
+      .attr('handlersVisible', true);
 
     this.createHandlers();
   },
@@ -1564,31 +1645,44 @@ var Polyline = Class.create({
       that.handlers.push(handler);
     });
 
+    var handlerNames = "";
+    this.handlers.forEach(function(handler){
+      handlerNames += handler.attr('id') + ',';
+    });
+    handlerNames = handlerNames.substring(0, handlerNames.length-1);
+    this.line.attr('handlers', handlerNames);
+
     function dropHandler(e){}
 
     function dragMoveHandler(e){
       var x = d3.event.x;
       var y = d3.event.y;
-      //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
+
       d3.select(this).attr('cx', x);
       d3.select(this).attr('cy', y);
       var target = d3.event.sourceEvent.target;
-      var lineName = d3.select('#' + target.id).attr('line');
-      var line = d3.select('#' + lineName);
+      if(target !== undefined && target !== null){
+        var lineName = d3.select('#' + target.id).attr('line');
+        if(lineName !== undefined && lineName !== null){
+          var line = d3.select('#' + lineName);
 
-      var handlerString = target.id.replace(lineName + '_', '');
-      var index = handlerString.indexOf('N_handler');
-      var pointIndexAsString = handlerString.substr(0, index);
-      var pointIndex = parseInt(pointIndexAsString);
-      var points = line.attr('points');
-      points = points.trim();
-      var pointsArray = points.split(' ');
-      pointsArray[pointIndex] = x + ',' + y;
-      var pointString = '';
-      for(var i=0; i < pointsArray.length; i++){
-        pointString += pointsArray[i] + ' ';
+          if(line !== undefined && line !== null){
+            var handlerString = target.id.replace(lineName + '_', '');
+            var index = handlerString.indexOf('N_handler');
+            var pointIndexAsString = handlerString.substr(0, index);
+            var pointIndex = parseInt(pointIndexAsString);
+            var points = line.attr('points');
+            points = points.trim();
+            var pointsArray = points.split(' ');
+            pointsArray[pointIndex] = x + ',' + y;
+            var pointString = '';
+            for(var i=0; i < pointsArray.length; i++){
+              pointString += pointsArray[i] + ' ';
+            }
+            line.attr('points', pointString);
+          }
+        }
       }
-      line.attr('points', pointString);
     }
 
     this.handlerVisible = true;
@@ -1596,16 +1690,29 @@ var Polyline = Class.create({
     line.addEventListener('dblclick', mouseDblClick);
 
     function mouseDblClick(e){
-      if(that.handlerVisible){
-        that.handlers.forEach(function(handler){
+      //Find out the line which has been double clicked and selects the same
+      //to the get the ids of the handlers attached to this line
+      var lineName = e.target.id;
+      var line = d3.select('#' + lineName);
+
+      //Read the line's attribute 'handlersVisible' to find out whether handlers are
+      //visible or not
+      var handlersVisible = line.attr('handlersVisible');
+      var handlers = line.attr('handlers');
+      var handlersArray = handlers.split(',');
+
+      if(JSON.parse(handlersVisible)){
+        handlersArray.forEach(function(handlerName){
+          var handler = d3.select('#' + handlerName);
           handler.attr('visibility', 'hidden');
         });
-        that.handlerVisible = false;
+        line.attr('handlersVisible', false);
       } else {
-        that.handlers.forEach(function(handler){
+        handlersArray.forEach(function(handlerName){
+          var handler = d3.select('#' + handlerName);
           handler.attr('visibility', 'visible');
         });
-        that.handlerVisible = true;
+        line.attr('handlersVisible', true);
       }
     }
   },
