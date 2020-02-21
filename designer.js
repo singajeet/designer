@@ -570,22 +570,7 @@ const Canvas = Class.create({
       $j('#y_label').text(parseInt(that.mouseY));
       if (that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG) {
         that.mouseState = MouseState.DRAG;
-        // if(that.selectedTool.getShapeType() === ShapeType.SELECT){
-        //   if(selectedHandler !== null){
-        //     selectedHandler.attr('cx', that.mouseX);
-        //     selectedHandler.attr('cy', that.mouseY);
-        //     var lineName = selectedHandler.attr('line');
-        //     var line = d3.select('#' + lineName);
-        //     var selectedHandlerId = selectedHandler.attr('id');
-        //     if(selectedHandlerId.endsWith('start_handler')){
-        //       line.attr('x1', that.mouseX);
-        //       line.attr('y1', that.mouseY);
-        //     } else if (selectedHandlerId.endsWith('end_handler')){
-        //       line.attr('x2', that.mouseX);
-        //       line.attr('y2', that.mouseY);
-        //     }
-        //   }
-        // }
+
         if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE) {
           that.tempElement.attr('x2', that.mouseX);
           that.tempElement.attr('y2', that.mouseY);
@@ -793,9 +778,6 @@ const Canvas = Class.create({
           }
         }
         if(that.selectedTool.getShapeType() === ShapeType.SELECT){
-          if(selectedHandler !== null){
-            selectedHandler = null;
-          }
           //TODO = Unselect all items if clicked on the canvas
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE)
         {
@@ -818,6 +800,7 @@ const Canvas = Class.create({
           that.tempElement.remove();
           that.tempElement = undefined;
           that.addEdge(line);
+          that._selectSelectTool();
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE) {
           var name = prompt("Element Name:");
           var dx = that.mouseEndX - that.mouseStartX;
@@ -833,6 +816,7 @@ const Canvas = Class.create({
           that.tempElement.remove();
           that.tempElement = undefined;
           that.addNode(node);
+          that._selectSelectTool();
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.CIRCLE) {
           var name = prompt("Element Name:");
           var dx = that.mouseEndX - that.mouseStartX;
@@ -844,6 +828,7 @@ const Canvas = Class.create({
           that.tempElement.remove();
           that.tempElement = undefined;
           that.addNode(circ);
+          that._selectSelectTool();
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.ELLIPSE) {
           var name = prompt("Element Name:");
           var dx = that.mouseEndX - that.mouseStartX;
@@ -859,6 +844,7 @@ const Canvas = Class.create({
           that.tempElement.remove();
           that.tempElement = undefined;
           that.addNode(ellip);
+          that._selectSelectTool();
         } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.BEZIRE_CURVE){
           if(that.polyPoints.length === 3){
             var name = prompt("Element Name:");
@@ -872,6 +858,7 @@ const Canvas = Class.create({
             that.polyPoints = [];
             var bcurve = new BezireCurve(name, that, data);
             that.addEdge(bcurve);
+            that._selectSelectTool();
           }
         }
       }
@@ -894,6 +881,7 @@ const Canvas = Class.create({
             that.addNode(poly);
             that.isCmdInPrgrs = false;
             that.polyPoints = [];
+            that._selectSelectTool();
         }
       } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.POLYLINE){
           var name = prompt("Element Name:");
@@ -912,6 +900,7 @@ const Canvas = Class.create({
             that.addEdge(poly);
             that.isCmdInPrgrs = false;
             that.polyPoints = [];
+            that._selectSelectTool();
       	 }
        }
       }
@@ -983,6 +972,9 @@ const Canvas = Class.create({
     if (index < this.tools.length) {
       this.selectedTool = this.tools[index];
     }
+  },
+  _selectSelectTool: function() {
+    $j('#' + this.id + '_SELECT_tool').prop("checked", true).trigger('click');
   },
   getNode: function(id) {
     for (var i = 0; i < this.nodes.length; i++) {
