@@ -310,7 +310,7 @@ const Canvas = Class.create({
       container: '#' + id + '_svg',
       restrict: '#' + id + '_svg',
       proportions: false,
-      rotationPoint: true,
+      rotationPoint: false,
       //themeColor: 'white',
       each: {
         //resize: true,
@@ -404,9 +404,10 @@ const Canvas = Class.create({
 
     var item = subjx('#' + node.id).drag(this.options)[0];
     this.draggables.push(item);
-    subjx(item.controls).on('click', () => {
-          item.disable();
-    });
+    // subjx(item.controls).on('click', () => {
+    //       item.disable();
+    //       item.el.attributes['selected'].value = false;
+    // });
     var that = this;
     subjx('#' + node.id).on('click', e => {
       //if (e.currentTarget.classList.contains('sjx-drag')) return;
@@ -416,12 +417,14 @@ const Canvas = Class.create({
         }
       });
       const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
+      xDraggable.el.attributes['selected'].value = true;
       that.draggables.push(xDraggable);
       // adding event to controls
-      const controls = xDraggable.controls;
-      subjx(controls).on('click', () => {
-        xDraggable.disable();
-      });
+      // const controls = xDraggable.controls;
+      // subjx(controls).on('click', () => {
+      //   xDraggable.disable();
+      //   xDraggable.el.attributes['selected'].value = false;
+      // });
     });
   },
   /**
@@ -762,12 +765,15 @@ const Canvas = Class.create({
                 .attr('fill', 'none');
               break;
             case ShapeType.SELECT:
-              that.draggables.forEach(function(item){
-                item.disable();
-              });
-              that.edges.forEach(function(edge){
-                edge.disable();
-              });
+              //if (e.target.id === (that.id + '_svg')){
+                that.draggables.forEach(function(item){
+                  item.disable();
+                  item.el.attributes['selected'].value = false;
+                });
+                that.edges.forEach(function(edge){
+                  edge.disable();
+                });
+              //}
           }
         }
       }
@@ -1067,8 +1073,9 @@ const Line = Class.create({
   endHandler: undefined,
   line: undefined,
   g: undefined,
-  handlerVisible: true,
+  handlersVisible: true,
   dragHandlers: undefined,
+  selected: true,
   initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowType, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -1084,6 +1091,8 @@ const Line = Class.create({
     this.lineStroke = lineStroke || "Solid";
     this.shapeType = ShapeType.LINE;
     this.toolName = 'LINE';
+    this.handlersVisible = true;
+    this.selected = true;
   },
   getToolName: function() {
     return this.toolName;
@@ -1138,12 +1147,14 @@ const Line = Class.create({
       .attr('toolName', this.toolName)
       .attr('startHandler', this.id + '_start_handler')
       .attr('endHandler', this.id + '_end_handler')
-      .attr('handlersVisible', true);
+      .attr('handlersVisible', this.handlersVisible)
+      .attr('selected', this.selected);
 
     this.createHandlers();
   },
   createHandlers: function() {
 
+    var that = this;
     //Drag function to drag the handlers/controls which appears at each edge
     //of the line in form of filled circles
     this.dragHandlers = d3.drag()
@@ -1201,7 +1212,6 @@ const Line = Class.create({
 
     //Functionality to hide or show the handlers attached to the line at both
     //edges whenever the line is double clicked
-    this.handlerVisible = true;
     var line = document.getElementById(this.id);
     line.addEventListener('click', mouseClick);
 
@@ -1213,7 +1223,7 @@ const Line = Class.create({
 
       //Read the line's attribute 'handlersVisible' to find out whether handlers are
       //visible or not
-      var handlersVisible = line.attr('handlersVisible');
+      var handlersVisible = JSON.parse(line.attr('handlersVisible'));
 
       //Read the line's attributes 'startHandler' & 'endHandler' to get the names of the
       //handlers attached to the line and select same for further operation
@@ -1223,10 +1233,13 @@ const Line = Class.create({
       var endHandler = d3.select('#' + endHandlerName);
 
       //Show or hide the handlers based on the value of the 'handlersVisible' attribute
-      if(!JSON.parse(handlersVisible)){
+      if(!handlersVisible){
         startHandler.attr('visibility', 'visible');
         endHandler.attr('visibility', 'visible');
         line.attr('handlersVisible', true);
+        line.attr('selected', true);
+        that.handlersVisible = true;
+        that.selected = true;
       }
     }
   },
@@ -1234,6 +1247,9 @@ const Line = Class.create({
     this.startHandler.attr('visibility', 'hidden');
     this.endHandler.attr('visibility', 'hidden');
     this.line.attr('handlersVisible', false);
+    this.line.attr('selected', false);
+    this.handlersVisible = false;
+    this.selected = false;
   },
   renderToolItem() {
     var html = '';
@@ -1275,6 +1291,7 @@ var Rectangle = Class.create({
   lineStroke: "Solid",
   shapeType: ShapeType.RECTANGLE,
   toolName: 'RECT',
+  selected: true,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -1287,6 +1304,7 @@ var Rectangle = Class.create({
     this.lineStroke = lineStroke || "Solid";
     this.shapeType = ShapeType.RECTANGLE;
     this.toolName = 'RECT';
+    this.selected = true;
   },
   getToolName: function() {
     return this.toolName;
@@ -1316,7 +1334,8 @@ var Rectangle = Class.create({
       .attr('title', this.title)
       .attr('description', this.description)
       .attr('shapeType', this.shapeType)
-      .attr('toolName', this.toolName);
+      .attr('toolName', this.toolName)
+      .attr('selected', this.selected);
   },
   renderToolItem() {
     var html = '';
@@ -1353,6 +1372,7 @@ var Circle = Class.create({
   lineStroke: "Solid",
   shapeType: ShapeType.CIRCLE,
   toolName: 'CIRCLE',
+  selected: true,
   initialize: function(id, parentElement, circDimension, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -1365,6 +1385,7 @@ var Circle = Class.create({
     this.lineStroke = lineStroke || "Solid";
     this.shapeType = ShapeType.CIRCLE;
     this.toolName = 'CIRCLE';
+    this.selected = true;
   },
   getToolName: function() {
     return this.toolName;
@@ -1393,7 +1414,8 @@ var Circle = Class.create({
       .attr('title', this.title)
       .attr('description', this.description)
       .attr('shapeType', this.shapeType)
-      .attr('toolName', this.toolName);
+      .attr('toolName', this.toolName)
+      .attr('selected', this.selected);
   },
   renderToolItem() {
     var html = '';
@@ -1429,6 +1451,7 @@ var Ellipse = Class.create({
   lineStroke: "Solid",
   shapeType: ShapeType.ELLIPSE,
   toolName: 'ELLIPSE',
+  selected: true,
   initialize: function(id, parentElement, ellipDimension, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -1441,6 +1464,7 @@ var Ellipse = Class.create({
     this.lineStroke = lineStroke || "Solid";
     this.shapeType = ShapeType.ELLIPSE;
     this.toolName = 'ELLIPSE';
+    this.selected = true;
   },
   getToolName: function() {
     return this.toolName;
@@ -1470,7 +1494,8 @@ var Ellipse = Class.create({
       .attr('title', this.title)
       .attr('description', this.description)
       .attr('shapeType', this.shapeType)
-      .attr('toolName', this.toolName);
+      .attr('toolName', this.toolName)
+      .attr('selected', this.selected);
   },
   renderToolItem() {
     var html = '';
@@ -1506,6 +1531,7 @@ var Polygon = Class.create({
   lineStroke: "Solid",
   shapeType: ShapeType.POLYGON,
   toolName: 'POLYGON',
+  selected: true,
   initialize: function(id, parentElement, polyPoints, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -1518,6 +1544,7 @@ var Polygon = Class.create({
     this.lineStroke = lineStroke || "Solid";
     this.shapeType = ShapeType.POLYGON;
     this.toolName = 'POLYGON';
+    this.selected = true;
   },
   getToolName: function() {
     return this.toolName;
@@ -1544,7 +1571,8 @@ var Polygon = Class.create({
       .attr('title', this.title)
       .attr('description', this.description)
       .attr('shapeType', this.shapeType)
-      .attr('toolName', this.toolName);
+      .attr('toolName', this.toolName)
+      .attr('selected', this.selected);
   },
   renderToolItem() {
     var html = '';
@@ -1580,6 +1608,8 @@ var Polyline = Class.create({
   lineStroke: "Solid",
   shapeType: ShapeType.POLYLINE,
   toolName: 'POLYLINE',
+  handlersVisible: true,
+  selected: true,
   initialize: function(id, parentElement, polyPoints, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -1592,6 +1622,8 @@ var Polyline = Class.create({
     this.lineStroke = lineStroke || "Solid";
     this.shapeType = ShapeType.POLYLINE;
     this.toolName = 'POLYLINE';
+    this.handlersVisible = true;
+    this.selected = true;
   },
   getToolName: function() {
     return this.toolName;
@@ -1620,7 +1652,8 @@ var Polyline = Class.create({
       .attr('description', this.description)
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
-      .attr('handlersVisible', true);
+      .attr('handlersVisible', true)
+      .attr('selected', true);
 
     this.createHandlers();
   },
@@ -1689,7 +1722,6 @@ var Polyline = Class.create({
       }
     }
 
-    this.handlerVisible = true;
     var line = document.getElementById(this.id);
     line.addEventListener('click', mouseClick);
 
@@ -1701,16 +1733,19 @@ var Polyline = Class.create({
 
       //Read the line's attribute 'handlersVisible' to find out whether handlers are
       //visible or not
-      var handlersVisible = line.attr('handlersVisible');
+      var handlersVisible = JSON.parse(line.attr('handlersVisible'));
       var handlers = line.attr('handlers');
       var handlersArray = handlers.split(',');
 
-      if(!JSON.parse(handlersVisible)){
+      if(!handlersVisible){
         handlersArray.forEach(function(handlerName){
           var handler = d3.select('#' + handlerName);
           handler.attr('visibility', 'visible');
         });
         line.attr('handlersVisible', true);
+        line.attr('selected', true);
+        that.handlersVisible = true;
+        that.selected = true;
       }
     }
   },
@@ -1719,6 +1754,9 @@ var Polyline = Class.create({
       handler.attr('visibility', 'hidden');
     });
     this.line.attr('handlersVisible', false);
+    this.line.attr('selected', false);
+    this.handlersVisible = false;
+    this.selected = false;
   },
   renderToolItem() {
     var html = '';
@@ -1755,6 +1793,8 @@ var BezireCurve = Class.create({
   shapeType: ShapeType.BEZIRE_CURVE,
   toolName: 'BEZIRE_CURVE',
   controlPoint: undefined,
+  handlersVisible: true,
+  selected: true,
   initialize: function(id, parentElement, curvePoints, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -1768,6 +1808,8 @@ var BezireCurve = Class.create({
     this.shapeType = ShapeType.BEZIRE_CURVE;
     this.toolName = 'BEZIRE_CURVE';
     this.controlPoint = undefined;
+    this.handlersVisible = true;
+    this.selected = true;
   },
   getToolName: function() {
     return this.toolName;
@@ -1805,6 +1847,7 @@ var BezireCurve = Class.create({
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
       .attr('handlersVisible', true)
+      .attr('selected', true)
       .attr('controlPoint', this.id + '_control_point')
       .attr('startHandler', this.id + '_start_handler')
       .attr('endHandler', this.id + '_end_handler')
@@ -1886,7 +1929,6 @@ var BezireCurve = Class.create({
       }
     }
 
-    this.handlerVisible = true;
     var line = document.getElementById(this.id);
     line.addEventListener('click', mouseClick);
 
@@ -1898,7 +1940,7 @@ var BezireCurve = Class.create({
 
       //Read the line's attribute 'handlersVisible' to find out whether handlers are
       //visible or not
-      var handlersVisible = line.attr('handlersVisible');
+      var handlersVisible = JSON.parse(line.attr('handlersVisible'));
       //Get all the handlers for this curve
       var startHandlerName = line.attr('startHandler');
       var startHandler = d3.select('#' + startHandlerName);
@@ -1907,11 +1949,14 @@ var BezireCurve = Class.create({
       var controlPointName = line.attr('controlPoint');
       var controlPoint = d3.select('#' + controlPointName);
 
-      if(!JSON.parse(handlersVisible)){
+      if(!handlersVisible){
         startHandler.attr('visibility', 'visible');
         endHandler.attr('visibility', 'visible');
         controlPoint.attr('visibility', 'visible');
         line.attr('handlersVisible', true);
+        line.attr('selected', true);
+        that.handlersVisible = true;
+        that.selected = true;
       }
     }
   },
@@ -1920,6 +1965,9 @@ var BezireCurve = Class.create({
     this.startHandler.attr('visibility', 'hidden');
     this.endHandler.attr('visibility', 'hidden');
     this.line.attr('handlersVisible', false);
+    this.line.attr('selected', false);
+    this.handlersVisible = false;
+    this.selected = false;
   },
   renderToolItem() {
     var html = '';
