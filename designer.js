@@ -278,6 +278,7 @@ const Canvas = Class.create({
   isCmdInPrgrs: false,
   lastClick: 0,
   isTap: false,
+  draggables: [],
   initialize: function(id, containerId, height, width, nodes, edges, grid) {
     this.id = id;
     this.containerId = containerId;
@@ -304,6 +305,7 @@ const Canvas = Class.create({
     this.isCmdInPrgrs = false;
     this.lastClick = 0;
     this.isTap = false;
+    this.draggbles = [];
     this.options = {
       container: '#' + id + '_svg',
       restrict: '#' + id + '_svg',
@@ -401,15 +403,23 @@ const Canvas = Class.create({
     node.render();
 
     var item = subjx('#' + node.id).drag(this.options)[0];
-    subjx(item.controls).on('dblclick', () => {
+    this.draggables.push(item);
+    subjx(item.controls).on('click', () => {
           item.disable();
     });
-    subjx('#' + node.id).on('dblclick', e => {
-      if (e.currentTarget.classList.contains('sjx-drag')) return;
+    var that = this;
+    subjx('#' + node.id).on('click', e => {
+      //if (e.currentTarget.classList.contains('sjx-drag')) return;
+      that.draggables.forEach(function(item, index){
+        if(item.el.id === e.currentTarget.id){
+          that.draggables.splice(index, 1);
+        }
+      });
       const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
+      that.draggables.push(xDraggable);
       // adding event to controls
       const controls = xDraggable.controls;
-      subjx(controls).on('dblclick', () => {
+      subjx(controls).on('click', () => {
         xDraggable.disable();
       });
     });
@@ -752,10 +762,12 @@ const Canvas = Class.create({
                 .attr('fill', 'none');
               break;
             case ShapeType.SELECT:
-              var items = $j('.drag-svg');
-              for(var i=0; i<items.length; i++){
-                var item = subjx(items[i]);
-              }
+              that.draggables.forEach(function(item){
+                item.disable();
+              });
+              that.edges.forEach(function(edge){
+                edge.disable();
+              });
           }
         }
       }
@@ -939,7 +951,7 @@ const Canvas = Class.create({
       });
     }
 
-    that = this;
+    var that = this;
     subjx('.drag-svg').on('dblclick', e => {
       if (e.currentTarget.classList.contains('sjx-drag')) return;
       const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
@@ -1191,9 +1203,9 @@ const Line = Class.create({
     //edges whenever the line is double clicked
     this.handlerVisible = true;
     var line = document.getElementById(this.id);
-    line.addEventListener('dblclick', mouseDblClick);
+    line.addEventListener('click', mouseClick);
 
-    function mouseDblClick(e){
+    function mouseClick(e){
       //Find out the line which has been double clicked and selects the same
       //to the get the ids of the handlers attached to this line
       var lineName = e.target.id;
@@ -1211,16 +1223,17 @@ const Line = Class.create({
       var endHandler = d3.select('#' + endHandlerName);
 
       //Show or hide the handlers based on the value of the 'handlersVisible' attribute
-      if(JSON.parse(handlersVisible)){
-        startHandler.attr('visibility', 'hidden');
-        endHandler.attr('visibility', 'hidden');
-        line.attr('handlersVisible', false);
-      } else {
+      if(!JSON.parse(handlersVisible)){
         startHandler.attr('visibility', 'visible');
         endHandler.attr('visibility', 'visible');
         line.attr('handlersVisible', true);
       }
     }
+  },
+  disable: function(){
+    this.startHandler.attr('visibility', 'hidden');
+    this.endHandler.attr('visibility', 'hidden');
+    this.line.attr('handlersVisible', false);
   },
   renderToolItem() {
     var html = '';
@@ -1602,7 +1615,6 @@ var Polyline = Class.create({
       .attr('points', this.polyPoints)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
       .attr('data-type', 'node-base')
-      .attr('class', 'drag-svg')
       .attr('parentElement', this.parentElement.id)
       .attr('title', this.title)
       .attr('description', this.description)
@@ -1614,7 +1626,7 @@ var Polyline = Class.create({
   },
   createHandlers: function() {
     var polyPointsArray = this.polyPoints.trim().split(' ');
-    that = this;
+    var that = this;
     this.handlers = [];
 
     var dragHandlers = d3.drag()
@@ -1679,9 +1691,9 @@ var Polyline = Class.create({
 
     this.handlerVisible = true;
     var line = document.getElementById(this.id);
-    line.addEventListener('dblclick', mouseDblClick);
+    line.addEventListener('click', mouseClick);
 
-    function mouseDblClick(e){
+    function mouseClick(e){
       //Find out the line which has been double clicked and selects the same
       //to the get the ids of the handlers attached to this line
       var lineName = e.target.id;
@@ -1693,13 +1705,7 @@ var Polyline = Class.create({
       var handlers = line.attr('handlers');
       var handlersArray = handlers.split(',');
 
-      if(JSON.parse(handlersVisible)){
-        handlersArray.forEach(function(handlerName){
-          var handler = d3.select('#' + handlerName);
-          handler.attr('visibility', 'hidden');
-        });
-        line.attr('handlersVisible', false);
-      } else {
+      if(!JSON.parse(handlersVisible)){
         handlersArray.forEach(function(handlerName){
           var handler = d3.select('#' + handlerName);
           handler.attr('visibility', 'visible');
@@ -1707,6 +1713,12 @@ var Polyline = Class.create({
         line.attr('handlersVisible', true);
       }
     }
+  },
+  disable: function(){
+    this.handlers.forEach(function(handler){
+      handler.attr('visibility', 'hidden');
+    });
+    this.line.attr('handlersVisible', false);
   },
   renderToolItem() {
     var html = '';
@@ -1778,8 +1790,7 @@ var BezireCurve = Class.create({
       .y(function(d) { return d.y });
 
       this.g = svg.append('g')
-        .attr('id', this.id + '_g')
-        .attr('class', 'drag-svg');
+        .attr('id', this.id + '_g');
 
       this.line = this.g.append('path')
       .attr('id', this.id)
@@ -1837,7 +1848,7 @@ var BezireCurve = Class.create({
       .attr('line', this.id)
       .call(dragHandlers);
 
-    that = this;
+    var that = this;
 
     function dropHandler(e){}
 
@@ -1877,9 +1888,9 @@ var BezireCurve = Class.create({
 
     this.handlerVisible = true;
     var line = document.getElementById(this.id);
-    line.addEventListener('dblclick', mouseDblClick);
+    line.addEventListener('click', mouseClick);
 
-    function mouseDblClick(e){
+    function mouseClick(e){
       //Find out the line which has been double clicked and selects the same
       //to the get the ids of the handlers attached to this line
       var lineName = e.target.id;
@@ -1896,18 +1907,19 @@ var BezireCurve = Class.create({
       var controlPointName = line.attr('controlPoint');
       var controlPoint = d3.select('#' + controlPointName);
 
-      if(JSON.parse(handlersVisible)){
-        startHandler.attr('visibility', 'hidden');
-        endHandler.attr('visibility', 'hidden');
-        controlPoint.attr('visibility', 'hidden');
-        line.attr('handlersVisible', false);
-      } else {
+      if(!JSON.parse(handlersVisible)){
         startHandler.attr('visibility', 'visible');
         endHandler.attr('visibility', 'visible');
         controlPoint.attr('visibility', 'visible');
         line.attr('handlersVisible', true);
       }
     }
+  },
+  disable: function(){
+    this.controlPoint.attr('visibility', 'hidden');
+    this.startHandler.attr('visibility', 'hidden');
+    this.endHandler.attr('visibility', 'hidden');
+    this.line.attr('handlersVisible', false);
   },
   renderToolItem() {
     var html = '';
