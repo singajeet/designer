@@ -199,8 +199,7 @@ var ShapeType = {
   POLYGON: 5,
   PATH: 6,
   BEZIRE_CURVE: 7,
-  POINTER: 8,
-  SELECTION: 9,
+  SELECT: 8,
   properties: {
     9999: {
       name: 'NONE'
@@ -230,10 +229,7 @@ var ShapeType = {
       name: 'BEZIRE_CURVE'
     },
     8: {
-      name: 'POINTER'
-    },
-    9: {
-      name: 'SELECTION'
+      name: 'SELECT'
     }
   }
 };
@@ -275,8 +271,8 @@ const Canvas = Class.create({
   mouseEndY: 0,
   mouseState: MouseState.UP,
   tempElement: undefined,
-  shapeType: ShapeType.POINTER,
-  toolName: 'POINTER',
+  shapeType: ShapeType.SELECT,
+  toolName: 'SELECT',
   selectedTool: undefined,
   polyPoints: [],
   isCmdInPrgrs: false,
@@ -302,8 +298,8 @@ const Canvas = Class.create({
     this.mouseEndX = 0;
     this.mouseEndY = 0;
     this.tempElement = undefined;
-    this.shapeType = ShapeType.POINTER;
-    this.toolName = 'POINTER';
+    this.shapeType = ShapeType.SELECT;
+    this.toolName = 'SELECT';
     this.selectedTool = this.tools[0];
     this.polyPoints = [];
     this.isCmdInPrgrs = false;
@@ -385,8 +381,7 @@ const Canvas = Class.create({
     var index = this.edges.indexOf(edge);
     this.edges.splice(index, 1);
     var edgeEle = document.getElementById(edge.id);
-    var edgeG = edgeEle.parentNode;
-    edgeG.parentNode.removeChild(edgeG);
+    edgeEle.parentNode.removeChild(edgeEle);
   },
   /**
    * Method: initNode
@@ -591,62 +586,7 @@ const Canvas = Class.create({
 
     document.onkeypress = function(e){
       if(e.code === "Delete"){
-        var itemNames = "";
-        that.nodes.forEach(function(node){
-          if(node.isSelected()){
-            itemNames += node.id + ", ";
-          }
-        });
-        that.edges.forEach(function(edge){
-          if(edge.isSelected()){
-            itemNames += edge.id + ", ";
-          }
-        });
-        itemNames = itemNames.substring(0, itemNames.length-2);
-        var result = confirm("Are you sure you want to delete following items:\n" + itemNames);
-        if(!result){
-          return;
-        }
-        //Using a for loop as: for(var i=0;i<that.nodes.length;i++)
-        //produces an issues where "nodes.length" keeps reducing as we
-        //remove an element from the array while variable "i" keeps
-        //incrementing irrespective of the new value of "nodes.length".
-        //As a result not all elements of the array are iterated because
-        //variable "i" keeps incrementing and array is reduced with every
-        //remove operation which means the condition "i<nodes.length"
-        //becomes false even before remaining elements are iterated.
 
-        //So we are usig two loops:
-        //1)  the first one will iterate as per the original length of the
-        //    "nodes" array and will not consider the new value of the length
-        //    of "nodes" array
-        //2)  the second "forEach" loop runs and removes the elements from the
-        //    array and considers the updated value of the array length
-        //The first loop make sures that the second loop keeps executing till
-        //all elements in the array are iterated
-
-        var nodesLength = that.nodes.length;
-        for(var i=0; i < nodesLength; i++){
-          that.nodes.forEach(function(node){
-            if(node.isSelected()){
-              that.draggables.forEach(function(item, index){
-                if(item.el.id === node.id){
-                  item.disable();
-                  that.draggables.splice(index, 1);
-                }
-              });
-              that.removeNode(node);
-            }
-          });
-        }
-        var edgesLength = that.edges.length;
-        for(var i=0; i < edgesLength; i++){
-          that.edges.forEach(function(edge){
-            if(edge.isSelected()){
-              that.removeEdge(edge);
-            }
-          });
-        }
       }
     }
 
@@ -843,7 +783,7 @@ const Canvas = Class.create({
 		            .attr('stroke-dasharray', '2')
                 .attr('fill', 'none');
               break;
-            case ShapeType.POINTER:
+            case ShapeType.SELECT:
               if(isCtrlKeyPressed){
                 if (e.target.id === (that.id + '_svg')){
                   that.draggables.forEach(function(item){
@@ -884,7 +824,7 @@ const Canvas = Class.create({
             that.mouseEndY = that.mouseY;
           }
         }
-        if(that.selectedTool.getShapeType() === ShapeType.POINTER){
+        if(that.selectedTool.getShapeType() === ShapeType.SELECT){
           //TODO = Unselect all items if clicked on the canvas
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE)
         {
@@ -907,7 +847,7 @@ const Canvas = Class.create({
           that.tempElement.remove();
           that.tempElement = undefined;
           that.addEdge(line);
-          that._selectPointerTool();
+          that._selectSelectTool();
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.RECTANGLE) {
           var name = prompt("Element Name:");
           var dx = that.mouseEndX - that.mouseStartX;
@@ -923,7 +863,7 @@ const Canvas = Class.create({
           that.tempElement.remove();
           that.tempElement = undefined;
           that.addNode(node);
-          that._selectPointerTool();
+          that._selectSelectTool();
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.CIRCLE) {
           var name = prompt("Element Name:");
           var dx = that.mouseEndX - that.mouseStartX;
@@ -935,7 +875,7 @@ const Canvas = Class.create({
           that.tempElement.remove();
           that.tempElement = undefined;
           that.addNode(circ);
-          that._selectPointerTool();
+          that._selectSelectTool();
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.ELLIPSE) {
           var name = prompt("Element Name:");
           var dx = that.mouseEndX - that.mouseStartX;
@@ -951,7 +891,7 @@ const Canvas = Class.create({
           that.tempElement.remove();
           that.tempElement = undefined;
           that.addNode(ellip);
-          that._selectPointerTool();
+          that._selectSelectTool();
         } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.BEZIRE_CURVE){
           if(that.polyPoints.length === 3){
             var name = prompt("Element Name:");
@@ -965,7 +905,7 @@ const Canvas = Class.create({
             that.polyPoints = [];
             var bcurve = new BezireCurve(name, that, data);
             that.addEdge(bcurve);
-            that._selectPointerTool();
+            that._selectSelectTool();
           }
         }
       }
@@ -988,7 +928,7 @@ const Canvas = Class.create({
             that.addNode(poly);
             that.isCmdInPrgrs = false;
             that.polyPoints = [];
-            that._selectPointerTool();
+            that._selectSelectTool();
         }
       } else if(that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.POLYLINE){
           var name = prompt("Element Name:");
@@ -1007,16 +947,16 @@ const Canvas = Class.create({
             that.addEdge(poly);
             that.isCmdInPrgrs = false;
             that.polyPoints = [];
-            that._selectPointerTool();
+            that._selectSelectTool();
       	 }
        }
       }
   },
   renderToolItem: function() {
     var html = '';
-    html += "<label for='" + this.id + "_POINTER_tool' >";
+    html += "<label for='" + this.id + "_SELECT_tool' >";
     html += `<input type='radio' name='tools' id='` +
-      this.id + "_POINTER_tool' checked>";
+      this.id + "_SELECT_tool' checked>";
     html += "</input>";
     html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
@@ -1026,7 +966,7 @@ const Canvas = Class.create({
                       </marker>
                     </defs>
                       <line x1='25' y1='25' x2='35' y2='35' style='stroke: black; stroke-width: 2px;' marker-end= 'url(#toolArrow)' transform='rotate(180 25 25)'></line>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POINTER</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">SELECT</text>
                     </svg>
                  </div>`;
     html += "</label>";
@@ -1080,8 +1020,8 @@ const Canvas = Class.create({
       this.selectedTool = this.tools[index];
     }
   },
-  _selectPointerTool: function() {
-    $j('#' + this.id + '_POINTER_tool').prop("checked", true).trigger('click');
+  _selectSelectTool: function() {
+    $j('#' + this.id + '_SELECT_tool').prop("checked", true).trigger('click');
   },
   getNode: function(id) {
     for (var i = 0; i < this.nodes.length; i++) {
@@ -1342,7 +1282,7 @@ const Line = Class.create({
   },
   isSelected: function(){
     return this.selected;
-  },
+  }
   renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_LINE_tool' >";
@@ -1429,9 +1369,6 @@ var Rectangle = Class.create({
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
   },
-  isSelected: function(){
-    return JSON.parse(this.line.attr('selected'));
-  },
   renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_RECT_tool' >";
@@ -1511,9 +1448,6 @@ var Circle = Class.create({
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
-  },
-  isSelected: function(){
-    return JSON.parse(this.line.attr('selected'));
   },
   renderToolItem() {
     var html = '';
@@ -1595,9 +1529,6 @@ var Ellipse = Class.create({
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
   },
-  isSelected: function(){
-    return JSON.parse(this.line.attr('selected'));
-  },
   renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_ELLIPSE_tool' >";
@@ -1674,9 +1605,6 @@ var Polygon = Class.create({
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
-  },
-  isSelected: function(){
-    return JSON.parse(this.line.attr('selected'));
   },
   renderToolItem() {
     var html = '';
@@ -1861,9 +1789,6 @@ var Polyline = Class.create({
     this.line.attr('selected', false);
     this.handlersVisible = false;
     this.selected = false;
-  },
-  isSelected: function(){
-    return this.selected;
   },
   renderToolItem() {
     var html = '';
@@ -2075,9 +2000,6 @@ var BezireCurve = Class.create({
     this.line.attr('selected', false);
     this.handlersVisible = false;
     this.selected = false;
-  },
-  isSelected: function(){
-    return this.selected;
   },
   renderToolItem() {
     var html = '';
