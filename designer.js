@@ -283,6 +283,8 @@ const Canvas = Class.create({
   lastClick: 0,
   isTap: false,
   draggables: [],
+  offsetX: 0,
+  offsetY: 0,
   initialize: function(id, containerId, height, width, nodes, edges, grid) {
     this.id = id;
     this.containerId = containerId;
@@ -310,6 +312,8 @@ const Canvas = Class.create({
     this.lastClick = 0;
     this.isTap = false;
     this.draggbles = [];
+    this.offsetX = 0;
+    this.offsetY = 0;
     this.options = {
       container: '#' + id + '_svg',
       restrict: '#' + id + '_svg',
@@ -469,78 +473,99 @@ const Canvas = Class.create({
    */
   render: function() {
     /*Renders the canvas along with Nodes and edges*/
-    var html = `<table style='height:100%; width: 100%'>
-                  <tr>
-                    <td style='width: 95%'>`;
-                    //An outer div for canvas canvas
-                    html +=
-                      "<div id='" + this.id + "' style='height: 100%;'";
-                    if (this.height != undefined && this.width != undefined) {
-                      html += "style='height:" + this.height;
-                      html += "; width:" + this.width + ";'  ";
-                    } else if (this.height != undefined && this.width === undefined) {
-                      html += "style='height:" + this.height + ";' ";
-                    } else if (this.height === undefined && this.width != undefined) {
-                      html += "style='width:" + this.width + ";' ";
-                    }
-                      html +=
-                        " data-type='canvas'>";
-                      html +=
-                        "<svg class='" + this.css + `' style='top: 0px; left: 0px;
-                                                              height: 100%; width: 100%'
-                                                              id='` + this.id + "_svg' ></svg>"
-                    /*Iterate through all the child nodes or edges of
-                     * canvas and render each of it by concatnating its
-                     * HTML to canvas's HTML
-                     */
-                    for (var i = 0; i < this.nodes.length; i++) {
-                      html += this.nodes[i].render();
-                    }
-                    html +=
-                      `</div>
-                    </td>
-                    <td style='width: 5%;vertical-align:top;'>`;
-                  html +=
-                    `<table style='width: 50px' class='middle toolbox'>
-                        <tr>
-                          <th>Toolbox</th>
-                        </tr>
-                        <tr>
-                          <td>`;
-                            for (var i = 0; i < this.tools.length; i++) {
-                              if (i === 0) {
-                                html += this.renderToolItem();
-                              } else {
-                                html += this.tools[i].renderToolItem();
-                              }
-                            }
-                            html +=
-                          `</td>
-                        </tr>
-                        <tr>
-                          <td style='text-align: center; font-size: 9px;'>`;
-                          html += `X: <span id='x_label'></span>
-                                   Y: <span id='y_label'></span>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style='text-align: center; font-size: 9px;'>`;
-                  html += `STATE: <span id='mouse_state'></span>`;
-                  html += `</td>
-                        </tr>
-                      </table>`;
-                html +=
-                  `</td>
-                  </tr>
-                </table>`;
-
+    var html="<div id='layout' style='width: 100%; height: 100%'></div>";
     if (this.containerId === undefined) {
       this.dom = $j('body').prepend(html);
     } else {
       var container = $j(this.containerId);
       this.dom = $j(html).appendTo($j(container));
     }
+
     var that = this;
+    var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
+    $j('#layout').w2layout({
+      name: 'layout',
+      panels: [
+        {type: 'top', size: 40, style: pstyle, content: 'top', resizable: false},
+        { type: 'left', size: 80, style: pstyle, content: 'left', resizable: true },
+        { type: 'main', style: pstyle, content: 'main' },
+        { type: 'right', size: 200, style: pstyle, content: 'right', resizable: true },
+        { type: 'bottom', size: 100, style: pstyle, content: 'bottom', resizable: true },
+      ]
+    });
+    var toolsHtml = "";
+    toolsHtml +=
+          `<table style='width: 50px' class='middle toolbox'>
+              <tr>
+                <th>Toolbox</th>
+              </tr>
+              <tr>
+                <td>`;
+                  for (var i = 0; i < this.tools.length; i++) {
+                    if (i === 0) {
+                      toolsHtml += this.renderToolItem();
+                    } else {
+                      toolsHtml += this.tools[i].renderToolItem();
+                    }
+                  }
+                  toolsHtml +=
+                `</td>
+              </tr>
+              <tr>
+                <td style='text-align: center; font-size: 9px;'>`;
+                toolsHtml += `X: <span id='x_label'></span>
+                         Y: <span id='y_label'></span>
+                </td>
+              </tr>
+              <tr>
+                <td style='text-align: center; font-size: 9px;'>`;
+        toolsHtml += `STATE: <span id='mouse_state'></span>`;
+        toolsHtml += `</td>
+              </tr>
+            </table>`;
+    w2ui['layout'].content('left', toolsHtml);
+
+    var svgHtml = "";
+    svgHtml = "<svg class='" + this.css + `' style='top: 0px; left: 0px;
+                height: 100%; width: 100%'
+                id='` + this.id + "_svg' ></svg>"
+    w2ui['layout'].content('main', svgHtml);
+    this.offsetX = w2ui['layout'].get('left').size + 20;
+    this.offsetY = w2ui['layout'].get('top').size + 20;
+
+    w2ui['layout'].on('resize', function(event){
+      if(event.panel === "left"){
+        that.offsetX = w2ui['layout'].get('left').size + 20;
+      }
+    });
+
+    $j('#layout_layout_panel_right div:last').w2grid({
+      name: 'properties',
+      columns: [
+        {field: 'recid', caption: 'ID', size: '30px'},
+        {field: 'propName', caption: 'Name', size: '100px'},
+        {field: 'propValue', caption: 'Value', size: '100px'}
+      ],
+    });
+
+    $j('#layout_layout_panel_top div:last').w2toolbar({
+      name: 'toolbar',
+      items: [
+        { type: 'button', id: 'new-drawing', caption: 'New', img: 'fa fa-file', hint: 'New Drawing'},
+        { type: 'button', id: 'save-drawing', caption: 'Save', img: 'fa fa-save', hint: 'Save Drawing'},
+        { type: 'break'},
+        { type: 'button', id: 'cut-item', caption: 'Cut', img: 'fa fa-cut', hint: 'Cut an item'},
+        { type: 'button', id: 'copy-item', caption: 'Copy', img: 'fa fa-copy', hint: 'Copy an item'},
+        { type: 'button', id: 'paste-item', caption: 'Paste', img: 'fa fa-paste', hint: 'Paste an item'},
+        { type: 'break'},
+        { type: 'button', id: 'erase-item', caption: 'Erase', img: 'fa fa-eraser', hint: 'Erase an item'},
+        { type: 'break'},
+        { type: 'button', id: 'undo', caption: 'Undo', img: 'fa fa-undo', hint: 'Undo'},
+        { type: 'button', id: 'redo', caption: 'Redo', img: 'fa fa-redo', hint: 'Redo'},
+
+      ]
+    });
+
     $j('[name="tools"]').bind('click', function(e) {
       var name = e.currentTarget.id;
       for (var i = 0; i < that.tools.length; i++) {
@@ -549,13 +574,10 @@ const Canvas = Class.create({
         }
       }
     });
-    for (var i = 0; i < this.nodes.length; i++) {
-      this.nodes[i].registerPortHighlighters();
-    }
-    for (var i = 0; i < this.edges.length; i++) {
-      this.edges[i].render();
-    }
-    //this._registerActions();
+    // for (var i = 0; i < this.nodes.length; i++) {
+    //   this.nodes[i].registerPortHighlighters();
+    // }
+
     this._registerMarkers();
     this._registerObserver();
 
@@ -652,8 +674,8 @@ const Canvas = Class.create({
 
     function mouseMove(e) {
       e.preventDefault();
-      that.mouseX = e.clientX;
-      that.mouseY = e.clientY;
+      that.mouseX = e.clientX - that.offsetX;
+      that.mouseY = e.clientY - that.offsetY;
       if (that.mouseX === undefined || that.mouseY === undefined) {
         that.mouseX = e.touches[0].clientX;
         that.mouseY = e.touches[0].clientY;
@@ -719,8 +741,8 @@ const Canvas = Class.create({
         that.mouseState = MouseState.DOWN;
         $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
 
-        that.mouseStartX = e.clientX;
-        that.mouseStartY = e.clientY;
+        that.mouseStartX = e.clientX - that.offsetX;
+        that.mouseStartY = e.clientY - that.offsetY;
 	      that.isTap = false;
         if (that.mouseStartX === undefined || that.mouseStartY === undefined) {
           that.mouseStartX = e.touches[0].clientX;
@@ -873,8 +895,8 @@ const Canvas = Class.create({
       if (that.mouseState === MouseState.DOWN || that.mouseState === MouseState.DRAG) {
         that.mouseState = MouseState.UP;
         $j('#mouse_state').text(MouseState.properties[that.mouseState].name);
-        that.mouseEndX = e.clientX;
-        that.mouseEndY = e.clientY;
+        that.mouseEndX = e.clientX - that.offsetX;
+        that.mouseEndY = e.clientY - that.offsetY;
         if (that.mouseEndX === undefined || that.mouseEndY === undefined) {
           if (e.touches.length > 0) {
             that.mouseEndX = e.touches[0].clientX;
@@ -1031,31 +1053,6 @@ const Canvas = Class.create({
                  </div>`;
     html += "</label>";
     return html;
-  },
-  _registerActions: function() {
-    this.observable = subjx.createObservable();
-
-    this.svg = subjx('.drag-svg')
-      .drag(this.options);
-
-    if (this.svg !== undefined) {
-      this.svg.forEach(item => {
-        subjx(item.controls).on('dblclick', () => {
-          item.disable();
-        });
-      });
-    }
-
-    var that = this;
-    subjx('.drag-svg').on('dblclick', e => {
-      if (e.currentTarget.classList.contains('sjx-drag')) return;
-      const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
-      // adding event to controls
-      const controls = xDraggable.controls;
-      subjx(controls).on('dblclick', () => {
-        xDraggable.disable();
-      });
-    });
   },
   _registerMarkers: function() {
 
