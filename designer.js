@@ -314,6 +314,10 @@ const Canvas = Class.create({
     this.draggbles = [];
     this.offsetX = 0;
     this.offsetY = 0;
+    var that = this;
+    var deltaX = 0;
+    var deltaY = 0;
+    var ops = "";
     this.options = {
       container: '#' + id + '_svg',
       restrict: '#' + id + '_svg',
@@ -332,7 +336,30 @@ const Canvas = Class.create({
       },
       cursorMove: 'move',
       cursorRotate: 'crosshair',
-      cursorResize: 'pointer'
+      cursorResize: 'pointer',
+      onMove(dx, dy) {
+          deltaX = dx;
+          deltaY = dy;
+          ops = "MOVE";
+      },
+      onResize(dx, dy, obj) {
+          deltaX = dx;
+          deltaY = dy;
+          ops = "RESIZE";
+      },
+      onRotate(obj) {
+          console.log(obj);
+      },
+      onDrop(obj) {
+          var node = that.getNode(this.el.id);
+          if(ops === "MOVE"){
+            node.incrementCoordinates(deltaX, deltaY);
+          } else if(ops === "RESIZE"){
+            node.incrementSize(deltaX, deltaY);
+          }
+          node.populateProperties();
+          ops = "";
+      }
     };
   },
   /**
@@ -413,13 +440,10 @@ const Canvas = Class.create({
 
     var item = subjx('#' + node.id).drag(this.options)[0];
     this.draggables.push(item);
-    // subjx(item.controls).on('click', () => {
-    //       item.disable();
-    //       item.el.attributes['selected'].value = false;
-    // });
+
     var that = this;
     subjx('#' + node.id).on('click', e => {
-      //if (e.currentTarget.classList.contains('sjx-drag')) return;
+
       that.draggables.forEach(function(item, index){
         if(item.el.id === e.currentTarget.id){
           that.draggables.splice(index, 1);
@@ -428,12 +452,7 @@ const Canvas = Class.create({
       const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
       xDraggable.el.attributes['selected'].value = true;
       that.draggables.push(xDraggable);
-      // adding event to controls
-      // const controls = xDraggable.controls;
-      // subjx(controls).on('click', () => {
-      //   xDraggable.disable();
-      //   xDraggable.el.attributes['selected'].value = false;
-      // });
+      node.populateProperties();
     });
   },
   /**
@@ -1492,9 +1511,36 @@ var Rectangle = Class.create({
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
+
+    this.populateProperties();
   },
   isSelected: function(){
     return JSON.parse(this.line.attr('selected'));
+  },
+  incrementSize: function(dx, dy){
+    this.rectDimension.width += dx;
+    this.rectDimension.height += dy;
+  },
+  incrementCoordinates: function(dx, dy){
+    this.rectDimension.left += dx;
+    this.rectDimension.top += dy;
+  },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Id', propValue: this.id },
+        { recid: 2, propName: 'X', propValue: this.rectDimension.left},
+        { recid: 3, propName: 'Y', propValue: this.rectDimension.top},
+        { recid: 4, propName: 'Height', propValue: this.rectDimension.height},
+        { recid: 5, propName: 'Width', propValue: this.rectDimension.width},
+        { recid: 6, propName: 'Color', propValue: this.lineColor},
+        { recid: 7, propName: 'Width', propValue: this.lineWidth},
+        { recid: 8, propName: 'Title', propValue: this.title},
+        { recid: 9, propName: 'Description', propValue: this.description},
+        { recid: 12, propName: 'Shape Type', propValue: this.shapeType},
+        { recid: 13, propName: 'Tool Name', propValue: this.toolName},
+        { recid: 14, propName: 'Is Selected', propValue: this.selected}
+    ]);
   },
   renderToolItem() {
     var html = '';
