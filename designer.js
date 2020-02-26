@@ -554,14 +554,17 @@ const Canvas = Class.create({
         { type: 'button', id: 'new-drawing', caption: 'New', img: 'fa fa-file', hint: 'New Drawing'},
         { type: 'button', id: 'save-drawing', caption: 'Save', img: 'fa fa-save', hint: 'Save Drawing'},
         { type: 'break'},
-        { type: 'button', id: 'cut-item', caption: 'Cut', img: 'fa fa-cut', hint: 'Cut an item'},
-        { type: 'button', id: 'copy-item', caption: 'Copy', img: 'fa fa-copy', hint: 'Copy an item'},
-        { type: 'button', id: 'paste-item', caption: 'Paste', img: 'fa fa-paste', hint: 'Paste an item'},
+        { type: 'button', id: 'clone-item', caption: 'Clone', img: 'fa fa-paste', hint: 'Clone an item'},
         { type: 'break'},
         { type: 'button', id: 'erase-item', caption: 'Erase', img: 'fa fa-eraser', hint: 'Erase an item'},
         { type: 'break'},
         { type: 'button', id: 'undo', caption: 'Undo', img: 'fa fa-undo', hint: 'Undo'},
-        { type: 'button', id: 'redo', caption: 'Redo', img: 'fa fa-redo', hint: 'Redo'},
+        { type: 'button', id: 'redo', caption: 'Redo', img: 'fa fa-repeat', hint: 'Redo'},
+        { type: 'break'},
+        { type: 'spacer'},
+        { type: 'button', id: 'about', caption: 'About', img: 'fa fa-info', hint: 'About'},
+        { type: 'break'},
+        { type: 'button', id: 'help', caption: 'Help', img: 'fa fa-question-circle', hine: 'help'}
 
       ]
     });
@@ -884,6 +887,7 @@ const Canvas = Class.create({
                 that.edges.forEach(function(edge){
                   edge.disable();
                 });
+                w2ui['properties'].clear();
               }
           }
         }
@@ -1237,6 +1241,7 @@ const Line = Class.create({
       .attr('selected', this.selected);
 
     this.createHandlers();
+    this.populateProperties();
   },
   createHandlers: function() {
 
@@ -1244,8 +1249,8 @@ const Line = Class.create({
     //Drag function to drag the handlers/controls which appears at each edge
     //of the line in form of filled circles
     this.dragHandlers = d3.drag()
-      .on('drag', hDragMoveHandler)
-      .on('end', hDropHandler);
+      .on('drag', function (e) { hDragMoveHandler(e, that, this); })
+      .on('end', function (e) { hDropHandler(e, that, this) });
 
     //Handlers/Controls attached to both edge of the line. These provides the
     //functionality to modify the length & direction of the line interactively
@@ -1256,7 +1261,6 @@ const Line = Class.create({
         .attr('cy', this.lineDimension.start.y)
         .attr('r', 5)
         .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
-        .attr('line', this.id)
         .call(this.dragHandlers);
     this.endHandler = this.g.append('circle')
         .attr('id', this.id + '_end_handler')
@@ -1264,35 +1268,37 @@ const Line = Class.create({
         .attr('cy', this.lineDimension.end.y)
         .attr('r', 5)
         .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
-        .attr('line', this.id)
         .call(this.dragHandlers);
 
-    function hDropHandler(e){}
+    function hDropHandler(e, lineInstance, that){
+      lineInstance.populateProperties();
+    }
 
-    function hDragMoveHandler(e){
+    function hDragMoveHandler(e, lineInstance, that){
       var x = d3.event.x;
       var y = d3.event.y;
 
       //Change the position of the handler (circle) by setting the new cx & cy coordinates
-      d3.select(this).attr('cx', x);
-      d3.select(this).attr('cy', y);
-      //Find outs the line attached to this handler by reading its attribute 'line'
+      d3.select(that).attr('cx', x);
+      d3.select(that).attr('cy', y);
+
       var target = d3.event.sourceEvent.target;
-      var lineName = d3.select(this).attr('line');
-      //Selects the line for further interactive operations
-      var line = d3.select('#' + lineName);
 
       //if dragged handler is attached to the start of the line, change the x1 & y1
       //coordinates of the line to the new x,y position
       if(target.id.endsWith('start_handler')){
-        line.attr('x1', x);
-        line.attr('y1', y);
+        lineInstance.line.attr('x1', x);
+        lineInstance.line.attr('y1', y);
+        lineInstance.lineDimension.start.x = x;
+        lineInstance.lineDimension.start.y = y;
       }
       //if dragged handler is attached to the end of the line, change the x2 & y2
       //coordinates of the line to the new x,y position
       else if (target.id.endsWith('end_handler')){
-        line.attr('x2', x);
-        line.attr('y2', y);
+        lineInstance.line.attr('x2', x);
+        lineInstance.line.attr('y2', y);
+        lineInstance.lineDimension.end.x = x;
+        lineInstance.lineDimension.end.y = y;
       }
     }
 
@@ -1318,7 +1324,7 @@ const Line = Class.create({
       var endHandlerName = line.attr('endHandler');
       var endHandler = d3.select('#' + endHandlerName);
 
-      //Show or hide the handlers based on the value of the 'handlersVisible' attribute
+      //Show the handlers of the line
       if(!handlersVisible){
         startHandler.attr('visibility', 'visible');
         endHandler.attr('visibility', 'visible');
@@ -1326,8 +1332,30 @@ const Line = Class.create({
         line.attr('selected', true);
         that.handlersVisible = true;
         that.selected = true;
+
+        //populate properties
+        that.populateProperties();
       }
     }
+  },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Id', propValue: this.id },
+        { recid: 2, propName: 'X1', propValue: this.lineDimension.start.x},
+        { recid: 3, propName: 'Y1', propValue: this.lineDimension.start.y},
+        { recid: 4, propName: 'X2', propValue: this.lineDimension.end.x},
+        { recid: 5, propName: 'Y2', propValue: this.lineDimension.end.y},
+        { recid: 6, propName: 'Color', propValue: this.lineColor},
+        { recid: 7, propName: 'Width', propValue: this.lineWidth},
+        { recid: 8, propName: 'Title', propValue: this.title},
+        { recid: 9, propName: 'Description', propValue: this.description},
+        { recid: 10, propName: 'Has Arrow', propValue: this.lineDimension.hasArrow},
+        { recid: 11, propName: 'Arrow Type', propValue: this.lineDimension.arrowType},
+        { recid: 12, propName: 'Shape Type', propValue: this.shapeType},
+        { recid: 13, propName: 'Tool Name', propValue: this.toolName},
+        { recid: 14, propName: 'Is Selected', propValue: this.selected}
+    ]);
   },
   disable: function(){
     this.startHandler.attr('visibility', 'hidden');
@@ -1403,6 +1431,45 @@ var Rectangle = Class.create({
   },
   render: function() {
     this.makeElement();
+  },
+  checkPointInside: function(point){
+    //First get the dom element of this rectangle
+    var rect = $j('#' + this.id);
+    //Get the bounding box to find out the height and width
+    var dim = rect.getBBox();
+    this.rectDimension.width = dim.width;
+    this.rectDimension.height = dim.height;
+
+    //Calculate all 4 points of the rectangle
+    var matrix = rect.getCTM();
+    var svg = document.getElementById(this.parentElement.id + '_svg');
+    var tl = svg.createSVGPoint();
+    tl.x = $j(rect).attr('x');
+    tl.y = $j(rect).attr('y');
+    tl = tl.matrixTransform(matrix);
+    this.rectDimension.left = tl.x;
+    this.rectDimension.top = tl.y;
+
+    var tr = svg.createSVGPoint();
+    tr.x = parseInt($j(rect).attr('x')) + parseInt($j(rect).attr('width'));
+    tr.y = $j(rect).attr('y');
+    tr = tr.matrixTransform(matrix);
+
+    var bl = svg.createSVGPoint();
+    bl.x = $j(rect).attr('x');
+    bl.y = parseInt($(rect).attr('y')) + parseInt($j(rect).attr('height'));
+    bl = bl.matrixTransform(matrix);
+
+    // var br = svg.createSVGPoint();
+    // br.x = parseInt($j(rect).attr('x')) + parseInt($j(rect).attr('width'));
+    // br.y = parseInt($(rect).attr('y')) + parseInt($j(rect).attr('height'));
+    // br = br.matrixTransform(matrix);
+
+    if(point.x >= tl.x && point.x <= tr.x && point.y >= tl.y && point.y <= bl.y){
+      return true;
+    } else {
+      return false;
+    }
   },
   makeElement: function() {
 
@@ -1764,7 +1831,7 @@ var Polyline = Class.create({
     this.handlers = [];
 
     var dragHandlers = d3.drag()
-      .on('drag', dragMoveHandler)
+      .on('drag', function(e) { dragMoveHandler(e, that, this); })
       .on('end', dropHandler);
 
     polyPointsArray.forEach(function(item, index){
@@ -1778,7 +1845,7 @@ var Polyline = Class.create({
         .attr('cy', pointY)
         .attr('r', 5)
         .attr('style', 'stroke: #00a8ff; fill: #00a8ff;')
-        .attr('line', that.id)
+        //.attr('line', that.id)
         .call(dragHandlers);
       that.handlers.push(handler);
     });
@@ -1792,35 +1859,28 @@ var Polyline = Class.create({
 
     function dropHandler(e){}
 
-    function dragMoveHandler(e){
+    function dragMoveHandler(e, lineInstance, that){
       var x = d3.event.x;
       var y = d3.event.y;
 
-      d3.select(this).attr('cx', x);
-      d3.select(this).attr('cy', y);
+      d3.select(that).attr('cx', x);
+      d3.select(that).attr('cy', y);
       var target = d3.event.sourceEvent.target;
-      if(target !== undefined && target !== null){
-        var lineName = d3.select('#' + target.id).attr('line');
-        if(lineName !== undefined && lineName !== null){
-          var line = d3.select('#' + lineName);
 
-          if(line !== undefined && line !== null){
-            var handlerString = target.id.replace(lineName + '_', '');
-            var index = handlerString.indexOf('N_handler');
-            var pointIndexAsString = handlerString.substr(0, index);
-            var pointIndex = parseInt(pointIndexAsString);
-            var points = line.attr('points');
-            points = points.trim();
-            var pointsArray = points.split(' ');
-            pointsArray[pointIndex] = x + ',' + y;
-            var pointString = '';
-            for(var i=0; i < pointsArray.length; i++){
-              pointString += pointsArray[i] + ' ';
-            }
-            line.attr('points', pointString);
-          }
-        }
+      var handlerString = target.id.replace(lineInstance.id + '_', '');
+      var index = handlerString.indexOf('N_handler');
+      var pointIndexAsString = handlerString.substr(0, index);
+      var pointIndex = parseInt(pointIndexAsString);
+      var points = lineInstance.polyPoints;
+      points = points.trim();
+      var pointsArray = points.split(' ');
+      pointsArray[pointIndex] = x + ',' + y;
+      var pointString = '';
+      for(var i=0; i < pointsArray.length; i++){
+        pointString += pointsArray[i] + ' ';
       }
+      lineInstance.line.attr('points', pointString);
+      lineInstance.polyPoints = pointString;
     }
 
     var line = document.getElementById(this.id);
@@ -1954,15 +2014,14 @@ var BezireCurve = Class.create({
       .attr('selected', true)
       .attr('controlPoint', this.id + '_control_point')
       .attr('startHandler', this.id + '_start_handler')
-      .attr('endHandler', this.id + '_end_handler')
-      .attr('points', JSON.stringify(this.curvePoints));
+      .attr('endHandler', this.id + '_end_handler');
 
     this.createHandlers();
   },
   createHandlers: function() {
 
     var dragHandlers = d3.drag()
-      .on('drag', dragMoveHandler)
+      .on('drag', function(e) { dragMoveHandler(e, that, this); })
       .on('end', dropHandler);
 
     this.controlPoint = this.g.append('circle')
@@ -1999,37 +2058,29 @@ var BezireCurve = Class.create({
 
     function dropHandler(e){}
 
-    function dragMoveHandler(e){
+    function dragMoveHandler(e, lineInstance, that){
       var x = d3.event.x;
       var y = d3.event.y;
       //d3.select(this).attr('transform', 'translate(' + x + ',' + y + ')');
-      d3.select(this).attr('cx', x);
-      d3.select(this).attr('cy', y);
+      d3.select(that).attr('cx', x);
+      d3.select(that).attr('cy', y);
       var target = d3.event.sourceEvent.target;
-      //Get the linename from the 'line' attribute of the handler
-      var lineName = d3.select(this).attr('line');
-      if(lineName !== undefined && lineName !== null){
-        //Selects the line for further interactive operations
-        var line = d3.select('#' + lineName);
-        if(line !== undefined && line !== null){
-          var index = -1;
-          if(target.id.endsWith('start_handler')){
-            index = 0;
-          } else if (target.id.endsWith('end_handler')){
-            index = 2;
-          } else if (target.id.endsWith('control_point')){
-            index = 1;
-          }
 
-          var curvePointsAsString = line.attr('points');
-          var curvePoints = JSON.parse(curvePointsAsString);
-          if(curvePoints !== undefined && curvePoints !== null && index !== -1){
-            curvePoints[index].x = x;
-            curvePoints[index].y = y;
-            line.attr('d', that.curveFunc(curvePoints));
-            line.attr('points', JSON.stringify(curvePoints));
-          }
-        }
+      var index = -1;
+      if(target.id.endsWith('start_handler')){
+        index = 0;
+      } else if (target.id.endsWith('end_handler')){
+        index = 2;
+      } else if (target.id.endsWith('control_point')){
+        index = 1;
+      }
+
+      var curvePoints = lineInstance.curvePoints;
+      if(curvePoints !== undefined && curvePoints !== null && index !== -1){
+        curvePoints[index].x = x;
+        curvePoints[index].y = y;
+        lineInstance.line.attr('d', lineInstance.curveFunc(curvePoints));
+        lineInstance.curvePoints = curvePoints;
       }
     }
 
