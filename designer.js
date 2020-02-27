@@ -508,8 +508,8 @@ const Canvas = Class.create({
         {type: 'top', size: 40, style: pstyle, content: 'top', resizable: false},
         { type: 'left', size: 80, style: pstyle, content: 'left', resizable: true },
         { type: 'main', style: pstyle, content: 'main' },
-        { type: 'right', size: 200, style: pstyle, content: 'right', resizable: true },
-        { type: 'bottom', size: 100, style: pstyle, content: 'bottom', resizable: true },
+        { type: 'right', size: 250, style: pstyle, content: 'right', resizable: true },
+        { type: 'bottom', size: 40, style: pstyle, content: 'bottom', resizable: false },
       ]
     });
     var toolsHtml = "";
@@ -560,11 +560,24 @@ const Canvas = Class.create({
 
     $j('#layout_layout_panel_right div:last').w2grid({
       name: 'properties',
-      columns: [
-        {field: 'recid', caption: 'ID', size: '30px'},
-        {field: 'propName', caption: 'Name', size: '100px'},
-        {field: 'propValue', caption: 'Value', size: '100px'}
+      header: 'Properties',
+      show: { header: true,
+              toolbar: true,
+              lineNumbers: true,
+              footer: true
+            },
+      multiSearch: true,
+      searches: [
+        { field: 'propName', caption: 'Name', type: 'text'},
+        { field: 'propValue', caption: 'Value', type: 'text'}
       ],
+      columns: [
+        {field: 'propName', caption: 'Name', size: '100px'},
+        {field: 'propValue', caption: 'Value', size: '100px', editable: { type: 'text'}}
+      ],
+      onChange: function(event){
+        console.log(event);
+      }
     });
 
     $j('#layout_layout_panel_top div:last').w2toolbar({
@@ -585,6 +598,19 @@ const Canvas = Class.create({
         { type: 'break'},
         { type: 'button', id: 'help', caption: 'Help', img: 'fa fa-question-circle', hine: 'help'}
 
+      ]
+    });
+
+    $j('#layout_layout_panel_bottom div:last').w2toolbar({
+      name: 'footerToolbar',
+      items: [
+        { type: 'spacer' },
+        { type: 'html', id: 'info',
+            html: function(item){
+              var html = "<div style='padding: 3px 10px'>Version 1.0</div>";
+              return html;
+            }
+        }
       ]
     });
 
@@ -1181,6 +1207,8 @@ const Line = Class.create({
   startHandler: undefined,
   endHandler: undefined,
   line: undefined,
+  path: undefined,
+  text: undefined,
   g: undefined,
   handlersVisible: true,
   dragHandlers: undefined,
@@ -1238,6 +1266,11 @@ const Line = Class.create({
     this.g = svg.append('g')
       .attr('id', this.id + '_g');
 
+    this.path = this.g.append('path')
+      .attr('id', this.id + '_path')
+      .attr('d', this._calculatePath())
+      .attr('style', 'stroke: ' + this.lineColor + '; stroke-width: 1px;');
+
     this.line = this.g.append('line')
       .attr('id', this.id)
       .attr('x1', this.lineDimension.start.x)
@@ -1259,8 +1292,21 @@ const Line = Class.create({
       .attr('handlersVisible', this.handlersVisible)
       .attr('selected', this.selected);
 
+    this.text = this.g.append('text')
+      .attr('dy', -10)
+      .append('textPath')
+      .attr('xlink:href', '#' + this.id + '_path')
+      .style('text-anchor', 'middle')
+      .attr('startOffset', '50%')
+      .text('My Line');
+
     this.createHandlers();
     this.populateProperties();
+  },
+  _calculatePath: function() {
+    return 'M ' + this.lineDimension.start.x + ' ' + this.lineDimension.start.y +
+           ' l ' + (this.lineDimension.end.x - this.lineDimension.start.x) +
+           ' ' + (this.lineDimension.end.y - this.lineDimension.start.y);
   },
   createHandlers: function() {
 
@@ -1319,6 +1365,8 @@ const Line = Class.create({
         lineInstance.lineDimension.end.x = x;
         lineInstance.lineDimension.end.y = y;
       }
+
+      lineInstance.path.attr('d', lineInstance._calculatePath());
     }
 
     //Functionality to hide or show the handlers attached to the line at both
@@ -1360,20 +1408,32 @@ const Line = Class.create({
   populateProperties: function(){
     w2ui['properties'].clear();
     w2ui['properties'].add([
-        { recid: 1, propName: 'Id', propValue: this.id },
-        { recid: 2, propName: 'X1', propValue: this.lineDimension.start.x},
-        { recid: 3, propName: 'Y1', propValue: this.lineDimension.start.y},
-        { recid: 4, propName: 'X2', propValue: this.lineDimension.end.x},
-        { recid: 5, propName: 'Y2', propValue: this.lineDimension.end.y},
-        { recid: 6, propName: 'Color', propValue: this.lineColor},
-        { recid: 7, propName: 'Width', propValue: this.lineWidth},
-        { recid: 8, propName: 'Title', propValue: this.title},
-        { recid: 9, propName: 'Description', propValue: this.description},
-        { recid: 10, propName: 'Has Arrow', propValue: this.lineDimension.hasArrow},
-        { recid: 11, propName: 'Arrow Type', propValue: this.lineDimension.arrowType},
-        { recid: 12, propName: 'Shape Type', propValue: this.shapeType},
-        { recid: 13, propName: 'Tool Name', propValue: this.toolName},
-        { recid: 14, propName: 'Is Selected', propValue: this.selected}
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+              { recid: 2, propName: 'Id', propValue: this.id },
+              { recid: 3, propName: 'X1', propValue: this.lineDimension.start.x},
+              { recid: 4, propName: 'Y1', propValue: this.lineDimension.start.y},
+              { recid: 5, propName: 'X2', propValue: this.lineDimension.end.x},
+              { recid: 6, propName: 'Y2', propValue: this.lineDimension.end.y},
+              { recid: 7, propName: 'Line Color', propValue: this.lineColor},
+              { recid: 8, propName: 'Line Width', propValue: this.lineWidth},
+              { recid: 9, propName: 'Has Arrow', propValue: this.lineDimension.hasArrow},
+              { recid: 10, propName: 'Arrow Type', propValue: this.lineDimension.arrowType},
+              { recid: 11, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
+              { recid: 12, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
+              { recid: 13, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+            ]
+          }
+        },
+        { recid: 14, propName: 'Details',
+          w2ui: {
+            children: [
+              { recid: 15, propName: 'Title', propValue: this.title},
+              { recid: 16, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
     ]);
   },
   disable: function(){
