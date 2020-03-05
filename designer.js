@@ -506,7 +506,7 @@ const Canvas = Class.create({
       name: 'layout',
       panels: [
         {type: 'top', size: 40, style: pstyle, content: 'top', resizable: false},
-        { type: 'left', size: 80, style: pstyle, content: 'left', resizable: true },
+        { type: 'left', size: 140, style: pstyle, content: 'left', resizable: true },
         { type: 'main', style: pstyle, content: 'main' },
         { type: 'right', size: 250, style: pstyle, content: 'right', resizable: true },
         { type: 'bottom', size: 40, style: pstyle, content: 'bottom', resizable: false },
@@ -514,7 +514,7 @@ const Canvas = Class.create({
     });
     var toolsHtml = "";
     toolsHtml +=
-          `<table style='width: 50px' class='middle toolbox'>
+          `<table style='width: 50px;' class='middle toolbox'>
               <tr>
                 <th>Toolbox</th>
               </tr>
@@ -542,23 +542,40 @@ const Canvas = Class.create({
         toolsHtml += `</td>
               </tr>
             </table>`;
-    w2ui['layout'].content('left', toolsHtml);
+    //w2ui['layout'].content('left', toolsHtml);
 
     var svgHtml = "";
     svgHtml = "<svg class='" + this.css + `' style='top: 0px; left: 0px;
                 height: 100%; width: 100%'
-                id='` + this.id + "_svg' ></svg>"
-    w2ui['layout'].content('main', svgHtml);
-    this.offsetX = w2ui['layout'].get('left').size + 20;
+                id='` + this.id + "_svg' ></svg>";
+
+    var mainHtml = "<table style='width: 100%; height: 100%;'><tr>";
+    mainHtml += "<td style='width: 50px; vertical-align: top'>";
+    mainHtml += toolsHtml + "</td><td>" + svgHtml + "</td></tr></table>";
+
+    w2ui['layout'].content('main', mainHtml);
+    this.offsetX = w2ui['layout'].get('left').size + 90;
     this.offsetY = w2ui['layout'].get('top').size + 20;
 
     w2ui['layout'].on('resize', function(event){
       if(event.panel === "left"){
-        that.offsetX = w2ui['layout'].get('left').size + 20;
+        that.offsetX = w2ui['layout'].get('left').size + 90;
       }
     });
 
-    $j('#layout_layout_panel_right div:last').w2grid({
+    w2ui['layout'].content('left', $j().w2sidebar({
+      name: 'projectExplorer',
+      nodes: [
+        { id: 'projects', text: 'Projects', img: 'icon-folder', expanded: true, group: true,
+          nodes: [{ id: 'project1', text: 'Project1', icon: 'fas fa-drafting-compass' },
+                  { id: 'project2', text: 'Project2', icon: 'fas fa-drafting-compass' },
+                  { id: 'project3', text: 'Project3', icon: 'fas fa-drafting-compass' }
+                ]}
+      ]
+    }));
+
+    //$j('#layout_layout_panel_right div:last').w2grid({
+    w2ui['layout'].content('right', $j().w2grid({
       name: 'properties',
       header: 'Properties',
       show: { header: true,
@@ -578,20 +595,21 @@ const Canvas = Class.create({
       onChange: function(event){
         console.log(event);
       }
-    });
+    }));
 
-    $j('#layout_layout_panel_top div:last').w2toolbar({
-      name: 'toolbar',
+    //$j('#layout_layout_panel_top div:last').w2toolbar({
+    w2ui['layout'].content('top', $j().w2toolbar({
+      name: 'mainToolbar',
       items: [
-        { type: 'button', id: 'new-drawing', caption: 'New', img: 'fa fa-file', hint: 'New Drawing'},
-        { type: 'button', id: 'save-drawing', caption: 'Save', img: 'fa fa-save', hint: 'Save Drawing'},
+        { type: 'button', id: 'new-drawing', caption: 'New', img: 'far fa-file', hint: 'New Drawing'},
+        { type: 'button', id: 'save-drawing', caption: 'Save', img: 'far fa-save', hint: 'Save Drawing'},
         { type: 'break'},
-        { type: 'button', id: 'clone-item', caption: 'Clone', img: 'fa fa-paste', hint: 'Clone an item'},
+        { type: 'button', id: 'clone-item', caption: 'Clone', img: 'far fa-copy', hint: 'Clone an item'},
         { type: 'break'},
         { type: 'button', id: 'erase-item', caption: 'Erase', img: 'fa fa-eraser', hint: 'Erase an item'},
         { type: 'break'},
         { type: 'button', id: 'undo', caption: 'Undo', img: 'fa fa-undo', hint: 'Undo'},
-        { type: 'button', id: 'redo', caption: 'Redo', img: 'fa fa-repeat', hint: 'Redo'},
+        { type: 'button', id: 'redo', caption: 'Redo', img: 'fas fa-redo', hint: 'Redo'},
         { type: 'break'},
         { type: 'spacer'},
         { type: 'button', id: 'about', caption: 'About', img: 'fa fa-info', hint: 'About'},
@@ -599,9 +617,10 @@ const Canvas = Class.create({
         { type: 'button', id: 'help', caption: 'Help', img: 'fa fa-question-circle', hine: 'help'}
 
       ]
-    });
+    }));
 
-    $j('#layout_layout_panel_bottom div:last').w2toolbar({
+    //$j('#layout_layout_panel_bottom div:last').w2toolbar({
+    w2ui['layout'].content('bottom', $j().w2toolbar({
       name: 'footerToolbar',
       items: [
         { type: 'spacer' },
@@ -612,7 +631,7 @@ const Canvas = Class.create({
             }
         }
       ]
-    });
+    }));
 
     $j('[name="tools"]').bind('click', function(e) {
       var name = e.currentTarget.id;
@@ -1097,7 +1116,7 @@ const Canvas = Class.create({
                       </marker>
                     </defs>
                       <line x1='25' y1='25' x2='35' y2='35' style='stroke: black; stroke-width: 2px;' marker-end= 'url(#toolArrow)' transform='rotate(180 25 25)'></line>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POINTER</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POINTER</text>
                     </svg>
                  </div>`;
     html += "</label>";
@@ -1298,7 +1317,7 @@ const Line = Class.create({
       .attr('xlink:href', '#' + this.id + '_path')
       .style('text-anchor', 'middle')
       .attr('startOffset', '50%')
-      .text('My Line');
+      .text(this.title);
 
     this.createHandlers();
     this.populateProperties();
@@ -1416,10 +1435,25 @@ const Line = Class.create({
               { recid: 4, propName: 'Y1', propValue: this.lineDimension.start.y},
               { recid: 5, propName: 'X2', propValue: this.lineDimension.end.x},
               { recid: 6, propName: 'Y2', propValue: this.lineDimension.end.y},
-              { recid: 7, propName: 'Line Color', propValue: this.lineColor},
+              { recid: 7, propName: 'Line Color', propValue: this.lineColor,
+                  w2ui: { editable: { type: 'color'} }
+              },
               { recid: 8, propName: 'Line Width', propValue: this.lineWidth},
-              { recid: 9, propName: 'Has Arrow', propValue: this.lineDimension.hasArrow},
-              { recid: 10, propName: 'Arrow Type', propValue: this.lineDimension.arrowType},
+              { recid: 9, propName: 'Has Arrow', propValue: this.lineDimension.hasArrow,
+                w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'true' },
+                                                            { id: 2, text: 'false' }
+                                                          ],
+                                                          filter: false }
+                      }
+              },
+              { recid: 10, propName: 'Arrow Type', propValue: this.lineDimension.arrowType,
+                w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'RIGHT' },
+                                                            { id: 2, text: 'LEFT' },
+                                                            { id: 3, text: 'BOTH' }
+                                                          ],
+                                                          filter: false }
+                      }
+              },
               { recid: 11, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
               { recid: 12, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
               { recid: 13, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
@@ -1435,6 +1469,7 @@ const Line = Class.create({
           }
         }
     ]);
+    w2ui['properties'].expand(1);
   },
   disable: function(){
     this.startHandler.attr('visibility', 'hidden');
@@ -1463,7 +1498,7 @@ const Line = Class.create({
                       </marker>
                     </defs>
                       <line x1='23' y1='23' x2='38' y2='38' style='stroke: black; stroke-width: 2px;' marker-start='url(#toolAdrnrCirl)' marker-end= 'url(#toolAdrnrCirl)' transform='rotate(180 25 25)'></line>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">LINE</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">LINE</text>
                     </svg>
                  </div>`;
     html += "</label>";
@@ -1588,19 +1623,34 @@ var Rectangle = Class.create({
   populateProperties: function(){
     w2ui['properties'].clear();
     w2ui['properties'].add([
-        { recid: 1, propName: 'Id', propValue: this.id },
-        { recid: 2, propName: 'X', propValue: this.rectDimension.left},
-        { recid: 3, propName: 'Y', propValue: this.rectDimension.top},
-        { recid: 4, propName: 'Height', propValue: this.rectDimension.height},
-        { recid: 5, propName: 'Width', propValue: this.rectDimension.width},
-        { recid: 6, propName: 'Color', propValue: this.lineColor},
-        { recid: 7, propName: 'Width', propValue: this.lineWidth},
-        { recid: 8, propName: 'Title', propValue: this.title},
-        { recid: 9, propName: 'Description', propValue: this.description},
-        { recid: 12, propName: 'Shape Type', propValue: this.shapeType},
-        { recid: 13, propName: 'Tool Name', propValue: this.toolName},
-        { recid: 14, propName: 'Is Selected', propValue: this.selected}
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id },
+                      { recid: 3, propName: 'X', propValue: this.rectDimension.left},
+                      { recid: 4, propName: 'Y', propValue: this.rectDimension.top},
+                      { recid: 5, propName: 'Height', propValue: this.rectDimension.height},
+                      { recid: 6, propName: 'Width', propValue: this.rectDimension.width},
+                      { recid: 7, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
+                      { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 9, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
+                      { recid: 10, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
+                      { recid: 11, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+            ]
+          }
+        },
+        { recid: 12, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 13, propName: 'Title', propValue: this.title},
+                      { recid: 14, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
     ]);
+    w2ui['properties'].expand(1);
   },
   renderToolItem() {
     var html = '';
@@ -1612,7 +1662,7 @@ var Rectangle = Class.create({
     html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
                       <rect x='21' y='21' height='17' width='17' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 23 23)'></rect>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">RECT</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">RECT</text>
                     </svg>
                  </div>`;
     html += "</label>";
@@ -1681,9 +1731,52 @@ var Circle = Class.create({
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
+
+    this.populateProperties();
   },
   isSelected: function(){
     return JSON.parse(this.line.attr('selected'));
+  },
+  incrementSize: function(dx, dy){
+    this.circDimension.cx += (dx/2);
+    this.circDimension.cy += (dy/2);
+    this.circDimension.r += (dx/4);
+    this.circDimension.r += (dy/4);
+  },
+  incrementCoordinates: function(dx, dy){
+    this.circDimension.cx += dx;
+    this.circDimension.cy += dy;
+  },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id },
+                      { recid: 3, propName: 'CX', propValue: this.circDimension.cx},
+                      { recid: 4, propName: 'CY', propValue: this.circDimension.cy},
+                      { recid: 5, propName: 'Radius', propValue: this.circDimension.r},
+                      { recid: 6, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
+                      { recid: 7, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 8, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
+                      { recid: 9, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
+                      { recid: 10, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+            ]
+          }
+        },
+        { recid: 11, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 12, propName: 'Title', propValue: this.title},
+                      { recid: 13, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
   },
   renderToolItem() {
     var html = '';
@@ -1695,7 +1788,7 @@ var Circle = Class.create({
     html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
                       <circle cx='19' cy='19' r='10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></circle>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">CIRCLE</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">CIRCLE</text>
                     </svg>
                  </div>`;
     html += "</label>";
@@ -1764,9 +1857,53 @@ var Ellipse = Class.create({
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
+
+    this.populateProperties();
   },
   isSelected: function(){
     return JSON.parse(this.line.attr('selected'));
+  },
+  incrementSize: function(dx, dy){
+    this.ellipDimension.cx += (dx/2);
+    this.ellipDimension.cy += (dy/2);
+    this.ellipDimension.rx += (dx/2);
+    this.ellipDimension.ry += (dy/2);
+  },
+  incrementCoordinates: function(dx, dy){
+    this.ellipDimension.cx += dx;
+    this.ellipDimension.cy += dy;
+  },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id },
+                      { recid: 3, propName: 'CX', propValue: this.ellipDimension.cx},
+                      { recid: 4, propName: 'CY', propValue: this.ellipDimension.cy},
+                      { recid: 5, propName: 'RadiusX', propValue: this.ellipDimension.rx},
+                      { recid: 6, propName: 'RadiusY', propValue: this.ellipDimension.ry},
+                      { recid: 7, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
+                      { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 9, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
+                      { recid: 10, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
+                      { recid: 11, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+            ]
+          }
+        },
+        { recid: 12, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 13, propName: 'Title', propValue: this.title},
+                      { recid: 14, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
   },
   renderToolItem() {
     var html = '';
@@ -1778,7 +1915,7 @@ var Ellipse = Class.create({
     html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
                       <ellipse cx='15' cy='19' rx='15' ry='10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></ellipse>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">ELLIPSE</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">ELLIPSE</text>
                     </svg>
                  </div>`;
     html += "</label>";
@@ -1844,9 +1981,46 @@ var Polygon = Class.create({
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
+
+    this.populateProperties();
   },
   isSelected: function(){
     return JSON.parse(this.line.attr('selected'));
+  },
+  incrementSize: function(dx, dy){
+    this.polyPoints = d3.select('#' + this.id).attr('points');
+  },
+  incrementCoordinates: function(dx, dy){
+    this.polyPoints = d3.select('#' + this.id).attr('points');
+  },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id },
+                      { recid: 3, propName: 'Points', propValue: this.polyPoints},
+                      { recid: 4, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
+                      { recid: 5, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
+                      { recid: 7, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
+                      { recid: 8, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+            ]
+          }
+        },
+        { recid: 9, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 10, propName: 'Title', propValue: this.title},
+                      { recid: 11, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
   },
   renderToolItem() {
     var html = '';
@@ -1858,7 +2032,7 @@ var Polygon = Class.create({
     html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
                       <polygon points='5,10 0,30 25,25 28,10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></polygon>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POLYGON</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POLYGON</text>
                     </svg>
                  </div>`;
     html += "</label>";
@@ -1930,6 +2104,7 @@ var Polyline = Class.create({
       .attr('selected', true);
 
     this.createHandlers();
+    this.populateProperties();
   },
   createHandlers: function() {
     var polyPointsArray = this.polyPoints.trim().split(' ');
@@ -1938,7 +2113,7 @@ var Polyline = Class.create({
 
     var dragHandlers = d3.drag()
       .on('drag', function(e) { dragMoveHandler(e, that, this); })
-      .on('end', dropHandler);
+      .on('end', function(e) { dropHandler(e, that, this); });
 
     polyPointsArray.forEach(function(item, index){
       var point = item.split(',');
@@ -1963,7 +2138,9 @@ var Polyline = Class.create({
     handlerNames = handlerNames.substring(0, handlerNames.length-1);
     this.line.attr('handlers', handlerNames);
 
-    function dropHandler(e){}
+    function dropHandler(e, lineInstance, that){
+      lineInstance.populateProperties();
+    }
 
     function dragMoveHandler(e, lineInstance, that){
       var x = d3.event.x;
@@ -2013,6 +2190,8 @@ var Polyline = Class.create({
         line.attr('selected', true);
         that.handlersVisible = true;
         that.selected = true;
+
+        that.populateProperties();
       }
     }
   },
@@ -2028,6 +2207,35 @@ var Polyline = Class.create({
   isSelected: function(){
     return this.selected;
   },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id },
+                      { recid: 3, propName: 'Points', propValue: this.polyPoints},
+                      { recid: 4, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
+                      { recid: 5, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
+                      { recid: 7, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
+                      { recid: 8, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+            ]
+          }
+        },
+        { recid: 9, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 10, propName: 'Title', propValue: this.title},
+                      { recid: 11, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
+  },
   renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_POLYLINE_tool' >";
@@ -2038,7 +2246,7 @@ var Polyline = Class.create({
     html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
                       <polyline points='5,10 0,30 25,10 28,30' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></polyline>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POLYLINE</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">POLYLINE</text>
                     </svg>
                  </div>`;
     html += "</label>";
@@ -2123,12 +2331,13 @@ var BezireCurve = Class.create({
       .attr('endHandler', this.id + '_end_handler');
 
     this.createHandlers();
+    this.populateProperties();
   },
   createHandlers: function() {
 
     var dragHandlers = d3.drag()
       .on('drag', function(e) { dragMoveHandler(e, that, this); })
-      .on('end', dropHandler);
+      .on('end', function(e) { dropHandler(e, that, this); });
 
     this.controlPoint = this.g.append('circle')
       .attr('id', this.id + '_control_point')
@@ -2162,7 +2371,9 @@ var BezireCurve = Class.create({
 
     var that = this;
 
-    function dropHandler(e){}
+    function dropHandler(e, lineInstance, that){
+      lineInstance.populateProperties();
+    }
 
     function dragMoveHandler(e, lineInstance, that){
       var x = d3.event.x;
@@ -2218,6 +2429,8 @@ var BezireCurve = Class.create({
         line.attr('selected', true);
         that.handlersVisible = true;
         that.selected = true;
+
+        that.populateProperties();
       }
     }
   },
@@ -2233,6 +2446,33 @@ var BezireCurve = Class.create({
   isSelected: function(){
     return this.selected;
   },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id },
+                      { recid: 3, propName: 'Points', propValue: JSON.stringify(this.curvePoints)},
+                      { recid: 4, propName: 'Stroke Color', propValue: this.lineColor},
+                      { recid: 5, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
+                      { recid: 7, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
+                      { recid: 8, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+            ]
+          }
+        },
+        { recid: 9, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 10, propName: 'Title', propValue: this.title},
+                      { recid: 11, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
+  },
   renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_BEZIRE_CURVE_tool' >";
@@ -2243,7 +2483,7 @@ var BezireCurve = Class.create({
     html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
                       <path d='M 5 10 q 0 30 25 10' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 18 18)'></path>
-                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.7em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">BEZIRE</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">BEZIRE</text>
                     </svg>
                  </div>`;
     html += "</label>";

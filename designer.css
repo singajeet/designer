@@ -24,6 +24,7 @@
 .toolbox th {
         background: #007e90;
         color: white;
+        font: .6em arial, sans-serif;
 }
 .middle {
   width: 100%;
