@@ -593,7 +593,35 @@ const Canvas = Class.create({
         {field: 'propValue', caption: 'Value', size: '100px', editable: { type: 'text'}}
       ],
       onChange: function(event){
-        console.log(event);
+        var rowIndex = event.index;
+        var newValue = event.value_new;
+        var colName = w2ui['properties'].getCellValue(rowIndex, 0);
+        var selectionCounter = 0;
+
+        var selectedItem = null;
+        that.edges.forEach(function(item){
+          if(item.isSelected()){
+            selectedItem = item;
+            selectionCounter++;
+          }
+        });
+
+        //If selected item is not an edge, search in nodes
+        if(selectedItem === null){
+          that.nodes.forEach(function(item){
+            if(item.isSelected()){
+              selectedItem = item;
+              selectionCounter++;
+            }
+          });
+        }
+
+        if(selectionCounter > 1){
+          alert('Please select only one item on canvas. Multiple item selection is not allowed while making changes to properties.');
+        } else {
+          selectedItem.setProperty(colName, newValue);
+          //w2ui['properties'].save();
+        }
       }
     }));
 
@@ -951,8 +979,8 @@ const Canvas = Class.create({
                 that.edges.forEach(function(edge){
                   edge.disable();
                 });
-                w2ui['properties'].clear();
               }
+              w2ui['properties'].clear();
           }
         }
       }
@@ -1129,7 +1157,7 @@ const Canvas = Class.create({
     var svg = d3.select(svg_id);
 
     svg.append('svg:defs').append('svg:marker')
-      .attr("id", "arrow")
+      .attr("id", "arrow_end")
       .attr("refX", 6)
       .attr("refY", 6)
       .attr("markerWidth", 30)
@@ -1138,6 +1166,18 @@ const Canvas = Class.create({
       .attr("orient", "auto")
       .append("path")
       .attr("d", "M 0 0 12 6 0 12 3 6")
+      .style("fill", "black");
+
+    svg.append('svg:defs').append('svg:marker')
+      .attr("id", "arrow_start")
+      .attr("refX", 6)
+      .attr("refY", 6)
+      .attr("markerWidth", 30)
+      .attr("markerHeight", 30)
+      .attr("markerUnits", "userSpaceOnUse")
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M 0 6 12 0 9 6 12 12")
       .style("fill", "black");
   },
   _changeTool(index) {
@@ -1239,7 +1279,7 @@ const Line = Class.create({
     this.description = description || "";
     this.lineDimension = new LineDimension();
     this.lineDimension.hasArrow = hasArrow || true;
-    this.lineDimension.arrowType = arrowType || "RIGHT";
+    this.lineDimension.arrowType = arrowType || "END";
     this.elementLeft = elementLeft;
     this.elementRight = elementRight;
     this.lineColor = lineColor || "black";
@@ -1297,17 +1337,17 @@ const Line = Class.create({
       .attr('x2', this.lineDimension.end.x)
       .attr('y2', this.lineDimension.end.y)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
-      .attr('marker-end', 'url(#arrow)')
+      .attr('marker-end', 'url(#arrow_end)')
       .attr('data-type', 'edge-base')
-      .attr('parentElement', this.parentElement.id)
-      .attr('title', this.title)
-      .attr('description', this.description)
-      .attr('hasArrow', this.lineDimension.hasArrow)
-      .attr('arrowType', this.lineDimension.arrowType)
+      // .attr('parentElement', this.parentElement.id)
+      // .attr('title', this.title)
+      // .attr('description', this.description)
+      // .attr('hasArrow', this.lineDimension.hasArrow)
+      // .attr('arrowType', this.lineDimension.arrowType)
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
-      .attr('startHandler', this.id + '_start_handler')
-      .attr('endHandler', this.id + '_end_handler')
+      // .attr('startHandler', this.id + '_start_handler')
+      // .attr('endHandler', this.id + '_end_handler')
       .attr('handlersVisible', this.handlersVisible)
       .attr('selected', this.selected);
 
@@ -1317,7 +1357,9 @@ const Line = Class.create({
       .attr('xlink:href', '#' + this.id + '_path')
       .style('text-anchor', 'middle')
       .attr('startOffset', '50%')
-      .text(this.title);
+      .text(this.title)
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
 
     this.createHandlers();
     this.populateProperties();
@@ -1405,15 +1447,15 @@ const Line = Class.create({
 
       //Read the line's attributes 'startHandler' & 'endHandler' to get the names of the
       //handlers attached to the line and select same for further operation
-      var startHandlerName = line.attr('startHandler');
-      var startHandler = d3.select('#' + startHandlerName);
-      var endHandlerName = line.attr('endHandler');
-      var endHandler = d3.select('#' + endHandlerName);
+      // var startHandlerName = line.attr('startHandler');
+      // var startHandler = d3.select('#' + startHandlerName);
+      // var endHandlerName = line.attr('endHandler');
+      // var endHandler = d3.select('#' + endHandlerName);
 
       //Show the handlers of the line
       if(!handlersVisible){
-        startHandler.attr('visibility', 'visible');
-        endHandler.attr('visibility', 'visible');
+        that.startHandler.attr('visibility', 'visible');
+        that.endHandler.attr('visibility', 'visible');
         line.attr('handlersVisible', true);
         line.attr('selected', true);
         that.handlersVisible = true;
@@ -1430,15 +1472,35 @@ const Line = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-              { recid: 2, propName: 'Id', propValue: this.id },
-              { recid: 3, propName: 'X1', propValue: this.lineDimension.start.x},
-              { recid: 4, propName: 'Y1', propValue: this.lineDimension.start.y},
-              { recid: 5, propName: 'X2', propValue: this.lineDimension.end.x},
-              { recid: 6, propName: 'Y2', propValue: this.lineDimension.end.y},
-              { recid: 7, propName: 'Line Color', propValue: this.lineColor,
+              { recid: 2, propName: 'Id', propValue: this.id,
+                w2ui: { editable: false,
+                        style: "color: grey"
+                      }
+              },
+              { recid: 3, propName: 'X1', propValue: this.lineDimension.start.x,
+                w2ui: { editable: false,
+                        style: "color: grey"
+                      }
+              },
+              { recid: 4, propName: 'Y1', propValue: this.lineDimension.start.y,
+                w2ui: { editable: false,
+                        style: "color: grey"
+                      }
+              },
+              { recid: 5, propName: 'X2', propValue: this.lineDimension.end.x,
+                w2ui: { editable: false,
+                        style: "color: grey"
+                      }
+              },
+              { recid: 6, propName: 'Y2', propValue: this.lineDimension.end.y,
+                w2ui: { editable: false,
+                        style: "color: grey"
+                      }
+              },
+              { recid: 7, propName: 'Stroke Color', propValue: this.lineColor,
                   w2ui: { editable: { type: 'color'} }
               },
-              { recid: 8, propName: 'Line Width', propValue: this.lineWidth},
+              { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
               { recid: 9, propName: 'Has Arrow', propValue: this.lineDimension.hasArrow,
                 w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'true' },
                                                             { id: 2, text: 'false' }
@@ -1447,16 +1509,28 @@ const Line = Class.create({
                       }
               },
               { recid: 10, propName: 'Arrow Type', propValue: this.lineDimension.arrowType,
-                w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'RIGHT' },
-                                                            { id: 2, text: 'LEFT' },
+                w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'END' },
+                                                            { id: 2, text: 'START' },
                                                             { id: 3, text: 'BOTH' }
                                                           ],
                                                           filter: false }
                       }
               },
-              { recid: 11, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
-              { recid: 12, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
-              { recid: 13, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+              { recid: 11, propName: 'Shape Type', propValue: this.shapeType,
+                w2ui: { editable: false,
+                        style: "color: grey"
+                      }
+              },
+              { recid: 12, propName: 'Tool Name', propValue: this.toolName,
+                w2ui: { editable: false,
+                        style: "color: grey"
+                      }
+              },
+              { recid: 13, propName: 'Is Selected', propValue: this.selected,
+                w2ui: { editable: false,
+                        style: "color: grey"
+                      }
+              }
             ]
           }
         },
@@ -1481,6 +1555,49 @@ const Line = Class.create({
   },
   isSelected: function(){
     return this.selected;
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+    } else if(propName === "Title"){
+      this.title = propValue;
+      this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    } else if(propName === "Arrow Type"){
+      this.lineDimension.arrowType = propValue;
+      if(propValue === "END"){
+        this.line.attr('marker-end', 'url(#arrow_end)');
+        this.line.attr('marker-start', '');
+      } else if(propValue === "START"){
+        this.line.attr('marker-end', '');
+        this.line.attr('marker-start', 'url(#arrow_start)');
+      } else if(propValue === "BOTH"){
+        this.line.attr('marker-end', 'url(#arrow_end)');
+        this.line.attr('marker-start', 'url(#arrow_start)');
+      }
+    } else if(propName === "Has Arrow"){
+      this.lineDimension.hasArrow = JSON.parse(propValue);
+      if(this.lineDimension.hasArrow){
+       if(this.lineDimension.arrowType === "END"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', '');
+        } else if(this.lineDimension.arrowType === "START"){
+          this.line.attr('marker-end', '');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        } else if(this.lineDimension.arrowType === "BOTH"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        }
+      } else {
+        this.line.attr('marker-end', '');
+        this.line.attr('marker-start', '');
+      }
+    }
   },
   renderToolItem() {
     var html = '';
@@ -1626,18 +1743,50 @@ var Rectangle = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id },
-                      { recid: 3, propName: 'X', propValue: this.rectDimension.left},
-                      { recid: 4, propName: 'Y', propValue: this.rectDimension.top},
-                      { recid: 5, propName: 'Height', propValue: this.rectDimension.height},
-                      { recid: 6, propName: 'Width', propValue: this.rectDimension.width},
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'X', propValue: this.rectDimension.left,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 4, propName: 'Y', propValue: this.rectDimension.top,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 5, propName: 'Height', propValue: this.rectDimension.height,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 6, propName: 'Width', propValue: this.rectDimension.width,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
                       { recid: 7, propName: 'Stroke Color', propValue: this.lineColor,
                         w2ui: { editable: { type: 'color'} }
                       },
                       { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
-                      { recid: 9, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
-                      { recid: 10, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
-                      { recid: 11, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+                      { recid: 9, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 10, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 11, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      }
             ]
           }
         },
@@ -1651,6 +1800,20 @@ var Rectangle = Class.create({
         }
     ]);
     w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+    } else if(propName === "Title"){
+      this.title = propValue;
+      //this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
   },
   renderToolItem() {
     var html = '';
@@ -1753,17 +1916,45 @@ var Circle = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id },
-                      { recid: 3, propName: 'CX', propValue: this.circDimension.cx},
-                      { recid: 4, propName: 'CY', propValue: this.circDimension.cy},
-                      { recid: 5, propName: 'Radius', propValue: this.circDimension.r},
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'CX', propValue: this.circDimension.cx,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 4, propName: 'CY', propValue: this.circDimension.cy,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 5, propName: 'Radius', propValue: this.circDimension.r,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
                       { recid: 6, propName: 'Stroke Color', propValue: this.lineColor,
                         w2ui: { editable: { type: 'color'} }
                       },
                       { recid: 7, propName: 'Stroke Width', propValue: this.lineWidth},
-                      { recid: 8, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
-                      { recid: 9, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
-                      { recid: 10, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+                      { recid: 8, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 9, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 10, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      }
             ]
           }
         },
@@ -1777,6 +1968,20 @@ var Circle = Class.create({
         }
     ]);
     w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
+    } else if(propName === "Title"){
+      this.title = propValue;
+      //this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
   },
   renderToolItem() {
     var html = '';
@@ -1879,18 +2084,50 @@ var Ellipse = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id },
-                      { recid: 3, propName: 'CX', propValue: this.ellipDimension.cx},
-                      { recid: 4, propName: 'CY', propValue: this.ellipDimension.cy},
-                      { recid: 5, propName: 'RadiusX', propValue: this.ellipDimension.rx},
-                      { recid: 6, propName: 'RadiusY', propValue: this.ellipDimension.ry},
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'CX', propValue: this.ellipDimension.cx,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 4, propName: 'CY', propValue: this.ellipDimension.cy,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 5, propName: 'RadiusX', propValue: this.ellipDimension.rx,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 6, propName: 'RadiusY', propValue: this.ellipDimension.ry,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
                       { recid: 7, propName: 'Stroke Color', propValue: this.lineColor,
                         w2ui: { editable: { type: 'color'} }
                       },
                       { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
-                      { recid: 9, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
-                      { recid: 10, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
-                      { recid: 11, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+                      { recid: 9, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 10, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 11, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      }
             ]
           }
         },
@@ -1904,6 +2141,20 @@ var Ellipse = Class.create({
         }
     ]);
     w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
+    } else if(propName === "Title"){
+      this.title = propValue;
+      //this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
   },
   renderToolItem() {
     var html = '';
@@ -1999,15 +2250,35 @@ var Polygon = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id },
-                      { recid: 3, propName: 'Points', propValue: this.polyPoints},
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'Points', propValue: this.polyPoints,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
                       { recid: 4, propName: 'Stroke Color', propValue: this.lineColor,
                         w2ui: { editable: { type: 'color'} }
                       },
                       { recid: 5, propName: 'Stroke Width', propValue: this.lineWidth},
-                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
-                      { recid: 7, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
-                      { recid: 8, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 7, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 8, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      }
             ]
           }
         },
@@ -2021,6 +2292,20 @@ var Polygon = Class.create({
         }
     ]);
     w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
+    } else if(propName === "Title"){
+      this.title = propValue;
+      //this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
   },
   renderToolItem() {
     var html = '';
@@ -2213,15 +2498,35 @@ var Polyline = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id },
-                      { recid: 3, propName: 'Points', propValue: this.polyPoints},
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'Points', propValue: this.polyPoints,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
                       { recid: 4, propName: 'Stroke Color', propValue: this.lineColor,
                         w2ui: { editable: { type: 'color'} }
                       },
                       { recid: 5, propName: 'Stroke Width', propValue: this.lineWidth},
-                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
-                      { recid: 7, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
-                      { recid: 8, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 7, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 8, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      }
             ]
           }
         },
@@ -2235,6 +2540,20 @@ var Polyline = Class.create({
         }
     ]);
     w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
+    } else if(propName === "Title"){
+      this.title = propValue;
+      //this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
   },
   renderToolItem() {
     var html = '';
@@ -2452,13 +2771,35 @@ var BezireCurve = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id },
-                      { recid: 3, propName: 'Points', propValue: JSON.stringify(this.curvePoints)},
-                      { recid: 4, propName: 'Stroke Color', propValue: this.lineColor},
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'Points', propValue: JSON.stringify(this.curvePoints),
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 4, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
                       { recid: 5, propName: 'Stroke Width', propValue: this.lineWidth},
-                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType, w2ui: { editable: false}},
-                      { recid: 7, propName: 'Tool Name', propValue: this.toolName, w2ui: { editable: false}},
-                      { recid: 8, propName: 'Is Selected', propValue: this.selected, w2ui: { editable: false}}
+                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 7, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 8, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      }
             ]
           }
         },
@@ -2472,6 +2813,20 @@ var BezireCurve = Class.create({
         }
     ]);
     w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+    } else if(propName === "Title"){
+      this.title = propValue;
+      //this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
   },
   renderToolItem() {
     var html = '';
