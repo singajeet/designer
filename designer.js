@@ -341,14 +341,20 @@ const Canvas = Class.create({
           deltaX = dx;
           deltaY = dy;
           ops = "MOVE";
+          var node = that.getNode(this.el.id);
+          node.onMove(dx, dy);
       },
       onResize(dx, dy, obj) {
           deltaX = dx;
           deltaY = dy;
           ops = "RESIZE";
+          var node = that.getNode(this.el.id);
+          node.onResize(dx, dy, obj);
       },
       onRotate(obj) {
           console.log(obj);
+          var node = that.getNode(this.el.id);
+          node.onRotate(obj);
       },
       onDrop(obj) {
           var node = that.getNode(this.el.id);
@@ -359,6 +365,7 @@ const Canvas = Class.create({
           }
           node.populateProperties();
           ops = "";
+          node.onDrop(obj);
       }
     };
   },
@@ -1351,7 +1358,8 @@ const Line = Class.create({
       .attr('handlersVisible', this.handlersVisible)
       .attr('selected', this.selected);
 
-    this.text = this.g.append('text')
+    this.titleText = this.g.append('text')
+      .attr('id', this.id + '_title_text')
       .attr('dy', -10)
       .append('textPath')
       .attr('xlink:href', '#' + this.id + '_path')
@@ -1360,6 +1368,17 @@ const Line = Class.create({
       .text(this.title)
       .attr('font-family', 'sans-serif')
       .attr('font-size', '.7em');
+
+    // this.descriptionText = this.g.append('text')
+    //   .attr('id', this.id + '_description_text')
+    //   .attr('dy', 15)
+    //   .append('textPath')
+    //   .attr('xlink:href', '#' + this.id + '_path')
+    //   .style('text-anchor', 'middle')
+    //   .attr('startOffset', '50%')
+    //   .text(this.description)
+    //   .attr('font-family', 'sans-serif')
+    //   .attr('font-size', '.7em');
 
     this.createHandlers();
     this.populateProperties();
@@ -1565,9 +1584,10 @@ const Line = Class.create({
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
     } else if(propName === "Title"){
       this.title = propValue;
-      this.text.text(this.title);
+      this.titleText.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+      // this.descriptionText.text(this.description);
     } else if(propName === "Arrow Type"){
       this.lineDimension.arrowType = propValue;
       if(propValue === "END"){
@@ -1716,13 +1736,21 @@ var Rectangle = Class.create({
       .attr('width', this.rectDimension.width)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
       .attr('data-type', 'node-base')
-      .attr('class', 'drag-svg')
+      //.attr('class', 'drag-svg')
       .attr('parentElement', this.parentElement.id)
       .attr('title', this.title)
       .attr('description', this.description)
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
+
+    this.text = svg.append('text')
+      .text(this.title)
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2))
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
 
     this.populateProperties();
   },
@@ -1732,10 +1760,24 @@ var Rectangle = Class.create({
   incrementSize: function(dx, dy){
     this.rectDimension.width += dx;
     this.rectDimension.height += dy;
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2));
   },
   incrementCoordinates: function(dx, dy){
     this.rectDimension.left += dx;
     this.rectDimension.top += dy;
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2));
+  },
+  onMove: function(dx, dy){
+    this.text.attr('visibility', 'hidden');
+  },
+  onResize: function(dx, dy, obj){},
+  onRotate: function(obj){},
+  onDrop: function(obj){
+    this.text.attr('visibility', 'visible');
   },
   populateProperties: function(){
     w2ui['properties'].clear();
@@ -1810,7 +1852,7 @@ var Rectangle = Class.create({
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
     } else if(propName === "Title"){
       this.title = propValue;
-      //this.text.text(this.title);
+      this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
     }
@@ -1895,6 +1937,14 @@ var Circle = Class.create({
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
 
+    this.text = svg.append('text')
+      .text(this.title)
+      .attr('x', this.circDimension.cx)
+      .attr('y', this.circDimension.cy)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
+
     this.populateProperties();
   },
   isSelected: function(){
@@ -1905,10 +1955,24 @@ var Circle = Class.create({
     this.circDimension.cy += (dy/2);
     this.circDimension.r += (dx/4);
     this.circDimension.r += (dy/4);
+    this.text
+      .attr('x', this.circDimension.cx)
+      .attr('y', this.circDimension.cy);
   },
   incrementCoordinates: function(dx, dy){
     this.circDimension.cx += dx;
     this.circDimension.cy += dy;
+    this.text
+      .attr('x', this.circDimension.cx)
+      .attr('y', this.circDimension.cy);
+  },
+  onMove: function(dx, dy){
+    this.text.attr('visibility', 'hidden');
+  },
+  onResize: function(dx, dy, obj){},
+  onRotate: function(obj){},
+  onDrop: function(obj){
+    this.text.attr('visibility', 'visible');
   },
   populateProperties: function(){
     w2ui['properties'].clear();
@@ -1978,7 +2042,7 @@ var Circle = Class.create({
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
     } else if(propName === "Title"){
       this.title = propValue;
-      //this.text.text(this.title);
+      this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
     }
@@ -2063,6 +2127,14 @@ var Ellipse = Class.create({
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
 
+    this.text = svg.append('text')
+      .text(this.title)
+      .attr('x', this.ellipDimension.cx)
+      .attr('y', this.ellipDimension.cy)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
+
     this.populateProperties();
   },
   isSelected: function(){
@@ -2073,10 +2145,24 @@ var Ellipse = Class.create({
     this.ellipDimension.cy += (dy/2);
     this.ellipDimension.rx += (dx/2);
     this.ellipDimension.ry += (dy/2);
+    this.text
+      .attr('x', this.ellipDimension.cx)
+      .attr('y', this.ellipDimension.cy);
   },
   incrementCoordinates: function(dx, dy){
     this.ellipDimension.cx += dx;
     this.ellipDimension.cy += dy;
+    this.text
+      .attr('x', this.ellipDimension.cx)
+      .attr('y', this.ellipDimension.cy);
+  },
+  onMove: function(dx, dy){
+    this.text.attr('visibility', 'hidden');
+  },
+  onResize: function(dx, dy, obj){},
+  onRotate: function(obj){},
+  onDrop: function(obj){
+    this.text.attr('visibility', 'visible');
   },
   populateProperties: function(){
     w2ui['properties'].clear();
@@ -2151,7 +2237,7 @@ var Ellipse = Class.create({
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
     } else if(propName === "Title"){
       this.title = propValue;
-      //this.text.text(this.title);
+      this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
     }
@@ -2233,6 +2319,18 @@ var Polygon = Class.create({
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
 
+    var polyPointsArray = this.polyPoints.split(' ');
+    var firstPointString = polyPointsArray[0];
+    var firstPoint = firstPointString.split(',');
+
+    this.text = svg.append('text')
+      .text(this.title)
+      .attr('x', parseInt(firstPoint[0]) + 20)
+      .attr('y', parseInt(firstPoint[1]) + 20)
+      //.attr('text-anchor', 'middle')
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
+
     this.populateProperties();
   },
   isSelected: function(){
@@ -2240,9 +2338,25 @@ var Polygon = Class.create({
   },
   incrementSize: function(dx, dy){
     this.polyPoints = d3.select('#' + this.id).attr('points');
+    var polyPointsArray = this.polyPoints.split(' ');
+    this.text
+      .attr('x', parseInt(polyPointsArray[0]) + 20)
+      .attr('y', parseInt(polyPointsArray[1]) + 20);
   },
   incrementCoordinates: function(dx, dy){
     this.polyPoints = d3.select('#' + this.id).attr('points');
+    var polyPointsArray = this.polyPoints.split(' ');
+    this.text
+      .attr('x', parseInt(polyPointsArray[0]) + 20)
+      .attr('y', parseInt(polyPointsArray[1]) + 20);
+  },
+  onMove: function(dx, dy){
+    this.text.attr('visibility', 'hidden');
+  },
+  onResize: function(dx, dy, obj){},
+  onRotate: function(obj){},
+  onDrop: function(obj){
+    this.text.attr('visibility', 'visible');
   },
   populateProperties: function(){
     w2ui['properties'].clear();
@@ -2302,7 +2416,7 @@ var Polygon = Class.create({
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
     } else if(propName === "Title"){
       this.title = propValue;
-      //this.text.text(this.title);
+      this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
     }
@@ -2375,6 +2489,23 @@ var Polyline = Class.create({
 
     this.g = svg.append('g')
       .attr('id', this.id + '_g');
+
+    this.path = this.g.append('path')
+      .attr('id', this.id + '_path')
+      .attr('d', this._calculatePath())
+      .attr('style', 'stroke: ' + this.lineColor + '; stroke-width: 1px;');
+
+    this.text = this.g.append('text')
+      .attr('id', this.id + '_title_text')
+      .attr('dy', -10)
+      .append('textPath')
+      .attr('xlink:href', '#' + this.id + '_path')
+      .style('text-anchor', 'middle')
+      .attr('startOffset', '50%')
+      .text(this.title)
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
+
     this.line = this.g.append('polyline')
       .attr('id', this.id)
       .attr('points', this.polyPoints)
@@ -2390,6 +2521,21 @@ var Polyline = Class.create({
 
     this.createHandlers();
     this.populateProperties();
+  },
+  _calculatePath: function() {
+    var pointsLength = this.polyPoints.trim().split(' ').length;
+    var firstIndex = 0;
+    var secondIndex = 1;
+    if(pointsLength > 2){
+      firstIndex = parseInt(pointsLength/2);
+      secondIndex = firstIndex + 1;
+    }
+    var pointsArray = this.polyPoints.trim().split(' ');
+    var firstPoint = pointsArray[firstIndex].split(',');
+    var secondPoint = pointsArray[secondIndex].split(',');
+    return "M " + firstPoint[0] + " " + firstPoint[1] + " l "
+            + (parseInt(secondPoint[0]) - parseInt(firstPoint[0])) + " "
+            + (parseInt(secondPoint[1]) - parseInt(firstPoint[1]));
   },
   createHandlers: function() {
     var polyPointsArray = this.polyPoints.trim().split(' ');
@@ -2449,6 +2595,8 @@ var Polyline = Class.create({
       }
       lineInstance.line.attr('points', pointString);
       lineInstance.polyPoints = pointString;
+
+      lineInstance.path.attr('d', lineInstance._calculatePath());
     }
 
     var line = document.getElementById(this.id);
@@ -2550,7 +2698,7 @@ var Polyline = Class.create({
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
     } else if(propName === "Title"){
       this.title = propValue;
-      //this.text.text(this.title);
+      this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
     }
@@ -2648,6 +2796,17 @@ var BezireCurve = Class.create({
       .attr('controlPoint', this.id + '_control_point')
       .attr('startHandler', this.id + '_start_handler')
       .attr('endHandler', this.id + '_end_handler');
+
+      this.text = this.g.append('text')
+      .attr('id', this.id + '_title_text')
+      .attr('dy', -10)
+      .append('textPath')
+      .attr('xlink:href', '#' + this.id)
+      .style('text-anchor', 'middle')
+      .attr('startOffset', '50%')
+      .text(this.title)
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
 
     this.createHandlers();
     this.populateProperties();
@@ -2823,7 +2982,7 @@ var BezireCurve = Class.create({
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
     } else if(propName === "Title"){
       this.title = propValue;
-      //this.text.text(this.title);
+      this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
     }
