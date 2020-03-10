@@ -785,6 +785,7 @@ const Canvas = Class.create({
       name: 'mainToolbar',
       items: [
         { type: 'button', id: 'new-drawing', caption: 'New', img: 'far fa-file', hint: 'New Drawing'},
+        { type: 'button', id: 'open-drawing', caption: 'Open', img: 'far fa-folder-open', hint: 'Open Drawing'},
         { type: 'button', id: 'save-drawing', caption: 'Save', img: 'far fa-save', hint: 'Save Drawing'},
         { type: 'break'},
         { type: 'button', id: 'clone-item', caption: 'Clone', img: 'far fa-copy', hint: 'Clone an item'},
@@ -793,6 +794,8 @@ const Canvas = Class.create({
         { type: 'break'},
         { type: 'button', id: 'undo', caption: 'Undo', img: 'fa fa-undo', hint: 'Undo'},
         { type: 'button', id: 'redo', caption: 'Redo', img: 'fas fa-redo', hint: 'Redo'},
+        { type: 'break'},
+        { type: 'button', id: 'settings', caption: 'Settings', img: 'fas fa-cogs', hint: 'Settings'},
         { type: 'break'},
         { type: 'spacer'},
         { type: 'button', id: 'about', caption: 'About', img: 'fa fa-info', hint: 'About'},
