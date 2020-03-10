@@ -1327,7 +1327,7 @@ const Canvas = Class.create({
       .attr("orient", "auto")
       .append("path")
       .attr("d", "M 0 0 12 6 0 12 3 6")
-      .style("fill", "black");
+      .style("fill", "context-stroke");
 
     svg.append('svg:defs').append('svg:marker')
       .attr("id", "arrow_start")
@@ -1339,7 +1339,7 @@ const Canvas = Class.create({
       .attr("orient", "auto")
       .append("path")
       .attr("d", "M 0 6 12 0 9 6 12 12")
-      .style("fill", "black");
+      .style("fill", "context-stroke");
   },
   _changeTool(/*index*/ tool) {
     // if (index < this.tools.length) {
@@ -2612,6 +2612,8 @@ var Polyline = Class.create({
   toolName: 'POLYLINE',
   handlersVisible: true,
   selected: true,
+  hasArrow: true,
+  arrowType: "END",
   initialize: function(id, parentElement, polyPoints, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -2626,6 +2628,8 @@ var Polyline = Class.create({
     this.toolName = 'POLYLINE';
     this.handlersVisible = true;
     this.selected = true;
+    this.hasArrow = true;
+    this.arrowType = "END";
   },
   getToolName: function() {
     return this.toolName;
@@ -2666,6 +2670,7 @@ var Polyline = Class.create({
       .attr('points', this.polyPoints)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
       .attr('data-type', 'node-base')
+      .attr('marker-end', 'url(#arrow_end)')
       .attr('parentElement', this.parentElement.id)
       .attr('title', this.title)
       .attr('description', this.description)
@@ -2815,17 +2820,32 @@ var Polyline = Class.create({
                         w2ui: { editable: { type: 'color'} }
                       },
                       { recid: 5, propName: 'Stroke Width', propValue: this.lineWidth},
-                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType,
+                      { recid: 6, propName: 'Has Arrow', propValue: this.hasArrow,
+                        w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'true' },
+                                                                    { id: 2, text: 'false' }
+                                                                  ],
+                                                                  filter: false }
+                              }
+                      },
+                      { recid: 7, propName: 'Arrow Type', propValue: this.arrowType,
+                        w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'END' },
+                                                                    { id: 2, text: 'START' },
+                                                                    { id: 3, text: 'BOTH' }
+                                                                  ],
+                                                                  filter: false }
+                              }
+                      },
+                      { recid: 8, propName: 'Shape Type', propValue: this.shapeType,
                           w2ui: { editable: false,
                                   style: "color: grey"
                                 }
                       },
-                      { recid: 7, propName: 'Tool Name', propValue: this.toolName,
+                      { recid: 9, propName: 'Tool Name', propValue: this.toolName,
                           w2ui: { editable: false,
                                   style: "color: grey"
                                 }
                       },
-                      { recid: 8, propName: 'Is Selected', propValue: this.selected,
+                      { recid: 10, propName: 'Is Selected', propValue: this.selected,
                           w2ui: { editable: false,
                                   style: "color: grey"
                                 }
@@ -2833,11 +2853,11 @@ var Polyline = Class.create({
             ]
           }
         },
-        { recid: 9, propName: 'Details',
+        { recid: 11, propName: 'Details',
           w2ui: {
             children: [
-                      { recid: 10, propName: 'Title', propValue: this.title},
-                      { recid: 11, propName: 'Description', propValue: this.description}
+                      { recid: 12, propName: 'Title', propValue: this.title},
+                      { recid: 13, propName: 'Description', propValue: this.description}
             ]
           }
         }
@@ -2856,6 +2876,35 @@ var Polyline = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === "Arrow Type"){
+      this.arrowType = propValue;
+      if(propValue === "END"){
+        this.line.attr('marker-end', 'url(#arrow_end)');
+        this.line.attr('marker-start', '');
+      } else if(propValue === "START"){
+        this.line.attr('marker-end', '');
+        this.line.attr('marker-start', 'url(#arrow_start)');
+      } else if(propValue === "BOTH"){
+        this.line.attr('marker-end', 'url(#arrow_end)');
+        this.line.attr('marker-start', 'url(#arrow_start)');
+      }
+    } else if(propName === "Has Arrow"){
+      this.hasArrow = JSON.parse(propValue);
+      if(this.hasArrow){
+       if(this.arrowType === "END"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', '');
+        } else if(this.arrowType === "START"){
+          this.line.attr('marker-end', '');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        } else if(this.arrowType === "BOTH"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        }
+      } else {
+        this.line.attr('marker-end', '');
+        this.line.attr('marker-start', '');
+      }
     }
   },
   renderToolItem() {
@@ -2895,6 +2944,8 @@ var BezireCurve = Class.create({
   controlPoint: undefined,
   handlersVisible: true,
   selected: true,
+  hasArrow: true,
+  arrowType: 'END',
   initialize: function(id, parentElement, curvePoints, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -2910,6 +2961,8 @@ var BezireCurve = Class.create({
     this.controlPoint = undefined;
     this.handlersVisible = true;
     this.selected = true;
+    this.hasArrow = true;
+    this.arrowType = 'END';
   },
   getToolName: function() {
     return this.toolName;
@@ -2941,6 +2994,7 @@ var BezireCurve = Class.create({
       .attr('stroke-width', this.lineWidth)
       .attr('fill', 'none')
       .attr('data-type', 'node-base-inner')
+      .attr('marker-end', 'url(#arrow_end)')
       .attr('parentElement', this.parentElement.id)
       .attr('title', this.title)
       .attr('description', this.description)
@@ -3099,17 +3153,32 @@ var BezireCurve = Class.create({
                         w2ui: { editable: { type: 'color'} }
                       },
                       { recid: 5, propName: 'Stroke Width', propValue: this.lineWidth},
-                      { recid: 6, propName: 'Shape Type', propValue: this.shapeType,
+                      { recid: 6, propName: 'Has Arrow', propValue: this.hasArrow,
+                        w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'true' },
+                                                                    { id: 2, text: 'false' }
+                                                                  ],
+                                                                  filter: false }
+                              }
+                      },
+                      { recid: 7, propName: 'Arrow Type', propValue: this.arrowType,
+                        w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'END' },
+                                                                    { id: 2, text: 'START' },
+                                                                    { id: 3, text: 'BOTH' }
+                                                                  ],
+                                                                  filter: false }
+                              }
+                      },
+                      { recid: 8, propName: 'Shape Type', propValue: this.shapeType,
                           w2ui: { editable: false,
                                   style: "color: grey"
                                 }
                       },
-                      { recid: 7, propName: 'Tool Name', propValue: this.toolName,
+                      { recid: 9, propName: 'Tool Name', propValue: this.toolName,
                           w2ui: { editable: false,
                                   style: "color: grey"
                                 }
                       },
-                      { recid: 8, propName: 'Is Selected', propValue: this.selected,
+                      { recid: 10, propName: 'Is Selected', propValue: this.selected,
                           w2ui: { editable: false,
                                   style: "color: grey"
                                 }
@@ -3117,11 +3186,11 @@ var BezireCurve = Class.create({
             ]
           }
         },
-        { recid: 9, propName: 'Details',
+        { recid: 11, propName: 'Details',
           w2ui: {
             children: [
-                      { recid: 10, propName: 'Title', propValue: this.title},
-                      { recid: 11, propName: 'Description', propValue: this.description}
+                      { recid: 12, propName: 'Title', propValue: this.title},
+                      { recid: 13, propName: 'Description', propValue: this.description}
             ]
           }
         }
@@ -3140,6 +3209,35 @@ var BezireCurve = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === "Arrow Type"){
+      this.arrowType = propValue;
+      if(propValue === "END"){
+        this.line.attr('marker-end', 'url(#arrow_end)');
+        this.line.attr('marker-start', '');
+      } else if(propValue === "START"){
+        this.line.attr('marker-end', '');
+        this.line.attr('marker-start', 'url(#arrow_start)');
+      } else if(propValue === "BOTH"){
+        this.line.attr('marker-end', 'url(#arrow_end)');
+        this.line.attr('marker-start', 'url(#arrow_start)');
+      }
+    } else if(propName === "Has Arrow"){
+      this.hasArrow = JSON.parse(propValue);
+      if(this.hasArrow){
+       if(this.arrowType === "END"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', '');
+        } else if(this.arrowType === "START"){
+          this.line.attr('marker-end', '');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        } else if(this.arrowType === "BOTH"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        }
+      } else {
+        this.line.attr('marker-end', '');
+        this.line.attr('marker-start', '');
+      }
     }
   },
   renderToolItem() {
