@@ -21,13 +21,19 @@
   	</script>
     <script src="js/w2ui.min.js"></script>
   </head>
-  <body style='height: 100%; width: 100%'> <!--height:auto;max-width:100%;-->
+  <body style='height: 100%; width: 100%; overflow: hidden;'> <!--height:auto;max-width:100%;-->
 
 	  <script>
 
 	    $j(document).ready(function(){
 		    try{
 		    	var c = new Canvas('canvas_grid');
+
+          var edgesGroup = new ToolGroup('edges_group', 'Edges');
+          var nodesGroup = new ToolGroup('nodes_group', 'Nodes');
+
+          var toolbox = new ToolBox('tool_box', c);
+
           var lineTool = new Line('LineTool', c);
       	  var rectTool = new Rectangle('RectTool', c);
       	  var circTool = new Circle('CircTool', c);
@@ -35,13 +41,31 @@
       	  var polyTool = new Polygon('PolyTool', c);
       	  var polylineTool = new Polyline('PolylineTool', c);
           var bezireCurve = new BezireCurve('bezireCurve', c);
-          c.addTool(lineTool);
-      	  c.addTool(rectTool);
-      	  c.addTool(circTool);
-      	  c.addTool(ellipTool);
-      	  c.addTool(polyTool);
-      	  c.addTool(polylineTool);
-          c.addTool(bezireCurve);
+
+          edgesGroup.addTool(lineTool);
+          edgesGroup.addTool(polylineTool);
+          edgesGroup.addTool(bezireCurve);
+
+          nodesGroup.addTool(rectTool);
+          nodesGroup.addTool(circTool);
+          nodesGroup.addTool(ellipTool);
+          nodesGroup.addTool(polyTool);
+          nodesGroup.addTool(polyTool);
+          nodesGroup.addTool(polyTool);
+          nodesGroup.addTool(polyTool);
+
+          toolbox.addGroup(edgesGroup);
+          toolbox.addGroup(nodesGroup);
+
+          c.setToolBox(toolbox);
+
+         //  c.addTool(lineTool);
+      	  // c.addTool(rectTool);
+      	  // c.addTool(circTool);
+      	  // c.addTool(ellipTool);
+      	  // c.addTool(polyTool);
+      	  // c.addTool(polylineTool);
+         //  c.addTool(bezireCurve);
  //        var n1 = new Node('n1', 'title1');
  //        var n2 = new Node('n2', 'title2');
 	// var p1 = new Port('p1');

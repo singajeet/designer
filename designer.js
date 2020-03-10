@@ -239,6 +239,143 @@ var ShapeType = {
 };
 
 /**
+ * ToolGroup: this class represents an group of items inside
+ * a toolbox that will be rendered as an Accordion
+ */
+const ToolGroup = Class.create({
+  id: '',
+  title: '',
+  description: '',
+  isOpen: false,
+  tools: [],
+  initialize: function(id, title, isOpen, tools, description){
+    this.id = id;
+    this.title = title;
+    this.isOpen = isOpen || false;
+    this.tools = tools || [];
+    this.description = description;
+  },
+  addTool: function(tool){
+    this.tools.push(tool);
+  },
+  removeTool: function(tool){
+    var index = this.tools.indexOf(tool);
+    this.tools.splice(index, 1);
+    var toolToRemove = document.getElementById(tool.id);
+    if (toolToRemove != undefined) {
+      toolToRemove.parentNode.removeChild(toolToRemove);
+    }
+  },
+  getTool: function(name, parentId){
+    for (var i = 0; i < this.tools.length; i++) {
+        if ((parentId + "_" + this.tools[i].getToolName() + "_tool") === name) {
+          return this.tools[i];
+        }
+    }
+    return null;
+  },
+  render: function(){
+    var html = "<button id='" + this.id + "' class='accordion'>" + this.title + "</button>";
+    html += "<div class='panel' id='" + this.id + "_panel'>";
+    for (var i = 0; i < this.tools.length; i++) {
+      html += this.tools[i].renderToolItem();
+    }
+    html += "</div>";
+    return html;
+  }
+});
+
+/**
+ * ToolBox: class to render the tool groups and tool items with
+ * each group
+ */
+const ToolBox = Class.create({
+  id: '',
+  parent: undefined,
+  width: '50px',
+  groups: [],
+  initialize: function(id, parent, groups, width){
+    this.id = id;
+    this.parent = parent;
+    this.groups = groups || [];
+    this.width = width || '50px';
+  },
+  addGroup: function(group){
+    this.groups.push(group);
+  },
+  removeGroup: function(group){
+    var index = this.groups.indexOf(group);
+    this.groups.splice(index, 1);
+    var groupToRemove = document.getElementById(group.id);
+    if(groupToRemove != undefined) {
+      groupToRemove.parentNode.removeChild(groupToRemove);
+    }
+    var panelToRemove = document.getElementById(group.id + "_panel");
+    if(panelToRemove != undefined) {
+      panelToRemove.parentNode.removeChild(panelToRemove);
+    }
+  },
+  getTool: function(name){
+    for(var i=0; i < this.groups.length; i++){
+      var tool = this.groups[i].getTool(name, this.parent.id);
+      if(tool !== null && tool !== undefined){
+        return tool;
+      }
+    }
+    return null;
+  },
+  render: function(){
+    var toolsHtml =
+          `<div style='overflow-y: auto; max-height: 600px;' class='scroll'>
+            <table style='width: 50px;' class='middle toolbox'>
+              <tr>
+                <th>Toolbox</th>
+              </tr>
+              <tr>
+                <td>`;
+        toolsHtml += this.parent.renderToolItem();
+        for (var i = 0; i < this.groups.length; i++) {
+          toolsHtml += this.groups[i].render();
+        }
+        toolsHtml +=
+                `</td>
+              </tr>
+              <tr>
+                <td style='text-align: center; font-size: 9px;'>`;
+        toolsHtml += `X: <span id='x_label'></span>
+                         Y: <span id='y_label'></span>
+                </td>
+              </tr>
+              <tr>
+                <td style='text-align: center; font-size: 9px;'>`;
+        toolsHtml += `STATE: <span id='mouse_state'></span>`;
+        toolsHtml += `</td>
+              </tr>
+            </table></div>`;
+    return toolsHtml;
+  },
+  activate: function() {
+    var accordions = document.getElementsByClassName("accordion");
+
+    for (var i = 0; i < accordions.length; i++) {
+      accordions[i].addEventListener("click", function() {
+        /* Toggle between adding and removing the "active" class,
+        to highlight the button that controls the panel */
+        this.classList.toggle("active");
+
+        /* Toggle between hiding and showing the active panel */
+        var panel = this.nextElementSibling;
+        if (panel.style.maxHeight) {
+          panel.style.maxHeight = null;
+        } else {
+          panel.style.maxHeight = panel.scrollHeight + "px";
+        }
+      });
+    }
+  }
+});
+
+/**
  * Canvas: class provides the functionality to hold the
  * nodes and edges objects
  *
@@ -263,7 +400,8 @@ const Canvas = Class.create({
   nodes: [],
   edges: [],
   grid: [10, 10],
-  tools: [],
+  // tools: [],
+  toolBox: undefined,
   observable: undefined,
   menus: [],
   methods: undefined,
@@ -295,7 +433,8 @@ const Canvas = Class.create({
     this.nodes = nodes || [];
     this.edges = edges || [];
     this.grid = grid || [10, 10];
-    this.tools = [this];
+    // this.tools = [this];
+    this.toolBox = undefined;
     this.observable = undefined;
     this.mouseX = 0;
     this.mouseY = 0;
@@ -306,7 +445,7 @@ const Canvas = Class.create({
     this.tempElement = undefined;
     this.shapeType = ShapeType.POINTER;
     this.toolName = 'POINTER';
-    this.selectedTool = this.tools[0];
+    this.selectedTool = this;
     this.polyPoints = [];
     this.isCmdInPrgrs = false;
     this.lastClick = 0;
@@ -478,20 +617,27 @@ const Canvas = Class.create({
    * Method: addTool
    * Description: adds an tool to the toolbox of the canvas
    */
-  addTool: function(tool) {
-    this.tools.push(tool);
-  },
+  // addTool: function(tool) {
+  //   this.tools.push(tool);
+  // },
   /**
    * Method: removeTool
    * Description: removes an tool from the toolbox of the canvas
    */
-  removeTool: function(tool) {
-    var index = this.tools.indexOf(tool);
-    this.tools.splice(index, 1);
-    var toolToRemove = document.getElementById(tool.id);
-    if (toolToRemove != undefined) {
-      toolToRemove.parentNode.removeChild(toolToRemove);
-    }
+  // removeTool: function(tool) {
+  //   var index = this.tools.indexOf(tool);
+  //   this.tools.splice(index, 1);
+  //   var toolToRemove = document.getElementById(tool.id);
+  //   if (toolToRemove != undefined) {
+  //     toolToRemove.parentNode.removeChild(toolToRemove);
+  //   }
+  // },
+  /**
+   * Method: setToolBox
+   * Description: sets the toolbox instance for this canvas
+   */
+  setToolBox: function(toolBox) {
+    this.toolBox = toolBox;
   },
   /**
    * Method: render
@@ -519,36 +665,36 @@ const Canvas = Class.create({
         { type: 'bottom', size: 40, style: pstyle, content: 'bottom', resizable: false },
       ]
     });
-    var toolsHtml = "";
-    toolsHtml +=
-          `<table style='width: 50px;' class='middle toolbox'>
-              <tr>
-                <th>Toolbox</th>
-              </tr>
-              <tr>
-                <td>`;
-                  for (var i = 0; i < this.tools.length; i++) {
-                    if (i === 0) {
-                      toolsHtml += this.renderToolItem();
-                    } else {
-                      toolsHtml += this.tools[i].renderToolItem();
-                    }
-                  }
-                  toolsHtml +=
-                `</td>
-              </tr>
-              <tr>
-                <td style='text-align: center; font-size: 9px;'>`;
-                toolsHtml += `X: <span id='x_label'></span>
-                         Y: <span id='y_label'></span>
-                </td>
-              </tr>
-              <tr>
-                <td style='text-align: center; font-size: 9px;'>`;
-        toolsHtml += `STATE: <span id='mouse_state'></span>`;
-        toolsHtml += `</td>
-              </tr>
-            </table>`;
+    var toolsHtml = this.toolBox.render();
+    // toolsHtml +=
+    //       `<table style='width: 50px;' class='middle toolbox'>
+    //           <tr>
+    //             <th>Toolbox</th>
+    //           </tr>
+    //           <tr>
+    //             <td>`;
+    //               for (var i = 0; i < this.tools.length; i++) {
+    //                 if (i === 0) {
+    //                   toolsHtml += this.renderToolItem();
+    //                 } else {
+    //                   toolsHtml += this.tools[i].renderToolItem();
+    //                 }
+    //               }
+    //               toolsHtml +=
+    //             `</td>
+    //           </tr>
+    //           <tr>
+    //             <td style='text-align: center; font-size: 9px;'>`;
+    //             toolsHtml += `X: <span id='x_label'></span>
+    //                      Y: <span id='y_label'></span>
+    //             </td>
+    //           </tr>
+    //           <tr>
+    //             <td style='text-align: center; font-size: 9px;'>`;
+    //     toolsHtml += `STATE: <span id='mouse_state'></span>`;
+    //     toolsHtml += `</td>
+    //           </tr>
+    //         </table>`;
     //w2ui['layout'].content('left', toolsHtml);
 
     var svgHtml = "";
@@ -561,6 +707,8 @@ const Canvas = Class.create({
     mainHtml += toolsHtml + "</td><td>" + svgHtml + "</td></tr></table>";
 
     w2ui['layout'].content('main', mainHtml);
+    //activate the toolbox
+    this.toolBox.activate();
     this.offsetX = w2ui['layout'].get('left').size + 90;
     this.offsetY = w2ui['layout'].get('top').size + 20;
 
@@ -670,11 +818,17 @@ const Canvas = Class.create({
 
     $j('[name="tools"]').bind('click', function(e) {
       var name = e.currentTarget.id;
-      for (var i = 0; i < that.tools.length; i++) {
-        if ((that.id + "_" + that.tools[i].getToolName() + "_tool") === name) {
-          that._changeTool(i);
-        }
+      var tool = that.toolBox.getTool(name);
+      if(tool !== null){
+        that._changeTool(tool);
+      } else {
+        that._changeTool(that);
       }
+      // for (var i = 0; i < that.tools.length; i++) {
+      //   if ((that.id + "_" + that.tools[i].getToolName() + "_tool") === name) {
+      //     that._changeTool(i);
+      //   }
+      // }
     });
     // for (var i = 0; i < this.nodes.length; i++) {
     //   this.nodes[i].registerPortHighlighters();
@@ -1187,10 +1341,11 @@ const Canvas = Class.create({
       .attr("d", "M 0 6 12 0 9 6 12 12")
       .style("fill", "black");
   },
-  _changeTool(index) {
-    if (index < this.tools.length) {
-      this.selectedTool = this.tools[index];
-    }
+  _changeTool(/*index*/ tool) {
+    // if (index < this.tools.length) {
+    //   this.selectedTool = this.tools[index];
+    // }
+    this.selectedTool = tool;
   },
   _selectPointerTool: function() {
     $j('#' + this.id + '_POINTER_tool').prop("checked", true).trigger('click');
