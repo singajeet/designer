@@ -201,6 +201,9 @@ var ShapeType = {
   BEZIRE_CURVE: 7,
   POINTER: 8,
   SELECTION: 9,
+  CUSTOM: 10,
+  NODE: 11,
+  PORT: 12,
   properties: {
     9999: {
       name: 'NONE'
@@ -234,6 +237,15 @@ var ShapeType = {
     },
     9: {
       name: 'SELECTION'
+    },
+    10: {
+      name: 'CUSTOM'
+    },
+    11: {
+      name: 'NODE'
+    },
+    12: {
+      name: 'PORT'
     }
   }
 };
@@ -399,6 +411,7 @@ const Canvas = Class.create({
   options: undefined,
   nodes: [],
   edges: [],
+  ports: [],
   grid: [10, 10],
   // tools: [],
   toolBox: undefined,
@@ -432,6 +445,7 @@ const Canvas = Class.create({
     this.svg = undefined;
     this.nodes = nodes || [];
     this.edges = edges || [];
+    this.ports = [];
     this.grid = grid || [10, 10];
     // this.tools = [this];
     this.toolBox = undefined;
@@ -559,6 +573,8 @@ const Canvas = Class.create({
    * Description: Removes an edge from the array
    */
   removeEdge: function(edge) {
+    //Call destroy method of edge
+    edge.destroy();
     var index = this.edges.indexOf(edge);
     this.edges.splice(index, 1);
     var edgeEle = document.getElementById(edge.id);
@@ -606,11 +622,36 @@ const Canvas = Class.create({
    * Description: Removes an node from the array
    */
   removeNode: function(node) {
+    //Call destroy method of node
+    node.destroy();
+    //remove node itself
     var index = this.nodes.indexOf(node);
     this.nodes.splice(index, 1);
     var nodeToRemove = document.getElementById(node.id);
     if (nodeToRemove != undefined) {
       nodeToRemove.parentNode.removeChild(nodeToRemove);
+    }
+  },
+  /**
+   * Method: addPort
+   * Description: adds an port assigned to an node on the canvas
+   */
+  addPort: function(port) {
+    this.ports.push(port);
+    port.render();
+  },
+  /**
+   * Method: removePort
+   * Description: removes an port from the canvas
+   */
+  removePort: function(port) {
+    //call destroy method of port
+    port.destroy();
+    var index = this.ports.indexOf(port);
+    this.ports.splice(index, 1);
+    var portToRemove = document.getElementById(port.id);
+    if(portToRemove != undefined) {
+      portToRemove.parentNode.removeChild(portToRemove);
     }
   },
   /**
@@ -766,6 +807,16 @@ const Canvas = Class.create({
           that.nodes.forEach(function(item){
             if(item.isSelected()){
               selectedItem = item;
+              selectionCounter++;
+            }
+          });
+        }
+
+        //If selected item is not a node, search in ports
+        if(selectedItem === null){
+          that.ports.forEach(function(port){
+            if(port.isSelected()){
+              selectedItem = port;
               selectionCounter++;
             }
           });
@@ -955,6 +1006,9 @@ const Canvas = Class.create({
         } else if (that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.ELLIPSE) {
           that.tempElement.attr('rx', that.mouseX - that.mouseStartX);
           that.tempElement.attr('ry', that.mouseY - that.mouseStartY);
+        } else if (that.tempElement != undefined && that.selectedTool.getShapeType() === ShapeType.NODE) {
+          that.tempElement.attr('width', that.mouseX - that.mouseStartX);
+          that.tempElement.attr('height', that.mouseY - that.mouseStartY);
         }
       } else {
         that.mouseState = MouseState.MOVE;
@@ -1027,6 +1081,15 @@ const Canvas = Class.create({
                 .attr('style', 'stroke:green;stroke-width:2px;stroke-dasharray:2');
               break;
             case ShapeType.RECTANGLE:
+              that.tempElement = svg.append('rect')
+                .attr('id', 'temp_id')
+                .attr('x', that.mouseStartX)
+                .attr('y', that.mouseStartY)
+                .attr('height', '5')
+                .attr('width', '5')
+                .attr('style', 'stroke: green; stroke-width: 2px; stroke-dasharray:2; fill:none');
+              break;
+            case ShapeType.NODE:
               that.tempElement = svg.append('rect')
                 .attr('id', 'temp_id')
                 .attr('x', that.mouseStartX)
@@ -1134,6 +1197,9 @@ const Canvas = Class.create({
                   that.edges.forEach(function(edge){
                     edge.disable();
                   });
+                  that.ports.forEach(function(port){
+                    port.disable();
+                  });
                 }
               } else {
                 that.draggables.forEach(function(item){
@@ -1142,6 +1208,9 @@ const Canvas = Class.create({
                 });
                 that.edges.forEach(function(edge){
                   edge.disable();
+                });
+                that.ports.forEach(function(port){
+                  port.disable();
                 });
               }
               w2ui['properties'].clear();
@@ -1202,6 +1271,22 @@ const Canvas = Class.create({
           }
           var rectDim = new RectDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndY - that.mouseStartY), (that.mouseEndX - that.mouseStartX));
           var node = new Rectangle(name, that, rectDim);
+          that.tempElement.remove();
+          that.tempElement = undefined;
+          that.addNode(node);
+          that._selectPointerTool();
+        } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.NODE) {
+          var name = prompt("Element Name:");
+          var dx = that.mouseEndX - that.mouseStartX;
+          var dy = that.mouseEndY - that.mouseStartY;
+          if(dx < 30){
+            that.mouseEndX += 30;
+          }
+          if(dy < 30){
+            that.mouseEndY += 30;
+          }
+          var rectDim = new RectDimension(that.mouseStartX, that.mouseStartY, (that.mouseEndY - that.mouseStartY), (that.mouseEndX - that.mouseStartX));
+          var node = new BaseNode(name, that, rectDim);
           that.tempElement.remove();
           that.tempElement = undefined;
           that.addNode(node);
@@ -1408,7 +1493,8 @@ const Shape = Class.create({
     return this.shapeType;
   },
   render: function() {},
-  renderToolItem: function() {}
+  renderToolItem: function() {},
+  destroy: function() {}
 });
 /**
  * Defines an line that will be used to connect two or more nodes with
@@ -1777,6 +1863,9 @@ const Line = Class.create({
       }
     }
   },
+  destroy: function() {
+
+  },
   renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_LINE_tool' >";
@@ -2015,6 +2104,9 @@ var Rectangle = Class.create({
       this.description = propValue;
     }
   },
+  destroy: function() {
+
+  },
   renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_RECT_tool' >";
@@ -2204,6 +2296,9 @@ var Circle = Class.create({
     } else if(propName === "Description"){
       this.description = propValue;
     }
+  },
+  destroy: function() {
+
   },
   renderToolItem() {
     var html = '';
@@ -2400,6 +2495,9 @@ var Ellipse = Class.create({
       this.description = propValue;
     }
   },
+  destroy: function() {
+
+  },
   renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_ELLIPSE_tool' >";
@@ -2578,6 +2676,9 @@ var Polygon = Class.create({
     } else if(propName === "Description"){
       this.description = propValue;
     }
+  },
+  destroy: function() {
+
   },
   renderToolItem() {
     var html = '';
@@ -2910,6 +3011,9 @@ var Polyline = Class.create({
       }
     }
   },
+  destroy: function() {
+
+  },
   renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_POLYLINE_tool' >";
@@ -3025,6 +3129,8 @@ var BezireCurve = Class.create({
   },
   createHandlers: function() {
 
+    var that = this;
+
     var dragHandlers = d3.drag()
       .on('drag', function(e) { dragMoveHandler(e, that, this); })
       .on('end', function(e) { dropHandler(e, that, this); });
@@ -3058,8 +3164,6 @@ var BezireCurve = Class.create({
       .attr('class', 'drag-svg')
       .attr('line', this.id)
       .call(dragHandlers);
-
-    var that = this;
 
     function dropHandler(e, lineInstance, that){
       lineInstance.populateProperties();
@@ -3243,6 +3347,9 @@ var BezireCurve = Class.create({
       }
     }
   },
+  destroy: function() {
+
+  },
   renderToolItem() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_BEZIRE_CURVE_tool' >";
@@ -3261,3 +3368,201 @@ var BezireCurve = Class.create({
   },
 });
 
+/**
+ * Port: Defines a port for a given node where an connector (Edge)
+ * can be pluged in
+ * @constructor
+ */
+const Port = Class.create({
+  id: '',
+  parentElement: undefined,
+  value: '',
+  connector: undefined,
+  x: 0,
+  y: 0,
+  height: 10,
+  width: 10,
+  position: 'RIGHT',
+  fillColor: 'lightblue',
+  shapeType: ShapeType.PORT,
+  selected: false,
+  initialize: function(id, parentElement, x, y, position, value, connector, height, width) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.x = x;
+    this.y = y;
+    this.position = position || 'RIGHT';
+    this.value = value;
+    this.connector = connector;
+    this.height = height || 10;
+    this.width = width || 10;
+    this.fillColor = 'lightblue';
+    this.shapeType = ShapeType.PORT;
+    this.selected = false;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  isSelected: function() {
+    return this.selected;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+    var svg_id = '#' + this.parentElement.parentElement.id + '_svg';
+    var svg = d3.select(svg_id);
+
+    this.line = svg.append('rect')
+      .attr('id', this.id)
+      .attr('x', this.x)
+      .attr('y', this.y)
+      .attr('height', this.height)
+      .attr('width', this.width)
+      .attr('style', 'stroke: black; stroke-width: 1px; fill: ' + this.fillColor + ';')
+      .attr('data-type', 'node-base')
+      .attr('parentElement', this.parentElement.id)
+      .attr('shapeType', this.shapeType)
+      .attr('selected', this.selected);
+
+    if(this.position === 'RIGHT'){
+      this.text = svg.append('text')
+        .attr('id', this.id + '_text')
+        .text(this.id)
+        .attr('x', this.x - 10)
+        .attr('y', this.y + (this.height/2))
+        .attr('text-anchor', 'end')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', '.7em');
+    } else {
+      this.text = svg.append('text')
+        .attr('id', this.id + '_text')
+        .text(this.id)
+        .attr('x', this.x + 10)
+        .attr('y', this.y + (this.height/2))
+        .attr('text-anchor', 'start')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', '.7em');
+    }
+
+    this.createHandler();
+  },
+  createHandler: function() {
+
+    var that = this;
+
+    var dragHandlers = d3.drag()
+      .on('drag', dragMoveHandler)
+      .on('end', dropHandler);
+
+    function dragMoveHandler(e) {}
+    function dropHandler(e) {}
+
+    this.line.call(dragHandlers);
+
+    var line = document.getElementById(this.id);
+    line.addEventListener('click', mouseClick);
+
+    function mouseClick(event) {
+      that.selected = true;
+      that.line.attr('selected', true);
+      that.populateProperties();
+    }
+  },
+  disable: function(){
+    this.line.attr('selected', false);
+    this.selected = false;
+  },
+  populateProperties: function() {
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 4, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      }
+                      ]
+          }
+        },
+        {
+          recid: 5, propName: 'Details',
+          w2ui: {
+            children: [
+              { recid: 6, propName: 'Value', propValue: this.value}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue) {
+    this.value = propValue;
+  },
+  destroy: function() {
+    var text = document.getElementById(this.id + '_text');
+    text.parentNode.removeChild(text);
+  }
+});
+
+/**
+ * Node: Defines a node which has two ports by default which are
+ * input and output
+ * @constructor
+ */
+const BaseNode = Class.create(Rectangle, {
+  INPUT: 0,
+  OUTPUT: 1,
+  shapeType: ShapeType.NODE,
+  toolName: 'NODE',
+  initialize: function($super, id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, description) {
+    $super(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, description);
+    this.shapeType = ShapeType.NODE;
+    this.toolName = 'NODE';
+    this.ports[this.INPUT] = new Port(this.id + '_input', this, this.rectDimension.left - 5, (this.rectDimension.top + (this.rectDimension.height / 2)), 'LEFT');
+    this.ports[this.OUTPUT] = new Port(this.id + '_output', this, (this.rectDimension.left + this.rectDimension.width) - 5, (this.rectDimension.top + (this.rectDimension.height / 2)), 'RIGHT');
+  },
+  render: function($super) {
+    $super();
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.addPort(port);
+    });
+  },
+  renderToolItem: function() {
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_NODE_tool' >";
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_NODE_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <rect x='21' y='21' height='17' width='17' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 23 23)'></rect>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">NODE</text>
+                    </svg>
+                 </div>`;
+    html += "</label>";
+    return html;
+  },
+  destroy: function() {
+    //remove ports
+    if(this.ports.length > 0){
+      for(var i=0; i < this.ports.length; i++){
+        this.parentElement.removePort(this.ports[i]);
+      }
+    }
+  }
+});

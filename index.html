@@ -41,6 +41,7 @@
       	  var polyTool = new Polygon('PolyTool', c);
       	  var polylineTool = new Polyline('PolylineTool', c);
           var bezireCurve = new BezireCurve('bezireCurve', c);
+          var nodeTool = new BaseNode('NodeTool', c);
 
           edgesGroup.addTool(lineTool);
           edgesGroup.addTool(polylineTool);
@@ -50,6 +51,7 @@
           nodesGroup.addTool(circTool);
           nodesGroup.addTool(ellipTool);
           nodesGroup.addTool(polyTool);
+          nodesGroup.addTool(nodeTool);
 
           toolbox.addGroup(edgesGroup);
           toolbox.addGroup(nodesGroup);
