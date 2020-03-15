@@ -477,11 +477,11 @@ const Canvas = Class.create({
       proportions: false,
       rotationPoint: false,
       //themeColor: 'white',
-      each: {
-        //resize: true,
-        //move: true,
-        //rotate: true
-      },
+      // each: {
+      //   resize: true,
+      //   move: true,
+      //   rotate: false
+      // },
       snap: {
         x: 10,
         y: 10,
@@ -512,9 +512,9 @@ const Canvas = Class.create({
       onDrop(obj) {
           var node = that.getNode(this.el.id);
           if(ops === "MOVE"){
-            node.incrementCoordinates(deltaX, deltaY);
+            node.setCoordinates(deltaX, deltaY);
           } else if(ops === "RESIZE"){
-            node.incrementSize(deltaX, deltaY);
+            node.setSize(deltaX, deltaY);
           }
           node.populateProperties();
           ops = "";
@@ -554,19 +554,6 @@ const Canvas = Class.create({
   addEdge: function(edge) {
     this.edges.push(edge);
     edge.render();
-    // var item = subjx('#' + edge.id + '_g').drag(this.options)[0];
-    // subjx(item.controls).on('dblclick', () => {
-    //       item.disable();
-    // });
-    // subjx('#' + edge.id + '_g').on('dblclick', e => {
-    //   if (e.currentTarget.classList.contains('sjx-drag')) return;
-    //   const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
-    //   // adding event to controls
-    //   const controls = xDraggable.controls;
-    //   subjx(controls).on('dblclick', () => {
-    //     xDraggable.disable();
-    //   });
-    // });
   },
   /**
    * Method: removeEdge
@@ -599,6 +586,11 @@ const Canvas = Class.create({
   addNode: function(node) {
     this.nodes.push(node);
     node.render();
+    // if(node.getShapeType() === ShapeType.NODE || node.getShapeType() === ShapeType.CUSTOM){
+    //   this.options.rotatable = false;
+    // } else {
+    //   this.options.rotatable = true;
+    // }
 
     var item = subjx('#' + node.id).drag(this.options)[0];
     this.draggables.push(item);
@@ -611,7 +603,13 @@ const Canvas = Class.create({
           that.draggables.splice(index, 1);
         }
       });
-      const xDraggable = subjx(e.currentTarget).drag(this.options, this.observable)[0];
+
+      // if(node.getShapeType() === ShapeType.NODE || node.getShapeType() === ShapeType.CUSTOM){
+      //   that.options.rotatable = false;
+      // } else {
+      //   that.options.rotatable = true;
+      // }
+      const xDraggable = subjx(e.currentTarget).drag(that.options, that.observable)[0];
       xDraggable.el.attributes['selected'].value = true;
       that.draggables.push(xDraggable);
       node.populateProperties();
@@ -2004,16 +2002,18 @@ var Rectangle = Class.create({
   isSelected: function(){
     return JSON.parse(this.line.attr('selected'));
   },
-  incrementSize: function(dx, dy){
-    this.rectDimension.width += dx;
-    this.rectDimension.height += dy;
+  setSize: function(dx, dy){
+    this.rectDimension.width = parseInt(this.line.attr('width'));
+    this.rectDimension.height = parseInt(this.line.attr('height'));
+    this.rectDimension.left = parseInt(this.line.attr('x'));
+    this.rectDimension.top = parseInt(this.line.attr('y'));
     this.text
       .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
       .attr('y', this.rectDimension.top + (this.rectDimension.height/2));
   },
-  incrementCoordinates: function(dx, dy){
-    this.rectDimension.left += dx;
-    this.rectDimension.top += dy;
+  setCoordinates: function(dx, dy){
+    this.rectDimension.left = parseInt(this.line.attr('x'));
+    this.rectDimension.top = parseInt(this.line.attr('y'));
     this.text
       .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
       .attr('y', this.rectDimension.top + (this.rectDimension.height/2));
@@ -2200,7 +2200,7 @@ var Circle = Class.create({
   isSelected: function(){
     return JSON.parse(this.line.attr('selected'));
   },
-  incrementSize: function(dx, dy){
+  setSize: function(dx, dy){
     this.circDimension.cx += (dx/2);
     this.circDimension.cy += (dy/2);
     this.circDimension.r += (dx/4);
@@ -2209,7 +2209,7 @@ var Circle = Class.create({
       .attr('x', this.circDimension.cx)
       .attr('y', this.circDimension.cy);
   },
-  incrementCoordinates: function(dx, dy){
+  setCoordinates: function(dx, dy){
     this.circDimension.cx += dx;
     this.circDimension.cy += dy;
     this.text
@@ -2393,7 +2393,7 @@ var Ellipse = Class.create({
   isSelected: function(){
     return JSON.parse(this.line.attr('selected'));
   },
-  incrementSize: function(dx, dy){
+  setSize: function(dx, dy){
     this.ellipDimension.cx += (dx/2);
     this.ellipDimension.cy += (dy/2);
     this.ellipDimension.rx += (dx/2);
@@ -2402,7 +2402,7 @@ var Ellipse = Class.create({
       .attr('x', this.ellipDimension.cx)
       .attr('y', this.ellipDimension.cy);
   },
-  incrementCoordinates: function(dx, dy){
+  setCoordinates: function(dx, dy){
     this.ellipDimension.cx += dx;
     this.ellipDimension.cy += dy;
     this.text
@@ -2592,14 +2592,14 @@ var Polygon = Class.create({
   isSelected: function(){
     return JSON.parse(this.line.attr('selected'));
   },
-  incrementSize: function(dx, dy){
+  setSize: function(dx, dy){
     this.polyPoints = d3.select('#' + this.id).attr('points');
     var polyPointsArray = this.polyPoints.split(' ');
     this.text
       .attr('x', parseInt(polyPointsArray[0]) + 20)
       .attr('y', parseInt(polyPointsArray[1]) + 20);
   },
-  incrementCoordinates: function(dx, dy){
+  setCoordinates: function(dx, dy){
     this.polyPoints = d3.select('#' + this.id).attr('points');
     var polyPointsArray = this.polyPoints.split(' ');
     this.text
@@ -3406,6 +3406,32 @@ const Port = Class.create({
   isSelected: function() {
     return this.selected;
   },
+  moveTo: function(x, y) {
+    this.x = x;
+    this.y = y;
+
+    this.line
+      .attr('x', this.x)
+      .attr('y', this.y);
+
+    if(this.position === 'RIGHT'){
+      this.text
+        .attr('x', this.x - 10)
+        .attr('y', this.y + (this.height/2));
+    } else {
+      this.text
+        .attr('x', this.x + 10)
+        .attr('y', this.y + (this.height/2));
+    }
+  },
+  hide: function() {
+    this.line.attr('visibility', 'hidden');
+    this.text.attr('visibility', 'hidden');
+  },
+  show: function() {
+    this.line.attr('visibility', 'visible');
+    this.text.attr('visibility', 'visible');
+  },
   render: function() {
     this.makeElement();
   },
@@ -3450,13 +3476,36 @@ const Port = Class.create({
   createHandler: function() {
 
     var that = this;
+    var svg_id = '#' + this.parentElement.parentElement.id + '_svg';
+    var svg = d3.select(svg_id);
 
     var dragHandlers = d3.drag()
+      .on('start', startHandler)
       .on('drag', dragMoveHandler)
       .on('end', dropHandler);
 
-    function dragMoveHandler(e) {}
-    function dropHandler(e) {}
+    function startHandler(e) {
+      that.tempElement = svg.append('line')
+        .attr('id', 'temp_line')
+        .attr('x1', that.x + (that.width/2))
+        .attr('y1', that.y + (that.height/2))
+        .attr('x2', that.x + 5)
+        .attr('y2', that.y)
+        .attr('style', 'stroke:green;stroke-width:2px;stroke-dasharray:2');
+    }
+
+    function dragMoveHandler(e) {
+      var x = d3.event.x;
+      var y = d3.event.y;
+
+      that.tempElement
+        .attr('x2', x)
+        .attr('y2', y);
+    }
+
+    function dropHandler(e) {
+      that.tempElement.remove();
+    }
 
     this.line.call(dragHandlers);
 
@@ -3539,6 +3588,37 @@ const BaseNode = Class.create(Rectangle, {
     var that = this;
     this.ports.forEach(function(port){
       that.parentElement.addPort(port);
+    });
+  },
+  setSize: function($super, dx, dy){
+    $super(dx, dy);
+    this.ports[this.INPUT].moveTo(this.rectDimension.left - 5, (this.rectDimension.top + (this.rectDimension.height / 2)));
+    this.ports[this.OUTPUT].moveTo((this.rectDimension.left + this.rectDimension.width) - 5, (this.rectDimension.top + (this.rectDimension.height / 2)));
+  },
+  setCoordinates: function($super, dx, dy){
+    $super(dx, dy);
+    this.ports[this.INPUT].moveTo(this.rectDimension.left - 5, (this.rectDimension.top + (this.rectDimension.height / 2)));
+    this.ports[this.OUTPUT].moveTo((this.rectDimension.left + this.rectDimension.width) - 5, (this.rectDimension.top + (this.rectDimension.height / 2)));
+  },
+  onMove: function($super, dx, dy){
+    $super(dx, dy);
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+  },
+  onResize: function($super, dx, dy, obj){
+    $super(dx, dy, obj);
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+  },
+  onRotate: function($super, obj){
+    $super(obj);
+  },
+  onDrop: function($super, obj){
+    $super(obj);
+    this.ports.forEach(function(port){
+      port.show();
     });
   },
   renderToolItem: function() {
