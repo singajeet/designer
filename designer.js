@@ -249,6 +249,22 @@ var ShapeType = {
     }
   }
 };
+/**
+ * Enum: PortType
+ * Description: Define port type as source or target
+ */
+var PortType = {
+  SOURCE: 0,
+  TARGET: 1,
+  properties: {
+    0: {
+      name: 'SOURCE'
+    },
+    1: {
+      name: 'TARGET'
+    }
+  }
+};
 
 /**
  * ToolGroup: this class represents an group of items inside
@@ -651,6 +667,19 @@ const Canvas = Class.create({
     if(portToRemove != undefined) {
       portToRemove.parentNode.removeChild(portToRemove);
     }
+  },
+  /**
+   *
+   * Method: getPort
+   * Description: returns the port with the specified id
+   */
+  getPort: function(port_id) {
+    for(var i=0; i<this.ports.length; i++){
+      if(this.ports[i].id === port_id){
+        return this.ports[i];
+      }
+    }
+    return null;
   },
   /**
    * Method: addTool
@@ -1545,17 +1574,50 @@ const Line = Class.create({
   getShapeType: function() {
     return this.shapeType;
   },
+  setStartPoint: function(x, y) {
+    this.lineDimension.start.x = x;
+    this.lineDimension.start.y = y;
+    this.line
+      .attr('x1', this.lineDimension.start.x)
+      .attr('y1', this.lineDimension.start.y);
+    this.path.attr('d', this._calculatePath());
+    this.startHandler
+      .attr('cx', this.lineDimension.start.x)
+      .attr('cy', this.lineDimension.start.y);
+  },
+  setEndPoint: function(x, y) {
+    this.lineDimension.end.x = x;
+    this.lineDimension.end.y = y;
+    this.line
+      .attr('x2', this.lineDimension.end.x)
+      .attr('y2', this.lineDimension.end.y);
+    this.path.attr('d', this._calculatePath());
+    this.endHandler
+      .attr('cx', this.lineDimension.end.x)
+      .attr('cy', this.lineDimension.end.y);
+  },
+  show: function() {
+    this.line
+      .attr('visibility', 'visible');
+    this.path
+      .attr('visibility', 'visible');
+    this.titleText
+      .attr('visibility', 'visible');
+  },
+  hide: function() {
+    this.line
+      .attr('visibility', 'hidden');
+    this.path
+      .attr('visibility', 'hidden');
+    this.titleText
+      .attr('visibility', 'hidden');
+  },
   render: function() {
     if (!is_dict(this.elementLeft) && !is_dict(this.elementRight)) {
-      var node1 = this.parentElement.getNode(this.elementLeft.id);
-      var node2 = this.parentElement.getNode(this.elementRight.id);
-      var port1 = node1.getNextEmptyPort();
-      var port2 = node2.getNextEmptyPort();
-
-      this.lineDimension.start.x = port1.getConnectionPoint().x;
-      this.lineDimension.start.y = port1.getConnectionPoint().y;
-      this.lineDimension.end.x = port2.getConnectionPoint().x;
-      this.lineDimension.end.y = port2.getConnectionPoint().y;
+      this.lineDimension.start.x = this.elementLeft.x + 10;
+      this.lineDimension.start.y = this.elementLeft.y + 5;
+      this.lineDimension.end.x = this.elementRight.x;
+      this.lineDimension.end.y = this.elementRight.y + 5;
     } else {
       this.lineDimension.start.x = this.elementLeft.x;
       this.lineDimension.start.y = this.elementLeft.y;
@@ -1902,10 +1964,12 @@ var Rectangle = Class.create({
   lineColor: "black",
   lineWidth: "3",
   lineStroke: "Solid",
+  fillColor: 'white',
   shapeType: ShapeType.RECTANGLE,
   toolName: 'RECT',
   selected: true,
-  initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, description) {
+  opacity: 0.2,
+  initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
     this.parentElement = parentElement;
     this.title = title || "";
@@ -1915,9 +1979,11 @@ var Rectangle = Class.create({
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "3";
     this.lineStroke = lineStroke || "Solid";
+    this.fillColor = fillColor || "white";
     this.shapeType = ShapeType.RECTANGLE;
     this.toolName = 'RECT';
     this.selected = true;
+    this.opacity = opacity || 0.2;
   },
   getToolName: function() {
     return this.toolName;
@@ -1979,7 +2045,7 @@ var Rectangle = Class.create({
       .attr('y', this.rectDimension.top)
       .attr('height', this.rectDimension.height)
       .attr('width', this.rectDimension.width)
-      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + ';opacity: ' + this.opacity)
       .attr('data-type', 'node-base')
       //.attr('class', 'drag-svg')
       .attr('parentElement', this.parentElement.id)
@@ -2021,8 +2087,12 @@ var Rectangle = Class.create({
   onMove: function(dx, dy){
     this.text.attr('visibility', 'hidden');
   },
-  onResize: function(dx, dy, obj){},
-  onRotate: function(obj){},
+  onResize: function(dx, dy, obj){
+    this.text.attr('visibility', 'hidden');
+  },
+  onRotate: function(obj){
+    this.text.attr('visibility', 'hidden');
+  },
   onDrop: function(obj){
     this.text.attr('visibility', 'visible');
   },
@@ -2061,17 +2131,21 @@ var Rectangle = Class.create({
                         w2ui: { editable: { type: 'color'} }
                       },
                       { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
-                      { recid: 9, propName: 'Shape Type', propValue: this.shapeType,
+                      { recid: 9, propName: 'Fill Color', propValue: this.fillColor,
+                        w2ui: {editable: { type: 'color'} }
+                      },
+                      { recid: 10, propName: 'Opacity', propValue: this.opacity},
+                      { recid: 11, propName: 'Shape Type', propValue: this.shapeType,
                           w2ui: { editable: false,
                                   style: "color: grey"
                                 }
                       },
-                      { recid: 10, propName: 'Tool Name', propValue: this.toolName,
+                      { recid: 12, propName: 'Tool Name', propValue: this.toolName,
                           w2ui: { editable: false,
                                   style: "color: grey"
                                 }
                       },
-                      { recid: 11, propName: 'Is Selected', propValue: this.selected,
+                      { recid: 13, propName: 'Is Selected', propValue: this.selected,
                           w2ui: { editable: false,
                                   style: "color: grey"
                                 }
@@ -2079,11 +2153,11 @@ var Rectangle = Class.create({
             ]
           }
         },
-        { recid: 12, propName: 'Details',
+        { recid: 14, propName: 'Details',
           w2ui: {
             children: [
-                      { recid: 13, propName: 'Title', propValue: this.title},
-                      { recid: 14, propName: 'Description', propValue: this.description}
+                      { recid: 15, propName: 'Title', propValue: this.title},
+                      { recid: 16, propName: 'Description', propValue: this.description}
             ]
           }
         }
@@ -2093,10 +2167,16 @@ var Rectangle = Class.create({
   setProperty: function(propName, propValue){
     if(propName === "Stroke Color"){
       this.lineColor = '#' + propValue;
-      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; opacity: ' + this.opacity);
     } else if(propName === "Stroke Width"){
       this.lineWidth = parseInt(propValue);
-      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; opacity: ' + this.opacity);
+    } else if(propName === "Fill Color"){
+      this.fillColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; opacity: ' + this.opacity);
+    } else if(propName === "Opacity"){
+      this.opacity = parseFloat(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; opacity: ' + this.opacity);
     } else if(propName === "Title"){
       this.title = propValue;
       this.text.text(this.title);
@@ -3377,7 +3457,7 @@ const Port = Class.create({
   id: '',
   parentElement: undefined,
   value: '',
-  connector: undefined,
+  connector: null,
   x: 0,
   y: 0,
   height: 10,
@@ -3386,6 +3466,7 @@ const Port = Class.create({
   fillColor: 'lightblue',
   shapeType: ShapeType.PORT,
   selected: false,
+  portType: undefined,
   initialize: function(id, parentElement, x, y, position, value, connector, height, width) {
     this.id = id;
     this.parentElement = parentElement;
@@ -3393,18 +3474,25 @@ const Port = Class.create({
     this.y = y;
     this.position = position || 'RIGHT';
     this.value = value;
-    this.connector = connector;
+    this.connector = connector || null;
     this.height = height || 10;
     this.width = width || 10;
     this.fillColor = 'lightblue';
     this.shapeType = ShapeType.PORT;
     this.selected = false;
+    this.portType = undefined;
   },
   getShapeType: function() {
     return this.shapeType;
   },
   isSelected: function() {
     return this.selected;
+  },
+  connect: function(connector, portType) {
+    this.connector = connector;
+    this.portType = portType;
+    this.fillColor = 'green';
+    this.line.attr('style', 'stroke: black; stroke-width: 1px; fill: ' + this.fillColor + ';');
   },
   moveTo: function(x, y) {
     this.x = x;
@@ -3417,20 +3505,34 @@ const Port = Class.create({
     if(this.position === 'RIGHT'){
       this.text
         .attr('x', this.x - 10)
-        .attr('y', this.y + (this.height/2));
+        .attr('y', this.y + (this.height/2) + 5);
     } else {
       this.text
-        .attr('x', this.x + 10)
-        .attr('y', this.y + (this.height/2));
+        .attr('x', this.x + 15)
+        .attr('y', this.y + (this.height/2) + 5);
+    }
+
+    if(this.connector != null){
+      if(this.portType === PortType.SOURCE){
+        this.connector.setStartPoint(this.x + 10, this.y + 5);
+      } else if(this.portType === PortType.TARGET){
+        this.connector.setEndPoint(this.x, this.y + 5);
+      }
     }
   },
   hide: function() {
     this.line.attr('visibility', 'hidden');
     this.text.attr('visibility', 'hidden');
+    if(this.connector != null) {
+      this.connector.hide();
+    }
   },
   show: function() {
     this.line.attr('visibility', 'visible');
     this.text.attr('visibility', 'visible');
+    if(this.connector != null) {
+      this.connector.show();
+    }
   },
   render: function() {
     this.makeElement();
@@ -3456,7 +3558,7 @@ const Port = Class.create({
         .attr('id', this.id + '_text')
         .text(this.id)
         .attr('x', this.x - 10)
-        .attr('y', this.y + (this.height/2))
+        .attr('y', this.y + (this.height/2) + 5)
         .attr('text-anchor', 'end')
         .attr('font-family', 'sans-serif')
         .attr('font-size', '.7em');
@@ -3464,8 +3566,8 @@ const Port = Class.create({
       this.text = svg.append('text')
         .attr('id', this.id + '_text')
         .text(this.id)
-        .attr('x', this.x + 10)
-        .attr('y', this.y + (this.height/2))
+        .attr('x', this.x + 15)
+        .attr('y', this.y + (this.height/2) + 5)
         .attr('text-anchor', 'start')
         .attr('font-family', 'sans-serif')
         .attr('font-size', '.7em');
@@ -3485,26 +3587,48 @@ const Port = Class.create({
       .on('end', dropHandler);
 
     function startHandler(e) {
-      that.tempElement = svg.append('line')
-        .attr('id', 'temp_line')
-        .attr('x1', that.x + (that.width/2))
-        .attr('y1', that.y + (that.height/2))
-        .attr('x2', that.x + 5)
-        .attr('y2', that.y)
-        .attr('style', 'stroke:green;stroke-width:2px;stroke-dasharray:2');
+      if(that.connector === null){
+        that.tempElement = svg.append('line')
+          .attr('id', 'temp_line')
+          .attr('x1', that.x + (that.width/2))
+          .attr('y1', that.y + (that.height/2))
+          .attr('x2', that.x + 5)
+          .attr('y2', that.y)
+          .attr('style', 'stroke:green;stroke-width:2px;stroke-dasharray:2');
+      }
     }
 
     function dragMoveHandler(e) {
-      var x = d3.event.x;
-      var y = d3.event.y;
+      if(that.connector === null) {
+        var x = d3.event.x;
+        var y = d3.event.y;
 
-      that.tempElement
-        .attr('x2', x)
-        .attr('y2', y);
+        that.tempElement
+          .attr('x2', x)
+          .attr('y2', y);
+      }
     }
 
     function dropHandler(e) {
-      that.tempElement.remove();
+      if(that.connector === null) {
+        that.tempElement.remove();
+        var port_id = d3.event.sourceEvent.target.id;
+        var port = that.parentElement.parentElement.getPort(port_id);
+        if(port != null){
+          if(port.parentElement === that.parentElement){
+            console.log("Cannot connect. Target Port & Source Port belongs to the same parent node");
+          } else {
+            console.log('Port found with id: ' + port_id);
+            var name = prompt("Element Name:");
+            var line = new Line(name, that.parentElement.parentElement, that, port);
+            that.parentElement.parentElement.addEdge(line);
+            that.connect(line, PortType.SOURCE);
+            port.connect(line, PortType.TARGET);
+          }
+        } else {
+          console.log('Port NOT found');
+        }
+      }
     }
 
     this.line.call(dragHandlers);
@@ -3516,6 +3640,22 @@ const Port = Class.create({
       that.selected = true;
       that.line.attr('selected', true);
       that.populateProperties();
+    }
+
+    line.addEventListener('mouseover', mouseOver);
+
+    function mouseOver(event) {
+      if(that.connector === null){
+        that.line
+        .attr('style', 'stroke: black; stroke-width: 1px; fill: #E06666;');
+      }
+    }
+
+    line.addEventListener('mouseleave', mouseLeave);
+
+    function mouseLeave(event) {
+      that.line
+      .attr('style', 'stroke: black; stroke-width: 1px; fill: ' + that.fillColor + ';');
     }
   },
   disable: function(){
@@ -3584,33 +3724,97 @@ const BaseNode = Class.create(Rectangle, {
     this.ports[this.OUTPUT] = new Port(this.id + '_output', this, (this.rectDimension.left + this.rectDimension.width) - 5, (this.rectDimension.top + (this.rectDimension.height / 2)), 'RIGHT');
   },
   render: function($super) {
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    var svg = d3.select(svg_id);
+
+    this.innerRect = svg.append('rect')
+      .attr('x', this.rectDimension.left)
+      .attr('y', this.rectDimension.top)
+      .attr('width', this.rectDimension.width)
+      .attr('height', this.rectDimension.height/2)
+      .attr('style', 'stroke-width: 2px; stroke: black; fill: violet; opacity: 0.5');
+
+    this.border = svg.append('rect')
+      .attr('x', this.rectDimension.left)
+      .attr('y', this.rectDimension.top)
+      .attr('width', this.rectDimension.width)
+      .attr('height', this.rectDimension.height)
+      .attr('style', 'stroke-width: ' + this.lineWidth + 'px; stroke: ' + this.lineColor + '; fill: none');
+
     $super();
     var that = this;
     this.ports.forEach(function(port){
       that.parentElement.addPort(port);
     });
+
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/4));
+  },
+  setProperty: function($super, propName, propValue){
+    $super(propName, propValue);
+
+    this.border
+      .attr('style', 'stroke-width: ' + this.lineWidth + 'px; stroke: ' + this.lineColor + '; fill: none');
+
   },
   setSize: function($super, dx, dy){
     $super(dx, dy);
     this.ports[this.INPUT].moveTo(this.rectDimension.left - 5, (this.rectDimension.top + (this.rectDimension.height / 2)));
     this.ports[this.OUTPUT].moveTo((this.rectDimension.left + this.rectDimension.width) - 5, (this.rectDimension.top + (this.rectDimension.height / 2)));
+
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/4));
+
+    this.innerRect
+      .attr('x', this.rectDimension.left)
+      .attr('y', this.rectDimension.top)
+      .attr('width', this.rectDimension.width)
+      .attr('height', this.rectDimension.height/2);
+
+    this.border
+      .attr('x', this.rectDimension.left)
+      .attr('y', this.rectDimension.top)
+      .attr('width', this.rectDimension.width)
+      .attr('height', this.rectDimension.height);
   },
   setCoordinates: function($super, dx, dy){
     $super(dx, dy);
     this.ports[this.INPUT].moveTo(this.rectDimension.left - 5, (this.rectDimension.top + (this.rectDimension.height / 2)));
     this.ports[this.OUTPUT].moveTo((this.rectDimension.left + this.rectDimension.width) - 5, (this.rectDimension.top + (this.rectDimension.height / 2)));
+
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/4));
+
+    this.innerRect
+      .attr('x', this.rectDimension.left)
+      .attr('y', this.rectDimension.top)
+      .attr('width', this.rectDimension.width)
+      .attr('height', this.rectDimension.height/2);
+
+    this.border
+      .attr('x', this.rectDimension.left)
+      .attr('y', this.rectDimension.top)
+      .attr('width', this.rectDimension.width)
+      .attr('height', this.rectDimension.height);
   },
   onMove: function($super, dx, dy){
     $super(dx, dy);
     this.ports.forEach(function(port){
       port.hide();
     });
+    this.innerRect.attr('visibility', 'hidden');
+    this.border.attr('visibility', 'hidden');
   },
   onResize: function($super, dx, dy, obj){
     $super(dx, dy, obj);
     this.ports.forEach(function(port){
       port.hide();
     });
+    this.innerRect.attr('visibility', 'hidden');
+    this.border.attr('visibility', 'hidden');
   },
   onRotate: function($super, obj){
     $super(obj);
@@ -3620,6 +3824,8 @@ const BaseNode = Class.create(Rectangle, {
     this.ports.forEach(function(port){
       port.show();
     });
+    this.innerRect.attr('visibility', 'visible');
+    this.border.attr('visibility', 'visible');
   },
   renderToolItem: function() {
     var html = '';
@@ -3630,7 +3836,10 @@ const BaseNode = Class.create(Rectangle, {
     html += "</input>";
     html += `<div class="tool-button">
                     <svg style='width: 50px; height: 50px;'>
-                      <rect x='21' y='21' height='17' width='17' style='stroke: black; stroke-width: 2px; fill:none' transform='rotate(180 23 23)'></rect>
+                      <rect x='10' y='10' height='17' width='30' style='stroke: black; stroke-width: 2px; fill:none'></rect>
+                      <line x1='12' y1='18.5' x2='38' y2='18.5' style='stroke: black; stroke-width: 2px'></line>
+                      <rect x='8' y='16.5' height='4' width='4' style='stroke: black; stroke-width: 1px; fill:white'></rect>
+                      <rect x='38' y='16.5' height='4' width='4' style='stroke: black; stroke-width: 1px; fill:white'></rect>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">NODE</text>
                     </svg>
                  </div>`;
