@@ -19,7 +19,7 @@ String.prototype.format = function() {
 }
 
 /**
- * Returns true if obj is plain obj {} or dict
+ * Returns true if obj is plain obj {} else false if dict
  */
 is_dict = function(obj) {
   if (!obj) return false;
@@ -407,7 +407,7 @@ const ToolBox = Class.create({
  * Canvas: class provides the functionality to hold the
  * nodes and edges objects
  *
- * @Constructor
+ * @constructor
  * @param {string} id - A unique identifier for the canvas
  * @param {string} container_id - Id of the parent container, if not
  *                                provided Canvas will be attached to
@@ -676,6 +676,19 @@ const Canvas = Class.create({
   getPort: function(port_id) {
     for(var i=0; i<this.ports.length; i++){
       if(this.ports[i].id === port_id){
+        return this.ports[i];
+      }
+    }
+    return null;
+  },
+  /**
+   *
+   * Method: getPort
+   * Description: returns the port with the specified id
+   */
+  getPortXY: function(x, y) {
+    for(var i=0; i<this.ports.length; i++){
+      if(x >= this.ports[i].x && y >= this.ports[i].y && x <= (this.ports[i].x + 10) && y <= (this.ports[i].y + 10)){
         return this.ports[i];
       }
     }
@@ -1233,6 +1246,9 @@ const Canvas = Class.create({
                   item.disable();
                   item.el.attributes['selected'].value = false;
                 });
+                // that.nodes.forEach(function(node){
+                //   node.disable();
+                // });
                 that.edges.forEach(function(edge){
                   edge.disable();
                 });
@@ -1500,18 +1516,22 @@ const Canvas = Class.create({
 /**
  * Base class for all shapes that could be added to the cavas
  */
-const Shape = Class.create({
+var Shape = Class.create({
   id: "",
   title: "",
   description: "",
   shapeType: ShapeType.NONE,
   toolName: 'NONE',
+  handlersVisible: true,
+  selected: true,
   initialize: function(id, title, description) {
     this.id = id;
     this.title = title;
     this.description = description;
     this.shapeType = ShapeType.NONE;
     this.toolName = 'NONE';
+    this.handlersVisible = true;
+    this.selected = true;
   },
   getToolName: function() {
     return this.toolName;
@@ -1519,8 +1539,179 @@ const Shape = Class.create({
   getShapeType: function() {
     return this.shapeType;
   },
-  render: function() {},
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+    var svg = d3.select('#' + this.parentElement.id + '_svg');
+
+    this.g = svg.append('g')
+      .attr('id', this.id + '_g');
+  },
+  createHandlers: function() {
+    var that = this;
+    var offsetX = 0;
+    var offsetY = 0;
+
+     //Drag function to drag the handlers/controls which appears at each edge
+    //of the line in form of filled circles
+    this.dragHandlers = d3.drag()
+      .on('start', function (e) { hDragStartHandler(e, that, this); })
+      .on('drag', function (e) { hDragMoveHandler(e, that, this); })
+      .on('end', function (e) { hDropHandler(e, that, this) });
+
+    var shape = document.getElementById(this.id);
+    this.bBox = shape.getBBox();
+    shape.addEventListener('click', mouseClick);
+
+    // var svg = d3.select('#' + this.parentElement.id + '_svg');
+
+    this.g// = svg.append('g')
+      // .attr('id', this.id + '_g')
+      .call(this.dragHandlers);
+    this.borderHandler = this.g.append('rect')
+      .attr('id', this.id + '_g_border_handler')
+      .attr('x', this.bBox.x)
+      .attr('y', this.bBox.y)
+      .attr('height', this.bBox.height)
+      .attr('width', this.bBox.width)
+      .attr('fill', '#00a8ff')
+      .attr('fill-opacity', '0.1')
+      .attr('stroke', '#00a8ff')
+      .attr('stroke-dasharray', '3 3')
+      .attr('vector-effect', 'non-scaling-stroke');
+    this.ltHandler = this.g.append('circle')
+      .attr('id', this.id + '_g_lt_handler')
+      .attr('cx', this.bBox.x)
+      .attr('cy', this.bBox.y)
+      .attr('r', '5.5')
+      .attr('fill', '#00a8ff')
+      .attr('stroke', '#fff')
+      .attr('fill-opacity', '1')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('stroke-width', '1');
+    this.lmHandler = this.g.append('circle')
+      .attr('id', this.id + '_g_lm_handler')
+      .attr('cx', this.bBox.x)
+      .attr('cy', this.bBox.y + (this.bBox.height/2))
+      .attr('r', '5.5')
+      .attr('fill', '#00a8ff')
+      .attr('stroke', '#fff')
+      .attr('fill-opacity', '1')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('stroke-width', '1');
+    this.lbHandler = this.g.append('circle')
+      .attr('id', this.id + '_g_lb_handler')
+      .attr('cx', this.bBox.x)
+      .attr('cy', this.bBox.y + (this.bBox.height))
+      .attr('r', '5.5')
+      .attr('fill', '#00a8ff')
+      .attr('stroke', '#fff')
+      .attr('fill-opacity', '1')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('stroke-width', '1');
+    this.mtHandler = this.g.append('circle')
+      .attr('id', this.id + '_g_mt_handler')
+      .attr('cx', this.bBox.x + (this.bBox.width/2))
+      .attr('cy', this.bBox.y)
+      .attr('r', '5.5')
+      .attr('fill', '#00a8ff')
+      .attr('stroke', '#fff')
+      .attr('fill-opacity', '1')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('stroke-width', '1');
+    this.mbHandler = this.g.append('circle')
+      .attr('id', this.id + '_g_mb_handler')
+      .attr('cx', this.bBox.x + (this.bBox.width/2))
+      .attr('cy', this.bBox.y + (this.bBox.height))
+      .attr('r', '5.5')
+      .attr('fill', '#00a8ff')
+      .attr('stroke', '#fff')
+      .attr('fill-opacity', '1')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('stroke-width', '1');
+    this.rtHandler = this.g.append('circle')
+      .attr('id', this.id + '_g_rt_handler')
+      .attr('cx', this.bBox.x + this.bBox.width)
+      .attr('cy', this.bBox.y)
+      .attr('r', '5.5')
+      .attr('fill', '#00a8ff')
+      .attr('stroke', '#fff')
+      .attr('fill-opacity', '1')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('stroke-width', '1');
+    this.rmHandler = this.g.append('circle')
+      .attr('id', this.id + '_g_rm_handler')
+      .attr('cx', this.bBox.x + this.bBox.width)
+      .attr('cy', this.bBox.y + (this.bBox.height/2))
+      .attr('r', '5.5')
+      .attr('fill', '#00a8ff')
+      .attr('stroke', '#fff')
+      .attr('fill-opacity', '1')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('stroke-width', '1');
+    this.rbHandler = this.g.append('circle')
+      .attr('id', this.id + '_g_rb_handler')
+      .attr('cx', this.bBox.x + this.bBox.width)
+      .attr('cy', this.bBox.y + (this.bBox.height))
+      .attr('r', '5.5')
+      .attr('fill', '#00a8ff')
+      .attr('stroke', '#fff')
+      .attr('fill-opacity', '1')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('stroke-width', '1');
+
+    function hDragStartHandler(e, shapeInstance, that) {
+      offsetX = d3.event.x;
+      offsetY = d3.event.y;
+    }
+
+    function hDragMoveHandler(e, shapeInstance, that) {
+      //console.log(d3.event);
+      d3.select(that).attr('transform', 'translate(' + (d3.event.x - offsetX) + ', ' + (d3.event.y - offsetY) + ')');
+    }
+
+    function hDropHandler(e, shapeInstance, that) {}
+
+    function mouseClick(e) {
+      if(that.handlersVisible === false) {
+        that.handlersVisible = true;
+        that.selected = true;
+        that.borderHandler.attr('visibility', 'visible');
+        that.ltHandler.attr('visibility', 'visible');
+        that.lmHandler.attr('visibility', 'visible');
+        that.lbHandler.attr('visibility', 'visible');
+        that.mtHandler.attr('visibility', 'visible');
+        that.mbHandler.attr('visibility', 'visible');
+        that.rtHandler.attr('visibility', 'visible');
+        that.rmHandler.attr('visibility', 'visible');
+        that.rbHandler.attr('visibility', 'visible');
+        that.populateProperties();
+      }
+    }
+  },
+  setSize: function(dx, dy) {},
+  setCoordinates: function(dx, dy) {},
+  onMove: function(dx, dy) {},
+  onResize: function(dx, dy, obj) {},
+  onRotate: function(obj) {},
+  onDrop: function(obj) {},
+  populateProperties: function() {},
+  setProperty: function(propName, propValue) {},
   renderToolItem: function() {},
+  disable: function() {
+    this.handlersVisible = false;
+    this.selected = false;
+    this.borderHandler.attr('visibility', 'hidden');
+    this.ltHandler.attr('visibility', 'hidden');
+    this.lmHandler.attr('visibility', 'hidden');
+    this.lbHandler.attr('visibility', 'hidden');
+    this.mtHandler.attr('visibility', 'hidden');
+    this.mbHandler.attr('visibility', 'hidden');
+    this.rtHandler.attr('visibility', 'hidden');
+    this.rmHandler.attr('visibility', 'hidden');
+    this.rbHandler.attr('visibility', 'hidden');
+  },
   destroy: function() {}
 });
 /**
@@ -1550,6 +1741,9 @@ const Line = Class.create({
   handlersVisible: true,
   dragHandlers: undefined,
   selected: true,
+  startPort: null,
+  endPort: null,
+  lastHandlerMoved: '',
   initialize: function(id, parentElement, elementLeft, elementRight, title, lineColor, lineWidth, lineStroke, hasArrow, arrowType, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -1567,6 +1761,9 @@ const Line = Class.create({
     this.toolName = 'LINE';
     this.handlersVisible = true;
     this.selected = true;
+    this.startPort = null;
+    this.endPort = null;
+    this.lastHandlerMoved = '';
   },
   getToolName: function() {
     return this.toolName;
@@ -1614,6 +1811,8 @@ const Line = Class.create({
   },
   render: function() {
     if (!is_dict(this.elementLeft) && !is_dict(this.elementRight)) {
+      this.startPort = this.elementLeft;
+      this.endPort = this.elementRight;
       this.lineDimension.start.x = this.elementLeft.x + 10;
       this.lineDimension.start.y = this.elementLeft.y + 5;
       this.lineDimension.end.x = this.elementRight.x;
@@ -1720,6 +1919,38 @@ const Line = Class.create({
         .call(this.dragHandlers);
 
     function hDropHandler(e, lineInstance, that){
+
+      var x = d3.event.x;
+      var y = d3.event.y;
+      var port = lineInstance.parentElement.getPortXY(x, y);
+
+      if(port === null){
+        //if no port found on drop, it means the line needs to be disconnected
+        //from existing connected port
+        if(lineInstance.lastHandlerMoved === 'START') {
+          if(lineInstance.startPort != null) {
+            lineInstance.startPort.disconnect();
+            lineInstance.startPort = null;
+          }
+        } else if(lineInstance.lastHandlerMoved === 'END') {
+          if(lineInstance.endPort != null) {
+            lineInstance.endPort.disconnect();
+            lineInstance.endPort = null;
+          }
+        }
+      } else {
+        if(lineInstance.lastHandlerMoved === 'START') {
+          lineInstance.setStartPoint(port.x + 10, port.y + 5);
+          port.connect(lineInstance, PortType.SOURCE);
+          lineInstance.startPort = port;
+        } else if(lineInstance.lastHandlerMoved === 'END') {
+          lineInstance.setEndPoint(port.x, port.y + 5);
+          port.connect(lineInstance, PortType.TARGET);
+          lineInstance.endPort = port;
+        }
+        console.log('LINE: Port found with id: ' + port.id);
+      }
+
       lineInstance.populateProperties();
     }
 
@@ -1740,6 +1971,7 @@ const Line = Class.create({
         lineInstance.line.attr('y1', y);
         lineInstance.lineDimension.start.x = x;
         lineInstance.lineDimension.start.y = y;
+        lineInstance.lastHandlerMoved = 'START';
       }
       //if dragged handler is attached to the end of the line, change the x2 & y2
       //coordinates of the line to the new x,y position
@@ -1748,6 +1980,7 @@ const Line = Class.create({
         lineInstance.line.attr('y2', y);
         lineInstance.lineDimension.end.x = x;
         lineInstance.lineDimension.end.y = y;
+        lineInstance.lastHandlerMoved = 'END';
       }
 
       lineInstance.path.attr('d', lineInstance._calculatePath());
@@ -1924,7 +2157,12 @@ const Line = Class.create({
     }
   },
   destroy: function() {
-
+    if(this.startPort != null) {
+      this.startPort.disconnect();
+    }
+    if(this.endPort != null) {
+      this.endPort.disconnect();
+    }
   },
   renderToolItem() {
     var html = '';
@@ -2033,7 +2271,8 @@ var Rectangle = Class.create({
       return false;
     }
   },
-  makeElement: function() {
+  makeElement: function() { //$super
+    // $super();
 
     var svg_id = '#' + this.parentElement.id + '_svg';
     //Points the same thing but in D3 format
@@ -2045,7 +2284,7 @@ var Rectangle = Class.create({
       .attr('y', this.rectDimension.top)
       .attr('height', this.rectDimension.height)
       .attr('width', this.rectDimension.width)
-      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + ';opacity: ' + this.opacity)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + ';fill-opacity: ' + this.opacity)
       .attr('data-type', 'node-base')
       //.attr('class', 'drag-svg')
       .attr('parentElement', this.parentElement.id)
@@ -2063,6 +2302,7 @@ var Rectangle = Class.create({
       .attr('font-family', 'sans-serif')
       .attr('font-size', '.7em');
 
+    //this.createHandlers();
     this.populateProperties();
   },
   isSelected: function(){
@@ -2187,7 +2427,7 @@ var Rectangle = Class.create({
   destroy: function() {
 
   },
-  renderToolItem() {
+  renderToolItem: function() {
     var html = '';
     html += "<label for='" + this.parentElement.id + "_RECT_tool' >";
     html += `<input type='radio' name='tools' id='` +
@@ -2202,7 +2442,7 @@ var Rectangle = Class.create({
                  </div>`;
     html += "</label>";
     return html;
-  },
+  }
 });
 
 /**********************************************************************
@@ -2798,6 +3038,9 @@ var Polyline = Class.create({
   selected: true,
   hasArrow: true,
   arrowType: "END",
+  startPort: null,
+  endPort: null,
+  lastHandlerMoved: '',
   initialize: function(id, parentElement, polyPoints, ports, title, lineColor, lineWidth, lineStroke, description) {
     this.id = id;
     this.parentElement = parentElement;
@@ -2814,12 +3057,54 @@ var Polyline = Class.create({
     this.selected = true;
     this.hasArrow = true;
     this.arrowType = "END";
+    this.startPort = null;
+    this.endPort = null;
+    this.lastHandlerMoved = '';
   },
   getToolName: function() {
     return this.toolName;
   },
   getShapeType: function() {
     return this.shapeType;
+  },
+  setStartPoint: function(x, y) {
+    var polyPointsArray = this.polyPoints.trim().split(' ');
+    polyPointsArray[0] = x + ',' + y;
+    this.polyPoints = polyPointsArray.join(' ');
+    this.line
+      .attr('points', this.polyPoints);
+    this.path.attr('d', this._calculatePath());
+    this.handlers[0]
+      .attr('cx', x)
+      .attr('cy', y);
+  },
+  setEndPoint: function(x, y) {
+    var lastIndex = this.polyPoints.trim().split(' ').length - 1;
+    var polyPointsArray = this.polyPoints.trim().split(' ');
+    polyPointsArray[lastIndex] = x + ',' + y;
+    this.polyPoints = polyPointsArray.join(' ');
+    this.line
+      .attr('points', this.polyPoints);
+    this.path.attr('d', this._calculatePath());
+    this.handlers[lastIndex]
+      .attr('cx', x)
+      .attr('cy', y);
+  },
+  show: function() {
+    this.line
+      .attr('visibility', 'visible');
+    this.path
+      .attr('visibility', 'visible');
+    this.text
+      .attr('visibility', 'visible');
+  },
+  hide: function() {
+    this.line
+      .attr('visibility', 'hidden');
+    this.path
+      .attr('visibility', 'hidden');
+    this.text
+      .attr('visibility', 'hidden');
   },
   render: function() {
     this.makeElement();
@@ -2914,6 +3199,36 @@ var Polyline = Class.create({
     this.line.attr('handlers', handlerNames);
 
     function dropHandler(e, lineInstance, that){
+      var x = d3.event.x;
+      var y = d3.event.y;
+      var port = lineInstance.parentElement.getPortXY(x, y);
+
+      if(port === null){
+        //if no port found on drop, it means the line needs to be disconnected
+        //from existing connected port
+        if(lineInstance.lastHandlerMoved === 'START') {
+          if(lineInstance.startPort != null) {
+            lineInstance.startPort.disconnect();
+            lineInstance.startPort = null;
+          }
+        } else if(lineInstance.lastHandlerMoved === 'END') {
+          if(lineInstance.endPort != null) {
+            lineInstance.endPort.disconnect();
+            lineInstance.endPort = null;
+          }
+        }
+      } else {
+        if(lineInstance.lastHandlerMoved === 'START') {
+          lineInstance.setStartPoint(port.x + 10, port.y + 5);
+          port.connect(lineInstance, PortType.SOURCE);
+          lineInstance.startPort = port;
+        } else if(lineInstance.lastHandlerMoved === 'END') {
+          lineInstance.setEndPoint(port.x, port.y + 5);
+          port.connect(lineInstance, PortType.TARGET);
+          lineInstance.endPort = port;
+        }
+        console.log('POLYLINE: Port found with id: ' + port.id);
+      }
       lineInstance.populateProperties();
     }
 
@@ -2941,6 +3256,14 @@ var Polyline = Class.create({
       lineInstance.polyPoints = pointString;
 
       lineInstance.path.attr('d', lineInstance._calculatePath());
+
+      if(pointIndex === 0) {
+        lineInstance.lastHandlerMoved = 'START';
+      } else if(pointIndex === pointsArray.length - 1) {
+        lineInstance.lastHandlerMoved = 'END';
+      } else {
+        lineInstance.lastHandlerMoved = '';
+      }
     }
 
     var line = document.getElementById(this.id);
@@ -3492,6 +3815,12 @@ const Port = Class.create({
     this.connector = connector;
     this.portType = portType;
     this.fillColor = 'green';
+    this.line.attr('style', 'stroke: black; stroke-width: 1px; fill: ' + this.fillColor + ';');
+  },
+  disconnect: function() {
+    this.connector = null;
+    this.portType = undefined;
+    this.fillColor = 'lightblue';
     this.line.attr('style', 'stroke: black; stroke-width: 1px; fill: ' + this.fillColor + ';');
   },
   moveTo: function(x, y) {
