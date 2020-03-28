@@ -31,6 +31,7 @@
 
           var edgesGroup = new ToolGroup('edges_group', 'Edges');
           var nodesGroup = new ToolGroup('nodes_group', 'Nodes');
+          var flowchartGroup = new ToolGroup('flowchart_group', 'Flowchart');
 
           var toolbox = new ToolBox('tool_box', c);
 
@@ -41,7 +42,13 @@
       	  var polyTool = new Polygon('PolyTool', c);
       	  var polylineTool = new Polyline('PolylineTool', c);
           var bezireCurve = new BezireCurve('bezireCurve', c);
-          var nodeTool = new BaseNode('NodeTool', c);
+          var nodeTool = new BasicNode('NodeTool', c);
+
+          var fcTerminatorTool = new FlowChartTerminator('FCTermTool', c);
+          var fcProcessTool = new FlowChartProcess('FCProcTool', c);
+          var fcDecisionTool = new FlowChartDecision('FCDecisionTool', c);
+          var fcDocumentTool = new FlowChartDocument('FCDocTool', c);
+          var fcSubroutineTool = new FlowChartSubroutine('FCSubTool', c);
 
           edgesGroup.addTool(lineTool);
           edgesGroup.addTool(polylineTool);
@@ -53,8 +60,15 @@
           nodesGroup.addTool(polyTool);
           nodesGroup.addTool(nodeTool);
 
+          flowchartGroup.addTool(fcTerminatorTool);
+          flowchartGroup.addTool(fcProcessTool);
+          flowchartGroup.addTool(fcDecisionTool);
+          flowchartGroup.addTool(fcDocumentTool);
+          flowchartGroup.addTool(fcSubroutineTool);
+
           toolbox.addGroup(edgesGroup);
           toolbox.addGroup(nodesGroup);
+          toolbox.addGroup(flowchartGroup);
 
           c.setToolBox(toolbox);
 
