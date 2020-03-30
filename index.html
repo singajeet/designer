@@ -60,6 +60,8 @@
           var fcStoredDataTool = new FlowChartStoredData('FCStoredDataTool', c);
           var fcConnectorTool = new FlowChartConnector('FCConnectorTool', c);
           var fcOffPgConnTool = new FlowChartOffPageConnector('FCOffPgConn', c);
+          var fcORTool = new FlowChartOR('FCORTool', c);
+          var fcANDTool = new FlowChartAND('FCANDTool', c);
 
           edgesGroup.addTool(lineTool);
           edgesGroup.addTool(polylineTool);
@@ -87,6 +89,8 @@
           flowchartGroup.addTool(fcStoredDataTool);
           flowchartGroup.addTool(fcConnectorTool);
           flowchartGroup.addTool(fcOffPgConnTool);
+          flowchartGroup.addTool(fcORTool);
+          flowchartGroup.addTool(fcANDTool);
 
           toolbox.addGroup(edgesGroup);
           toolbox.addGroup(nodesGroup);
