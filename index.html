@@ -57,6 +57,9 @@
           var fcInputTool = new FlowChartInput('FCInputTool', c);
           var fcLoopTool = new FlowChartLoop('FCLoopTool', c);
           var fcLoopLimitTool = new FlowChartLoopLimit('FCLoopLimitTool', c);
+          var fcStoredDataTool = new FlowChartStoredData('FCStoredDataTool', c);
+          var fcConnectorTool = new FlowChartConnector('FCConnectorTool', c);
+          var fcOffPgConnTool = new FlowChartOffPageConnector('FCOffPgConn', c);
 
           edgesGroup.addTool(lineTool);
           edgesGroup.addTool(polylineTool);
@@ -81,6 +84,9 @@
           flowchartGroup.addTool(fcInputTool);
           flowchartGroup.addTool(fcLoopTool);
           flowchartGroup.addTool(fcLoopLimitTool);
+          flowchartGroup.addTool(fcStoredDataTool);
+          flowchartGroup.addTool(fcConnectorTool);
+          flowchartGroup.addTool(fcOffPgConnTool);
 
           toolbox.addGroup(edgesGroup);
           toolbox.addGroup(nodesGroup);
