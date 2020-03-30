@@ -49,6 +49,14 @@
           var fcDecisionTool = new FlowChartDecision('FCDecisionTool', c);
           var fcDocumentTool = new FlowChartDocument('FCDocTool', c);
           var fcSubroutineTool = new FlowChartSubroutine('FCSubTool', c);
+          var fcDelayTool = new FlowChartDelay('FCDelayTool', c);
+          var fcDataTool = new FlowChartData('FCDataTool', c);
+          var fcMultiDocTool = new FlowChartMultiDocument('FCMultiDocTool', c);
+          var fcPrepTool = new FlowChartPreparation('FCPrepTool', c);
+          var fcDispTool = new FlowChartDisplay('FCDispTool', c);
+          var fcInputTool = new FlowChartInput('FCInputTool', c);
+          var fcLoopTool = new FlowChartLoop('FCLoopTool', c);
+          var fcLoopLimitTool = new FlowChartLoopLimit('FCLoopLimitTool', c);
 
           edgesGroup.addTool(lineTool);
           edgesGroup.addTool(polylineTool);
@@ -65,6 +73,14 @@
           flowchartGroup.addTool(fcDecisionTool);
           flowchartGroup.addTool(fcDocumentTool);
           flowchartGroup.addTool(fcSubroutineTool);
+          flowchartGroup.addTool(fcDelayTool);
+          flowchartGroup.addTool(fcDataTool);
+          flowchartGroup.addTool(fcMultiDocTool);
+          flowchartGroup.addTool(fcPrepTool);
+          flowchartGroup.addTool(fcDispTool);
+          flowchartGroup.addTool(fcInputTool);
+          flowchartGroup.addTool(fcLoopTool);
+          flowchartGroup.addTool(fcLoopLimitTool);
 
           toolbox.addGroup(edgesGroup);
           toolbox.addGroup(nodesGroup);
