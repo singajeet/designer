@@ -5667,7 +5667,7 @@ var FlowChartSubroutine = Class.create({
       .attr('y1', this.rectDimension.top)
       .attr('x2', this.rectDimension.left + 30)
       .attr('y2', this.rectDimension.top + this.rectDimension.height)
-      .attr('style', 'stroke: black; stroke-width: 3px');
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
 
     this.vLine2 = svg.append('line')
       .attr('id', this.id + '_vline2')
@@ -5675,7 +5675,7 @@ var FlowChartSubroutine = Class.create({
       .attr('y1', this.rectDimension.top)
       .attr('x2', this.rectDimension.left + this.rectDimension.width - 30)
       .attr('y2', this.rectDimension.top + this.rectDimension.height)
-      .attr('style', 'stroke: black; stroke-width: 3px');
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
 
     this.text = svg.append('text')
       .text(this.title)
@@ -5857,15 +5857,23 @@ var FlowChartSubroutine = Class.create({
     if(propName === "Stroke Color"){
       this.lineColor = '#' + propValue;
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.vLine1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+      this.vLine2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
     } else if(propName === "Stroke Width"){
       this.lineWidth = parseInt(propValue);
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.vLine1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+      this.vLine2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
     } else if(propName === "Fill Color"){
       this.fillColor = '#' + propValue;
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.vLine1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+      this.vLine2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
     } else if(propName === "Opacity"){
       this.opacity = parseFloat(propValue);
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.vLine1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+      this.vLine2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
     } else if(propName === "Show Ports Label"){
       this.showPortsLabel = JSON.parse(propValue);
       if(this.showPortsLabel){
@@ -10156,6 +10164,1241 @@ var FlowChartAND = Class.create({
                       <line x1='33' y1='27' x2='16' y2='10.5'
                         style='stroke: black; stroke-width: 2px;'></line>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">AND</text>
+                    </svg>
+                 </div>`;
+    html += "</label>";
+    return html;
+  }
+});
+
+/**
+ * FlowChartCollate: An collate node in a flowchart
+ * @constructor
+ */
+var FlowChartCollate = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  rectDimension: undefined, //an instance of the RectDimension class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "2",
+  lineStroke: "Solid",
+  fillColor: 'lightblue',
+  shapeType: ShapeType.CUSTOM,
+  toolName: 'FLOW_CHART_COLLATE',
+  selected: true,
+  opacity: 1,
+  classType: FlowChartCollate,
+  TOP: 0,
+  BOTTOM: 1,
+  LEFT: 2,
+  RIGHT: 3,
+  showPortsLabel: false,
+  initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.rectDimension = rectDimension || new RectDimension(10, 10, 100, 100);
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "2";
+    this.lineStroke = lineStroke || "Solid";
+    this.fillColor = fillColor || "lightblue";
+    this.shapeType = ShapeType.CUSTOM;
+    this.toolName = 'FLOW_CHART_COLLATE';
+    this.selected = true;
+    this.opacity = opacity || 1;
+    this.classType = FlowChartCollate;
+    this.TOP = 0;
+    this.BOTTOM = 1;
+    this.LEFT = 2;
+    this.RIGHT = 3;
+    this.showPortsLabel = false;
+
+    if(this.ports.length === 0) {
+      this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
+      this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
+    }
+  },
+  getToolName: function() {
+    return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  getClassType: function() {
+    return this.classType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    var path = 'M ' + (this.rectDimension.left) + ' ' //TL corner X
+            + (this.rectDimension.top) + ' ' //TL corner Y
+            + 'H ' + (this.rectDimension.left + this.rectDimension.width) + ' ' //Horiz line
+            + 'L ' + (this.rectDimension.left + (this.rectDimension.width/2)) + ' '//Mid X
+            + (this.rectDimension.top + (this.rectDimension.height/2) - 2) + ' '//Mid Y
+            + 'Z '
+            + 'M ' + (this.rectDimension.left) + ' ' //Move to LB X
+            + (this.rectDimension.top + this.rectDimension.height) + ' ' //Move to LB Y
+            + 'H ' + (this.rectDimension.left + this.rectDimension.width) + ' ' //Horiz line
+            + 'L ' + (this.rectDimension.left + (this.rectDimension.width/2)) + ' '//Mid X
+            + (this.rectDimension.top + (this.rectDimension.height/2) + 4) + ' '//Mid Y
+            + 'Z';
+
+    this.line = svg.append('path')
+      .attr('id', this.id)
+      .attr('d', path)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + ';fill-opacity: ' + this.opacity)
+      .attr('data-type', 'node-base')
+      //.attr('class', 'drag-svg')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName)
+      .attr('selected', this.selected);
+
+    this.text = svg.append('text')
+      .text(this.title)
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
+
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.addPort(port);
+    });
+
+    this.populateProperties();
+  },
+  isSelected: function(){
+    return JSON.parse(this.line.attr('selected'));
+  },
+  setSize: function(dx, dy){
+    var element = document.getElementById(this.id);
+    var bBox = element.getBBox();
+
+    this.rectDimension.width = parseInt(bBox.width);
+    this.rectDimension.height = parseInt(bBox.height);
+    this.rectDimension.left = parseInt(bBox.x);
+    this.rectDimension.top = parseInt(bBox.y);
+
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5);
+
+    this.ports[this.TOP].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5));
+    this.ports[this.BOTTOM].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5));
+  },
+  setCoordinates: function(dx, dy){
+    var element = document.getElementById(this.id);
+    var bBox = element.getBBox();
+
+    this.rectDimension.left = parseInt(bBox.x);
+    this.rectDimension.top = parseInt(bBox.y);
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5);
+    this.ports[this.TOP].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5));
+    this.ports[this.BOTTOM].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5));
+  },
+  onMove: function(dx, dy){
+    this.text.attr('visibility', 'hidden');
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+  },
+  onResize: function(dx, dy, obj){
+    this.text.attr('visibility', 'hidden');
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+  },
+  onRotate: function(obj){
+    this.text.attr('visibility', 'hidden');
+  },
+  onDrop: function(obj){
+    this.text.attr('visibility', 'visible');
+    this.ports.forEach(function(port){
+      port.show();
+    });
+  },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'X', propValue: this.rectDimension.left,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 4, propName: 'Y', propValue: this.rectDimension.top,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 5, propName: 'Height', propValue: this.rectDimension.height,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 6, propName: 'Width', propValue: this.rectDimension.width,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 7, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
+                      { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 9, propName: 'Fill Color', propValue: this.fillColor,
+                        w2ui: {editable: { type: 'color'} }
+                      },
+                      { recid: 10, propName: 'Opacity', propValue: this.opacity},
+                      { recid: 11, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 12, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 13, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      {
+                        recid: 14, propName: 'Show Ports Label', propValue: this.showPortsLabel,
+                          w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'true' },
+                                                                      { id: 2, text: 'false' }
+                                                                    ],
+                                              filter: false
+                                            }
+                                }
+                      }
+            ]
+          }
+        },
+        { recid: 15, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 16, propName: 'Title', propValue: this.title},
+                      { recid: 17, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Fill Color"){
+      this.fillColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Opacity"){
+      this.opacity = parseFloat(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Show Ports Label"){
+      this.showPortsLabel = JSON.parse(propValue);
+      if(this.showPortsLabel){
+        this.ports.forEach(function(port){
+          port.showLabel();
+        });
+      } else {
+        this.ports.forEach(function(port){
+          port.hideLabel();
+        });
+      }
+    } else if(propName === "Title"){
+      this.title = propValue;
+      this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
+  },
+  destroy: function() {
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.removePort(port);
+    });
+    this.text.remove();
+  },
+  renderToolItem: function() {
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_FLOW_CHART_COLLATE_tool' >";
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_FLOW_CHART_COLLATE_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <path d = 'M 10 10 H 40 L 25 18 Z M 10 28 H 40 L 25 20 Z'
+                        style='stroke: black; stroke-width: 2px; fill:none'
+                        ></path>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">COLLATE</text>
+                    </svg>
+                 </div>`;
+    html += "</label>";
+    return html;
+  }
+});
+
+/**
+ * FlowChartSort: An sort node in a flowchart
+ * @constructor
+ */
+var FlowChartSort = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  rectDimension: undefined, //an instance of the RectDimension class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "2",
+  lineStroke: "Solid",
+  fillColor: 'lightblue',
+  shapeType: ShapeType.CUSTOM,
+  toolName: 'FLOW_CHART_SORT',
+  selected: true,
+  opacity: 1,
+  classType: FlowChartSort,
+  TOP: 0,
+  BOTTOM: 1,
+  showPortsLabel: false,
+  initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.rectDimension = rectDimension || new RectDimension(10, 10, 100, 100);
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "2";
+    this.lineStroke = lineStroke || "Solid";
+    this.fillColor = fillColor || "lightblue";
+    this.shapeType = ShapeType.CUSTOM;
+    this.toolName = 'FLOW_CHART_SORT';
+    this.selected = true;
+    this.opacity = opacity || 1;
+    this.classType = FlowChartSort;
+    this.TOP = 0;
+    this.BOTTOM = 1;
+    this.showPortsLabel = false;
+
+    if(this.ports.length === 0) {
+      this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
+      this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
+    }
+  },
+  getToolName: function() {
+    return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  getClassType: function() {
+    return this.classType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    var path = 'M ' + (this.rectDimension.left) + ' ' //Mid X
+          + (this.rectDimension.top + (this.rectDimension.height/2) - 2) + ' ' //Mid Y
+          + 'H ' + (this.rectDimension.left + this.rectDimension.width) + ' '//Horiz line
+          + 'L ' + (this.rectDimension.left + (this.rectDimension.width/2)) + ' ' //TM X
+          + (this.rectDimension.top) + ' ' //TM Y
+          + 'Z '
+          + 'M ' + (this.rectDimension.left) + ' ' //Mid X
+          + (this.rectDimension.top + (this.rectDimension.height/2) + 4) + ' ' //Mid Y
+          + 'H ' + (this.rectDimension.left + this.rectDimension.width) + ' ' //Horiz Line
+          + 'L ' + (this.rectDimension.left + (this.rectDimension.width/2)) + ' ' //BM X
+          + (this.rectDimension.top + this.rectDimension.height) + ' ' //BM Y
+          + 'Z';
+
+    this.line = svg.append('path')
+      .attr('id', this.id)
+      .attr('d', path)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + ';fill-opacity: ' + this.opacity)
+      .attr('data-type', 'node-base')
+      //.attr('class', 'drag-svg')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName)
+      .attr('selected', this.selected);
+
+    this.text = svg.append('text')
+      .text(this.title)
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
+
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.addPort(port);
+    });
+
+    this.populateProperties();
+  },
+  isSelected: function(){
+    return JSON.parse(this.line.attr('selected'));
+  },
+  setSize: function(dx, dy){
+    var element = document.getElementById(this.id);
+    var bBox = element.getBBox();
+
+    this.rectDimension.width = parseInt(bBox.width);
+    this.rectDimension.height = parseInt(bBox.height);
+    this.rectDimension.left = parseInt(bBox.x);
+    this.rectDimension.top = parseInt(bBox.y);
+
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5);
+
+    this.ports[this.TOP].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5));
+    this.ports[this.BOTTOM].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5));
+  },
+  setCoordinates: function(dx, dy){
+    var element = document.getElementById(this.id);
+    var bBox = element.getBBox();
+
+    this.rectDimension.left = parseInt(bBox.x);
+    this.rectDimension.top = parseInt(bBox.y);
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5);
+
+    this.ports[this.TOP].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5));
+    this.ports[this.BOTTOM].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5));
+  },
+  onMove: function(dx, dy){
+    this.text.attr('visibility', 'hidden');
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+  },
+  onResize: function(dx, dy, obj){
+    this.text.attr('visibility', 'hidden');
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+  },
+  onRotate: function(obj){
+    this.text.attr('visibility', 'hidden');
+  },
+  onDrop: function(obj){
+    this.text.attr('visibility', 'visible');
+    this.ports.forEach(function(port){
+      port.show();
+    });
+  },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'X', propValue: this.rectDimension.left,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 4, propName: 'Y', propValue: this.rectDimension.top,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 5, propName: 'Height', propValue: this.rectDimension.height,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 6, propName: 'Width', propValue: this.rectDimension.width,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 7, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
+                      { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 9, propName: 'Fill Color', propValue: this.fillColor,
+                        w2ui: {editable: { type: 'color'} }
+                      },
+                      { recid: 10, propName: 'Opacity', propValue: this.opacity},
+                      { recid: 11, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 12, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 13, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      {
+                        recid: 14, propName: 'Show Ports Label', propValue: this.showPortsLabel,
+                          w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'true' },
+                                                                      { id: 2, text: 'false' }
+                                                                    ],
+                                              filter: false
+                                            }
+                                }
+                      }
+            ]
+          }
+        },
+        { recid: 15, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 16, propName: 'Title', propValue: this.title},
+                      { recid: 17, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Fill Color"){
+      this.fillColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Opacity"){
+      this.opacity = parseFloat(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Show Ports Label"){
+      this.showPortsLabel = JSON.parse(propValue);
+      if(this.showPortsLabel){
+        this.ports.forEach(function(port){
+          port.showLabel();
+        });
+      } else {
+        this.ports.forEach(function(port){
+          port.hideLabel();
+        });
+      }
+    } else if(propName === "Title"){
+      this.title = propValue;
+      this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
+  },
+  destroy: function() {
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.removePort(port);
+    });
+    this.text.remove();
+  },
+  renderToolItem: function() {
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_FLOW_CHART_SORT_tool' >";
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_FLOW_CHART_SORT_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <path d = 'M 10 17 H 40 L 25 10 Z M 10 21 H 40 L 25 28 Z'
+                        style='stroke: black; stroke-width: 2px; fill:none'
+                        ></path>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">SORT</text>
+                    </svg>
+                 </div>`;
+    html += "</label>";
+    return html;
+  }
+});
+
+/**
+ * FlowChartMerge: An merge node in a flowchart
+ * @constructor
+ */
+var FlowChartMerge = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  rectDimension: undefined, //an instance of the RectDimension class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "2",
+  lineStroke: "Solid",
+  fillColor: 'lightblue',
+  shapeType: ShapeType.CUSTOM,
+  toolName: 'FLOW_CHART_MERGE',
+  selected: true,
+  opacity: 1,
+  classType: FlowChartMerge,
+  TOP: 0,
+  BOTTOM: 1,
+  showPortsLabel: false,
+  initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.rectDimension = rectDimension || new RectDimension(10, 10, 100, 100);
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "2";
+    this.lineStroke = lineStroke || "Solid";
+    this.fillColor = fillColor || "lightblue";
+    this.shapeType = ShapeType.CUSTOM;
+    this.toolName = 'FLOW_CHART_MERGE';
+    this.selected = true;
+    this.opacity = opacity || 1;
+    this.classType = FlowChartMerge;
+    this.TOP = 0;
+    this.BOTTOM = 1;
+    this.showPortsLabel = false;
+
+    if(this.ports.length === 0) {
+      this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
+      this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
+    }
+  },
+  getToolName: function() {
+    return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  getClassType: function() {
+    return this.classType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    var path = 'M ' + (this.rectDimension.left) + ' ' //TL X
+          + (this.rectDimension.top) + ' ' //TL Y
+          + 'H ' + (this.rectDimension.left + this.rectDimension.width) + ' '//Horiz line
+          + 'L ' + (this.rectDimension.left + (this.rectDimension.width/2)) + ' ' //BM X
+          + (this.rectDimension.top + this.rectDimension.height) + ' ' //BM Y
+          + 'Z';
+
+    this.line = svg.append('path')
+      .attr('id', this.id)
+      .attr('d', path)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + ';fill-opacity: ' + this.opacity)
+      .attr('data-type', 'node-base')
+      //.attr('class', 'drag-svg')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName)
+      .attr('selected', this.selected);
+
+    this.text = svg.append('text')
+      .text(this.title)
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
+
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.addPort(port);
+    });
+
+    this.populateProperties();
+  },
+  isSelected: function(){
+    return JSON.parse(this.line.attr('selected'));
+  },
+  setSize: function(dx, dy){
+    var element = document.getElementById(this.id);
+    var bBox = element.getBBox();
+
+    this.rectDimension.width = parseInt(bBox.width);
+    this.rectDimension.height = parseInt(bBox.height);
+    this.rectDimension.left = parseInt(bBox.x);
+    this.rectDimension.top = parseInt(bBox.y);
+
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5);
+
+    this.ports[this.TOP].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5));
+    this.ports[this.BOTTOM].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5));
+  },
+  setCoordinates: function(dx, dy){
+    var element = document.getElementById(this.id);
+    var bBox = element.getBBox();
+
+    this.rectDimension.left = parseInt(bBox.x);
+    this.rectDimension.top = parseInt(bBox.y);
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5);
+
+    this.ports[this.TOP].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5));
+    this.ports[this.BOTTOM].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5));
+  },
+  onMove: function(dx, dy){
+    this.text.attr('visibility', 'hidden');
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+  },
+  onResize: function(dx, dy, obj){
+    this.text.attr('visibility', 'hidden');
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+  },
+  onRotate: function(obj){
+    this.text.attr('visibility', 'hidden');
+  },
+  onDrop: function(obj){
+    this.text.attr('visibility', 'visible');
+    this.ports.forEach(function(port){
+      port.show();
+    });
+  },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'X', propValue: this.rectDimension.left,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 4, propName: 'Y', propValue: this.rectDimension.top,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 5, propName: 'Height', propValue: this.rectDimension.height,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 6, propName: 'Width', propValue: this.rectDimension.width,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 7, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
+                      { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 9, propName: 'Fill Color', propValue: this.fillColor,
+                        w2ui: {editable: { type: 'color'} }
+                      },
+                      { recid: 10, propName: 'Opacity', propValue: this.opacity},
+                      { recid: 11, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 12, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 13, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      {
+                        recid: 14, propName: 'Show Ports Label', propValue: this.showPortsLabel,
+                          w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'true' },
+                                                                      { id: 2, text: 'false' }
+                                                                    ],
+                                              filter: false
+                                            }
+                                }
+                      }
+            ]
+          }
+        },
+        { recid: 15, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 16, propName: 'Title', propValue: this.title},
+                      { recid: 17, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Fill Color"){
+      this.fillColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Opacity"){
+      this.opacity = parseFloat(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+    } else if(propName === "Show Ports Label"){
+      this.showPortsLabel = JSON.parse(propValue);
+      if(this.showPortsLabel){
+        this.ports.forEach(function(port){
+          port.showLabel();
+        });
+      } else {
+        this.ports.forEach(function(port){
+          port.hideLabel();
+        });
+      }
+    } else if(propName === "Title"){
+      this.title = propValue;
+      this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
+  },
+  destroy: function() {
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.removePort(port);
+    });
+    this.text.remove();
+  },
+  renderToolItem: function() {
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_FLOW_CHART_MERGE_tool' >";
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_FLOW_CHART_MERGE_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <path d = 'M 10 10 H 40 L 25 28 Z'
+                        style='stroke: black; stroke-width: 2px; fill:none'
+                        ></path>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">MERGE</text>
+                    </svg>
+                 </div>`;
+    html += "</label>";
+    return html;
+  }
+});
+
+/**
+ * FlowChartSubroutine: An subroutine or predefined process node in a flowchart
+ * @constructor
+ */
+var FlowChartInternalStorage = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  rectDimension: undefined, //an instance of the RectDimension class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "2",
+  lineStroke: "Solid",
+  fillColor: 'lightblue',
+  shapeType: ShapeType.CUSTOM,
+  toolName: 'FLOW_CHART_INTERNAL_STORAGE',
+  selected: true,
+  opacity: 1,
+  classType: FlowChartInternalStorage,
+  TOP: 0,
+  BOTTOM: 1,
+  LEFT: 2,
+  RIGHT: 3,
+  showPortsLabel: false,
+  initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.rectDimension = rectDimension || new RectDimension(10, 10, 100, 100);
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "2";
+    this.lineStroke = lineStroke || "Solid";
+    this.fillColor = fillColor || "lightblue";
+    this.shapeType = ShapeType.CUSTOM;
+    this.toolName = 'FLOW_CHART_INTERNAL_STORAGE';
+    this.selected = true;
+    this.opacity = opacity || 1;
+    this.classType = FlowChartInternalStorage;
+    this.TOP = 0;
+    this.BOTTOM = 1;
+    this.LEFT = 2;
+    this.RIGHT = 3;
+    this.showPortsLabel = false;
+
+    if(this.ports.length === 0) {
+      this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
+      this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
+      this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
+      this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
+    }
+  },
+  getToolName: function() {
+    return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  getClassType: function() {
+    return this.classType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    this.line = svg.append('rect')
+      .attr('id', this.id)
+      .attr('x', this.rectDimension.left)
+      .attr('y', this.rectDimension.top)
+      .attr('height', this.rectDimension.height)
+      .attr('width', this.rectDimension.width)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + ';fill-opacity: ' + this.opacity)
+      .attr('data-type', 'node-base')
+      //.attr('class', 'drag-svg')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName)
+      .attr('selected', this.selected);
+
+    this.vLine1 = svg.append('line')
+      .attr('id', this.id + '_vline1')
+      .attr('x1', this.rectDimension.left)
+      .attr('y1', this.rectDimension.top + 20)
+      .attr('x2', this.rectDimension.left + this.rectDimension.width)
+      .attr('y2', this.rectDimension.top + 20)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+
+    this.vLine2 = svg.append('line')
+      .attr('id', this.id + '_vline2')
+      .attr('x1', this.rectDimension.left + 20)
+      .attr('y1', this.rectDimension.top)
+      .attr('x2', this.rectDimension.left + 20)
+      .attr('y2', this.rectDimension.top + this.rectDimension.height)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+
+    this.text = svg.append('text')
+      .text(this.title)
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
+
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.addPort(port);
+    });
+
+    this.populateProperties();
+  },
+  isSelected: function(){
+    return JSON.parse(this.line.attr('selected'));
+  },
+  setSize: function(dx, dy){
+    this.rectDimension.width = parseInt(this.line.attr('width'));
+    this.rectDimension.height = parseInt(this.line.attr('height'));
+    this.rectDimension.left = parseInt(this.line.attr('x'));
+    this.rectDimension.top = parseInt(this.line.attr('y'));
+
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5);
+
+    this.vLine1
+      .attr('x1', this.rectDimension.left)
+      .attr('y1', this.rectDimension.top + 20)
+      .attr('x2', this.rectDimension.left + this.rectDimension.width)
+      .attr('y2', this.rectDimension.top + 20);
+
+    this.vLine2
+      .attr('x1', this.rectDimension.left + 20)
+      .attr('y1', this.rectDimension.top)
+      .attr('x2', this.rectDimension.left + 20)
+      .attr('y2', this.rectDimension.top + this.rectDimension.height);
+
+    this.ports[this.TOP].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5));
+    this.ports[this.BOTTOM].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5));
+    this.ports[this.LEFT].moveTo((this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5));
+    this.ports[this.RIGHT].moveTo((this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5));
+  },
+  setCoordinates: function(dx, dy){
+    this.rectDimension.left = parseInt(this.line.attr('x'));
+    this.rectDimension.top = parseInt(this.line.attr('y'));
+
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5);
+
+    this.vLine1
+      .attr('x1', this.rectDimension.left)
+      .attr('y1', this.rectDimension.top + 20)
+      .attr('x2', this.rectDimension.left + this.rectDimension.width)
+      .attr('y2', this.rectDimension.top + 20);
+
+    this.vLine2
+      .attr('x1', this.rectDimension.left + 20)
+      .attr('y1', this.rectDimension.top)
+      .attr('x2', this.rectDimension.left + 20)
+      .attr('y2', this.rectDimension.top + this.rectDimension.height);
+
+    this.ports[this.TOP].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5));
+    this.ports[this.BOTTOM].moveTo((this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5));
+    this.ports[this.LEFT].moveTo((this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5));
+    this.ports[this.RIGHT].moveTo((this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5));
+  },
+  onMove: function(dx, dy){
+    this.text.attr('visibility', 'hidden');
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+    this.vLine1.attr('visibility', 'hidden');
+    this.vLine2.attr('visibility', 'hidden');
+  },
+  onResize: function(dx, dy, obj){
+    this.text.attr('visibility', 'hidden');
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+    this.vLine1.attr('visibility', 'hidden');
+    this.vLine2.attr('visibility', 'hidden');
+  },
+  onRotate: function(obj){
+    this.text.attr('visibility', 'hidden');
+    this.vLine1.attr('visibility', 'hidden');
+    this.vLine2.attr('visibility', 'hidden');
+  },
+  onDrop: function(obj){
+    this.text.attr('visibility', 'visible');
+    this.ports.forEach(function(port){
+      port.show();
+    });
+    this.vLine1.attr('visibility', 'visible');
+    this.vLine2.attr('visibility', 'visible');
+  },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'X', propValue: this.rectDimension.left,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 4, propName: 'Y', propValue: this.rectDimension.top,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 5, propName: 'Height', propValue: this.rectDimension.height,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 6, propName: 'Width', propValue: this.rectDimension.width,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 7, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
+                      { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 9, propName: 'Fill Color', propValue: this.fillColor,
+                        w2ui: {editable: { type: 'color'} }
+                      },
+                      { recid: 10, propName: 'Opacity', propValue: this.opacity},
+                      { recid: 11, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 12, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 13, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      {
+                        recid: 14, propName: 'Show Ports Label', propValue: this.showPortsLabel,
+                          w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'true' },
+                                                                      { id: 2, text: 'false' }
+                                                                    ],
+                                              filter: false
+                                            }
+                                }
+                      }
+            ]
+          }
+        },
+        { recid: 15, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 16, propName: 'Title', propValue: this.title},
+                      { recid: 17, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.vLine1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+      this.vLine2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.vLine1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+      this.vLine2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+    } else if(propName === "Fill Color"){
+      this.fillColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.vLine1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+      this.vLine2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+    } else if(propName === "Opacity"){
+      this.opacity = parseFloat(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.vLine1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+      this.vLine2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
+    } else if(propName === "Show Ports Label"){
+      this.showPortsLabel = JSON.parse(propValue);
+      if(this.showPortsLabel){
+        this.ports.forEach(function(port){
+          port.showLabel();
+        });
+      } else {
+        this.ports.forEach(function(port){
+          port.hideLabel();
+        });
+      }
+    } else if(propName === "Title"){
+      this.title = propValue;
+      this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
+  },
+  destroy: function() {
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.removePort(port);
+    });
+    this.vLine1.remove();
+    this.vLine2.remove();
+    this.text.remove();
+  },
+  renderToolItem: function() {
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_FLOW_CHART_INTERNAL_STORAGE_tool' >";
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_FLOW_CHART_INTERNAL_STORAGE_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <rect x='10' y='5' height='18' width='30'
+                        style='stroke: black; stroke-width: 2px; fill:none'
+                        ></rect>
+                      <line x1='10' y1='10' x2='40' y2='10'
+                        style='stroke: black; stroke-width: 2px'></line>
+                      <line x1='15' y1='5' x2='15' y2='23'
+                        style='stroke: black; stroke-width: 2px'></line>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='32' font-size='.45em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">INTERNAL</text>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.45em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">STORAGE</text>
                     </svg>
                  </div>`;
     html += "</label>";

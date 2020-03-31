@@ -62,6 +62,10 @@
           var fcOffPgConnTool = new FlowChartOffPageConnector('FCOffPgConn', c);
           var fcORTool = new FlowChartOR('FCORTool', c);
           var fcANDTool = new FlowChartAND('FCANDTool', c);
+          var fcCollateTool = new FlowChartCollate('FCCollateTool', c);
+          var fcSortTool = new FlowChartSort('FCSortTool', c);
+          var fcMergeTool = new FlowChartMerge('FCMergeTool', c);
+          var fcIntStorageTool = new FlowChartInternalStorage('FCIntStorageTool', c);
 
           edgesGroup.addTool(lineTool);
           edgesGroup.addTool(polylineTool);
@@ -91,6 +95,10 @@
           flowchartGroup.addTool(fcOffPgConnTool);
           flowchartGroup.addTool(fcORTool);
           flowchartGroup.addTool(fcANDTool);
+          flowchartGroup.addTool(fcCollateTool);
+          flowchartGroup.addTool(fcSortTool);
+          flowchartGroup.addTool(fcMergeTool);
+          flowchartGroup.addTool(fcIntStorageTool);
 
           toolbox.addGroup(edgesGroup);
           toolbox.addGroup(nodesGroup);
