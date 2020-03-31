@@ -66,6 +66,7 @@
           var fcSortTool = new FlowChartSort('FCSortTool', c);
           var fcMergeTool = new FlowChartMerge('FCMergeTool', c);
           var fcIntStorageTool = new FlowChartInternalStorage('FCIntStorageTool', c);
+          var fcDBTool =  new FlowChartDatabase('FCDBTool', c);
 
           edgesGroup.addTool(lineTool);
           edgesGroup.addTool(polylineTool);
@@ -99,6 +100,7 @@
           flowchartGroup.addTool(fcSortTool);
           flowchartGroup.addTool(fcMergeTool);
           flowchartGroup.addTool(fcIntStorageTool);
+          flowchartGroup.addTool(fcDBTool);
 
           toolbox.addGroup(edgesGroup);
           toolbox.addGroup(nodesGroup);

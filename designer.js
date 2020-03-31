@@ -1988,11 +1988,21 @@ const Line = Class.create({
         }
       } else {
         if(lineInstance.lastHandlerMoved === 'START') {
-          lineInstance.setStartPoint(port.x + 10, port.y + 5);
+          if(lineInstance.startPort != null) {
+            lineInstance.startPort.disconnect();
+            lineInstance.startPort = null;
+          }
+
+          lineInstance.setStartPoint(port.x + 5, port.y + 5);
           port.connect(lineInstance, PortType.SOURCE);
           lineInstance.startPort = port;
         } else if(lineInstance.lastHandlerMoved === 'END') {
-          lineInstance.setEndPoint(port.x, port.y + 5);
+          if(lineInstance.endPort != null) {
+            lineInstance.endPort.disconnect();
+            lineInstance.endPort = null;
+          }
+
+          lineInstance.setEndPoint(port.x + 5, port.y + 5);
           port.connect(lineInstance, PortType.TARGET);
           lineInstance.endPort = port;
         }
@@ -2009,6 +2019,9 @@ const Line = Class.create({
       //Change the position of the handler (circle) by setting the new cx & cy coordinates
       d3.select(that).attr('cx', x);
       d3.select(that).attr('cy', y);
+
+      var lineg = d3.select('#' + lineInstance.id + '_g');
+      lineg.raise();
 
       var target = d3.event.sourceEvent.target;
 
@@ -3310,11 +3323,21 @@ var Polyline = Class.create({
         }
       } else {
         if(lineInstance.lastHandlerMoved === 'START') {
-          lineInstance.setStartPoint(port.x + 10, port.y + 5);
+          if(lineInstance.startPort != null) {
+            lineInstance.startPort.disconnect();
+            lineInstance.startPort = null;
+          }
+
+          lineInstance.setStartPoint(port.x + 5, port.y + 5);
           port.connect(lineInstance, PortType.SOURCE);
           lineInstance.startPort = port;
         } else if(lineInstance.lastHandlerMoved === 'END') {
-          lineInstance.setEndPoint(port.x, port.y + 5);
+          if(lineInstance.endPort != null) {
+            lineInstance.endPort.disconnect();
+            lineInstance.endPort = null;
+          }
+
+          lineInstance.setEndPoint(port.x + 5, port.y + 5);
           port.connect(lineInstance, PortType.TARGET);
           lineInstance.endPort = port;
         }
@@ -3330,6 +3353,9 @@ var Polyline = Class.create({
       d3.select(that).attr('cx', x);
       d3.select(that).attr('cy', y);
       var target = d3.event.sourceEvent.target;
+
+      var lineg = d3.select('#' + lineInstance.id + '_g');
+      lineg.raise();
 
       var handlerString = target.id.replace(lineInstance.id + '_', '');
       var index = handlerString.indexOf('N_handler');
@@ -3722,11 +3748,21 @@ var BezireCurve = Class.create({
         }
       } else {
         if(lineInstance.lastHandlerMoved === 'START') {
-          lineInstance.setStartPoint(port.x + 10, port.y + 5);
+          if(lineInstance.startPort != null) {
+            lineInstance.startPort.disconnect();
+            lineInstance.startPort = null;
+          }
+
+          lineInstance.setStartPoint(port.x + 5, port.y + 5);
           port.connect(lineInstance, PortType.SOURCE);
           lineInstance.startPort = port;
         } else if(lineInstance.lastHandlerMoved === 'END') {
-          lineInstance.setEndPoint(port.x, port.y + 5);
+          if(lineInstance.endPort != null) {
+            lineInstance.endPort.disconnect();
+            lineInstance.endPort = null;
+          }
+
+          lineInstance.setEndPoint(port.x + 5, port.y + 5);
           port.connect(lineInstance, PortType.TARGET);
           lineInstance.endPort = port;
         }
@@ -3742,6 +3778,9 @@ var BezireCurve = Class.create({
       d3.select(that).attr('cx', x);
       d3.select(that).attr('cy', y);
       var target = d3.event.sourceEvent.target;
+
+      var lineg = d3.select('#' + lineInstance.id + '_g');
+      lineg.raise();
 
       var index = -1;
       if(target.id.endsWith('start_handler')){
@@ -11054,7 +11093,7 @@ var FlowChartMerge = Class.create({
 });
 
 /**
- * FlowChartSubroutine: An subroutine or predefined process node in a flowchart
+ * FlowChartInternalStorage: An internal storage node in a flowchart
  * @constructor
  */
 var FlowChartInternalStorage = Class.create({
@@ -11399,6 +11438,393 @@ var FlowChartInternalStorage = Class.create({
                         style='stroke: black; stroke-width: 2px'></line>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='32' font-size='.45em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">INTERNAL</text>
                       <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.45em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">STORAGE</text>
+                    </svg>
+                 </div>`;
+    html += "</label>";
+    return html;
+  }
+});
+
+/**
+ * FlowChartDecision: An decision node in a flowchart
+ * @constructor
+ */
+var FlowChartDatabase = Class.create({
+  id: "",
+  title: "",
+  description: "",
+  rectDimension: undefined, //an instance of the RectDimension class
+  ports: [],
+  parentElement: undefined,
+  lineColor: "black",
+  lineWidth: "2",
+  lineStroke: "Solid",
+  fillColor: 'lightblue',
+  shapeType: ShapeType.CUSTOM,
+  toolName: 'FLOW_CHART_DATABASE',
+  selected: true,
+  opacity: 1,
+  classType: FlowChartDatabase,
+  LEFT: 0,
+  RIGHT: 1,
+  showPortsLabel: false,
+  initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
+    this.id = id;
+    this.parentElement = parentElement;
+    this.title = title || "";
+    this.description = description || "";
+    this.rectDimension = rectDimension || new RectDimension(10, 10, 100, 100);
+    this.ports = ports || [];
+    this.lineColor = lineColor || "black";
+    this.lineWidth = lineWidth || "2";
+    this.lineStroke = lineStroke || "Solid";
+    this.fillColor = fillColor || "lightblue";
+    this.shapeType = ShapeType.CUSTOM;
+    this.toolName = 'FLOW_CHART_DATABASE';
+    this.selected = true;
+    this.opacity = opacity || 1;
+    this.classType = FlowChartDatabase;
+    this.LEFT = 0;
+    this.RIGHT = 1;
+    this.showPortsLabel = false;
+
+    if(this.ports.length === 0) {
+      this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
+      this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
+    }
+  },
+  getToolName: function() {
+    return this.toolName;
+  },
+  getShapeType: function() {
+    return this.shapeType;
+  },
+  getClassType: function() {
+    return this.classType;
+  },
+  render: function() {
+    this.makeElement();
+  },
+  _calculateCurvePath: function(index, ydelta) {
+    return 'M ' + (this.rectDimension.left) + ' '
+      + (this.rectDimension.top + ydelta + (index * 10)) + ' '
+      + 'C ' + (this.rectDimension.left + 10) + ' '
+      + (this.rectDimension.top + (2 * ydelta) + (index * 10)) + ' '
+      + (this.rectDimension.left + this.rectDimension.width - 10) + ' '
+      + (this.rectDimension.top + (2 * ydelta) + (index * 10)) + ' '
+      + (this.rectDimension.left + this.rectDimension.width) + ' '
+      + (this.rectDimension.top + ydelta + (index * 10));
+  },
+  makeElement: function() {
+
+    var svg_id = '#' + this.parentElement.id + '_svg';
+    //Points the same thing but in D3 format
+    var svg = d3.select(svg_id);
+
+    var ydelta = this.rectDimension.width/8;
+
+    var path = 'M ' + (this.rectDimension.left) + ' ' //LT corner X
+      + (this.rectDimension.top + ydelta) + ' ' //LT corner Y
+      + 'C ' + (this.rectDimension.left + 10) + ' ' //curve 1 point 1 X
+      + (this.rectDimension.top) + ' ' //curve 1 point 1 Y
+      + (this.rectDimension.left + this.rectDimension.width - 10) + ' '//curve 1 point 2 X
+      + (this.rectDimension.top) + ' ' //curve 1 point 2 Y
+      + (this.rectDimension.left + this.rectDimension.width) + ' ' //curve 1 end point X
+      + (this.rectDimension.top + ydelta)
+      + 'V ' + (this.rectDimension.top + this.rectDimension.height - ydelta) + ' '//Vertic line
+      + 'C ' + (this.rectDimension.left + this.rectDimension.width - 10) + ' '//curve2 point1 X
+      + (this.rectDimension.top + this.rectDimension.height) + ' ' //curve2 point 1 Y
+      + (this.rectDimension.left + 10) + ' ' //curve 2 point 2 X
+      + (this.rectDimension.top + this.rectDimension.height) + ' ' //curve 2 point 2 Y
+      + (this.rectDimension.left) + ' ' //curve 2 end point X
+      + (this.rectDimension.top + this.rectDimension.height - ydelta) + ' ' //curve2 endpoint Y
+      + 'Z';
+
+    this.line = svg.append('path')
+      .attr('id', this.id)
+      .attr('d', path)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + ';fill-opacity: ' + this.opacity)
+      .attr('data-type', 'node-base')
+      //.attr('class', 'drag-svg')
+      .attr('parentElement', this.parentElement.id)
+      .attr('title', this.title)
+      .attr('description', this.description)
+      .attr('shapeType', this.shapeType)
+      .attr('toolName', this.toolName)
+      .attr('selected', this.selected);
+
+    var curve1Path = this._calculateCurvePath(0, ydelta);
+
+    this.curve1 = svg.append('path')
+      .attr('id', this.id + '_curve1')
+      .attr('d', curve1Path)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+
+    var curve2Path = this._calculateCurvePath(1, ydelta);
+
+    this.curve2 = svg.append('path')
+      .attr('id', this.id + '_curve2')
+      .attr('d', curve2Path)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+
+    var curve3Path = this._calculateCurvePath(2, ydelta);
+
+    this.curve3 = svg.append('path')
+      .attr('id', this.id + '_curve3')
+      .attr('d', curve3Path)
+      .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+
+    this.text = svg.append('text')
+      .text(this.title)
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '.7em');
+
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.addPort(port);
+    });
+
+    this.populateProperties();
+  },
+  isSelected: function(){
+    return JSON.parse(this.line.attr('selected'));
+  },
+  setSize: function(dx, dy){
+    var element = document.getElementById(this.id);
+    var bBox = element.getBBox();
+
+    this.rectDimension.width = parseInt(bBox.width);
+    this.rectDimension.height = parseInt(bBox.height);
+    this.rectDimension.left = parseInt(bBox.x);
+    this.rectDimension.top = parseInt(bBox.y);
+
+    var ydelta = this.rectDimension.width/8;
+    var curve1Path = this._calculateCurvePath(0, ydelta);
+    var curve2Path = this._calculateCurvePath(1, ydelta);
+    var curve3Path = this._calculateCurvePath(2, ydelta);
+
+    this.curve1.attr('d', curve1Path);
+    this.curve2.attr('d', curve2Path);
+    this.curve3.attr('d', curve3Path);
+
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5);
+
+    this.ports[this.LEFT].moveTo((this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5));
+    this.ports[this.RIGHT].moveTo((this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5));
+  },
+  setCoordinates: function(dx, dy){
+    var element = document.getElementById(this.id);
+    var bBox = element.getBBox();
+
+    this.rectDimension.left = parseInt(bBox.x);
+    this.rectDimension.top = parseInt(bBox.y);
+
+    var ydelta = this.rectDimension.width/8;
+    var curve1Path = this._calculateCurvePath(0, ydelta);
+    var curve2Path = this._calculateCurvePath(1, ydelta);
+    var curve3Path = this._calculateCurvePath(2, ydelta);
+
+    this.curve1.attr('d', curve1Path);
+    this.curve2.attr('d', curve2Path);
+    this.curve3.attr('d', curve3Path);
+
+    this.text
+      .attr('x', this.rectDimension.left + (this.rectDimension.width/2))
+      .attr('y', this.rectDimension.top + (this.rectDimension.height/2) + 5);
+
+    this.ports[this.LEFT].moveTo((this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5));
+    this.ports[this.RIGHT].moveTo((this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5));
+  },
+  onMove: function(dx, dy){
+    this.text.attr('visibility', 'hidden');
+    this.curve1.attr('visibility', 'hidden');
+    this.curve2.attr('visibility', 'hidden');
+    this.curve3.attr('visibility', 'hidden');
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+  },
+  onResize: function(dx, dy, obj){
+    this.text.attr('visibility', 'hidden');
+    this.curve1.attr('visibility', 'hidden');
+    this.curve2.attr('visibility', 'hidden');
+    this.curve3.attr('visibility', 'hidden');
+    this.ports.forEach(function(port){
+      port.hide();
+    });
+  },
+  onRotate: function(obj){
+    this.text.attr('visibility', 'hidden');
+    this.curve1.attr('visibility', 'hidden');
+    this.curve2.attr('visibility', 'hidden');
+    this.curve3.attr('visibility', 'hidden');
+  },
+  onDrop: function(obj){
+    this.text.attr('visibility', 'visible');
+    this.curve1.attr('visibility', 'visible');
+    this.curve2.attr('visibility', 'visible');
+    this.curve3.attr('visibility', 'visible');
+    this.ports.forEach(function(port){
+      port.show();
+    });
+  },
+  populateProperties: function(){
+    w2ui['properties'].clear();
+    w2ui['properties'].add([
+        { recid: 1, propName: 'Layout',
+          w2ui: {
+            children: [
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 3, propName: 'X', propValue: this.rectDimension.left,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 4, propName: 'Y', propValue: this.rectDimension.top,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 5, propName: 'Height', propValue: this.rectDimension.height,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 6, propName: 'Width', propValue: this.rectDimension.width,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 7, propName: 'Stroke Color', propValue: this.lineColor,
+                        w2ui: { editable: { type: 'color'} }
+                      },
+                      { recid: 8, propName: 'Stroke Width', propValue: this.lineWidth},
+                      { recid: 9, propName: 'Fill Color', propValue: this.fillColor,
+                        w2ui: {editable: { type: 'color'} }
+                      },
+                      { recid: 10, propName: 'Opacity', propValue: this.opacity},
+                      { recid: 11, propName: 'Shape Type', propValue: this.shapeType,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 12, propName: 'Tool Name', propValue: this.toolName,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      { recid: 13, propName: 'Is Selected', propValue: this.selected,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
+                      {
+                        recid: 14, propName: 'Show Ports Label', propValue: this.showPortsLabel,
+                          w2ui: { editable: { type: 'combo', items: [ { id: 1, text: 'true' },
+                                                                      { id: 2, text: 'false' }
+                                                                    ],
+                                              filter: false
+                                            }
+                                }
+                      }
+            ]
+          }
+        },
+        { recid: 15, propName: 'Details',
+          w2ui: {
+            children: [
+                      { recid: 16, propName: 'Title', propValue: this.title},
+                      { recid: 17, propName: 'Description', propValue: this.description}
+            ]
+          }
+        }
+    ]);
+    w2ui['properties'].expand(1);
+  },
+  setProperty: function(propName, propValue){
+    if(propName === "Stroke Color"){
+      this.lineColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.curve1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+      this.curve2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+      this.curve3.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+    } else if(propName === "Stroke Width"){
+      this.lineWidth = parseInt(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.curve1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+      this.curve2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+      this.curve3.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+    } else if(propName === "Fill Color"){
+      this.fillColor = '#' + propValue;
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.curve1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+      this.curve2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+      this.curve3.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+    } else if(propName === "Opacity"){
+      this.opacity = parseFloat(propValue);
+      this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + '; fill-opacity: ' + this.opacity);
+      this.curve1.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+      this.curve2.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+      this.curve3.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none');
+    } else if(propName === "Show Ports Label"){
+      this.showPortsLabel = JSON.parse(propValue);
+      if(this.showPortsLabel){
+        this.ports.forEach(function(port){
+          port.showLabel();
+        });
+      } else {
+        this.ports.forEach(function(port){
+          port.hideLabel();
+        });
+      }
+    } else if(propName === "Title"){
+      this.title = propValue;
+      this.text.text(this.title);
+    } else if(propName === "Description"){
+      this.description = propValue;
+    }
+  },
+  destroy: function() {
+    var that = this;
+    this.ports.forEach(function(port){
+      that.parentElement.removePort(port);
+    });
+    this.text.remove();
+    this.curve1.remove();
+    this.curve2.remove();
+    this.curve3.remove();
+  },
+  renderToolItem: function() {
+    var html = '';
+    html += "<label for='" + this.parentElement.id + "_FLOW_CHART_DATABASE_tool' >";
+    html += `<input type='radio' name='tools' id='` +
+      this.parentElement.id + "_FLOW_CHART_DATABASE_tool";
+    html += "'>";
+    html += "</input>";
+    html += `<div class="tool-button">
+                    <svg style='width: 50px; height: 50px;'>
+                      <path d = 'M 10 14 C 12 10 38 10 40 14 V 28 C 38 32 12 32 10 28 Z'
+                        style='stroke: black; stroke-width: 2px; fill:none'
+                        ></path>
+                      <path d = 'M 10 14 C 12 18 38 18 40 14'
+                        style='stroke: black; stroke-width: 2px; fill:none'
+                        ></path>
+                      <path d = 'M 10 17 C 12 21 38 21 40 17'
+                        style='stroke: black; stroke-width: 2px; fill:none'
+                        ></path>
+                      <path d = 'M 10 20 C 12 24 38 24 40 20'
+                        style='stroke: black; stroke-width: 2px; fill:none'
+                        ></path>
+                      <text alignment-baseline="central" text-anchor="middle" x='50%' y='40' font-size='.55em' style='stroke:none;fill:black' font-family="Arial, Helvetica, sans-serif">DATABASE</text>
                     </svg>
                  </div>`;
     html += "</label>";
