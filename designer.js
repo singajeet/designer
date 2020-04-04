@@ -467,7 +467,14 @@ const Canvas = Class.create({
   draggables: [],
   offsetX: 0,
   offsetY: 0,
-  initialize: function(id, containerId, height, width, nodes, edges, grid) {
+  projectNavigator: null,
+  newProjectEventListeners: [],
+  openProjectEventListeners: [],
+  saveProjectEventListeners: [],
+  itemAddedEventListeners: [],
+  itemRemovedEventListeners: [],
+  itemClonedEventListeners: [],
+  initialize: function(id, projectNavigator, containerId, height, width, nodes, edges, grid) {
     this.id = id;
     this.containerId = containerId;
     this.height = height;
@@ -498,6 +505,13 @@ const Canvas = Class.create({
     this.draggbles = [];
     this.offsetX = 0;
     this.offsetY = 0;
+    this.projectNavigator = projectNavigator;
+    this.newProjectEventListeners = [];
+    this.openProjectEventListeners = [];
+    this.saveProjectEventListeners = [];
+    this.itemAddedEventListeners = [];
+    this.itemRemovedEventListeners = [];
+    this.itemClonedEventListeners = [];
     var that = this;
     var deltaX = 0;
     var deltaY = 0;
@@ -568,15 +582,6 @@ const Canvas = Class.create({
     return this.shapeType;
   },
   /**
-   * Method: initEdge
-   * Description: Adds edge to canvas before
-   * it is rendered. If you wish to add edge after canvas
-   * has been rendered, please use add_edge()
-   */
-  initEdge: function(edge) {
-    this.edges.push(edge);
-  },
-  /**
    * Method: addEdge
    * Description: Adds an edge to canvas after canvas is
    * rendered. This function adds selectable, resizable,
@@ -585,6 +590,10 @@ const Canvas = Class.create({
   addEdge: function(edge) {
     this.edges.push(edge);
     edge.render();
+
+    if(this.projectNavigator !== null && this.projectNavigator !== undefined) {
+      this.projectNavigator.fireItemAddedEvent(edge);
+    }
   },
   /**
    * Method: removeEdge
@@ -595,18 +604,12 @@ const Canvas = Class.create({
     edge.destroy();
     var index = this.edges.indexOf(edge);
     this.edges.splice(index, 1);
-    var edgeEle = document.getElementById(edge.id);
-    var edgeG = edgeEle.parentNode;
-    edgeG.parentNode.removeChild(edgeG);
-  },
-  /**
-   * Method: initNode
-   * Description: Adds an node to canvas before
-   * it is rendered. If you wish to add node after canvas
-   * has been rendered, please use add_node()
-   */
-  initNode: function(node) {
-    this.nodes.push(node);
+    // var edgeEle = document.getElementById(edge.id);
+    // var edgeG = edgeEle.parentNode;
+    // edgeG.parentNode.removeChild(edgeG);
+    if(this.projectNavigator !== null && this.projectNavigator !== undefined) {
+      this.projectNavigator.fireItemRemovedEvent(edge);
+    }
   },
   /**
    * Method: addNode
@@ -645,6 +648,10 @@ const Canvas = Class.create({
       that.draggables.push(xDraggable);
       node.populateProperties();
     });
+
+    if(this.projectNavigator !== null && this.projectNavigator !== undefined) {
+      this.projectNavigator.fireItemAddedEvent(node);
+    }
   },
   /**
    * Method: removeNode
@@ -659,6 +666,10 @@ const Canvas = Class.create({
     var nodeToRemove = document.getElementById(node.id);
     if (nodeToRemove != undefined) {
       nodeToRemove.parentNode.removeChild(nodeToRemove);
+    }
+
+    if(this.projectNavigator !== null && this.projectNavigator !== undefined) {
+      this.projectNavigator.fireItemRemovedEvent(node);
     }
   },
   /**
@@ -710,25 +721,6 @@ const Canvas = Class.create({
     return null;
   },
   /**
-   * Method: addTool
-   * Description: adds an tool to the toolbox of the canvas
-   */
-  // addTool: function(tool) {
-  //   this.tools.push(tool);
-  // },
-  /**
-   * Method: removeTool
-   * Description: removes an tool from the toolbox of the canvas
-   */
-  // removeTool: function(tool) {
-  //   var index = this.tools.indexOf(tool);
-  //   this.tools.splice(index, 1);
-  //   var toolToRemove = document.getElementById(tool.id);
-  //   if (toolToRemove != undefined) {
-  //     toolToRemove.parentNode.removeChild(toolToRemove);
-  //   }
-  // },
-  /**
    * Method: setToolBox
    * Description: sets the toolbox instance for this canvas
    */
@@ -742,7 +734,7 @@ const Canvas = Class.create({
   render: function() {
     /*Renders the canvas along with Nodes and edges*/
     var html="<div id='layout' style='width: 100%; height: 100%'></div>";
-    if (this.containerId === undefined) {
+    if (this.containerId === undefined || this.containerId === null) {
       this.dom = $j('body').prepend(html);
     } else {
       var container = $j(this.containerId);
@@ -762,36 +754,6 @@ const Canvas = Class.create({
       ]
     });
     var toolsHtml = this.toolBox.render();
-    // toolsHtml +=
-    //       `<table style='width: 50px;' class='middle toolbox'>
-    //           <tr>
-    //             <th>Toolbox</th>
-    //           </tr>
-    //           <tr>
-    //             <td>`;
-    //               for (var i = 0; i < this.tools.length; i++) {
-    //                 if (i === 0) {
-    //                   toolsHtml += this.renderToolItem();
-    //                 } else {
-    //                   toolsHtml += this.tools[i].renderToolItem();
-    //                 }
-    //               }
-    //               toolsHtml +=
-    //             `</td>
-    //           </tr>
-    //           <tr>
-    //             <td style='text-align: center; font-size: 9px;'>`;
-    //             toolsHtml += `X: <span id='x_label'></span>
-    //                      Y: <span id='y_label'></span>
-    //             </td>
-    //           </tr>
-    //           <tr>
-    //             <td style='text-align: center; font-size: 9px;'>`;
-    //     toolsHtml += `STATE: <span id='mouse_state'></span>`;
-    //     toolsHtml += `</td>
-    //           </tr>
-    //         </table>`;
-    //w2ui['layout'].content('left', toolsHtml);
 
     var svgHtml = "";
     svgHtml = "<svg class='" + this.css + `' style='top: 0px; left: 0px;
@@ -815,17 +777,24 @@ const Canvas = Class.create({
     });
 
     w2ui['layout'].content('left', $j().w2sidebar({
-      name: 'projectExplorer',
-      nodes: [
-        { id: 'projects', text: 'Projects', img: 'icon-folder', expanded: true, group: true,
-          nodes: [{ id: 'project1', text: 'Project1', icon: 'fas fa-drafting-compass' },
-                  { id: 'project2', text: 'Project2', icon: 'fas fa-drafting-compass' },
-                  { id: 'project3', text: 'Project3', icon: 'fas fa-drafting-compass' }
-                ]}
-      ]
+      name: 'projectNavigator',
+      onClick: function(event) {
+        if(that.projectNavigator !== undefined && that.projectNavigator !== null) {
+          that.projectNavigator.fireItemSelectedEvent(event.target);
+        }
+      },
+      onMenuClick: function(event) {
+        if(that.projectNavigator !== undefined && that.projectNavigator !== null) {
+          that.projectNavigator.fireContextMenuItemSelectedEvent(this.menu[event.menuIndex].id);
+        }
+      }
     }));
+    if(this.projectNavigator !== undefined && this.projectNavigator !== null) {
+      this.projectNavigator.setNavigator(w2ui['projectNavigator']);
+      this.projectNavigator.fireInitializeParentEvent();
+      this.projectNavigator.fireInitializeContextMenuEvent();
+    }
 
-    //$j('#layout_layout_panel_right div:last').w2grid({
     w2ui['layout'].content('right', $j().w2grid({
       name: 'properties',
       header: 'Properties',
@@ -881,12 +850,10 @@ const Canvas = Class.create({
           alert('Please select only one item on canvas. Multiple item selection is not allowed while making changes to properties.');
         } else {
           selectedItem.setProperty(colName, newValue);
-          //w2ui['properties'].save();
         }
       }
     }));
 
-    //$j('#layout_layout_panel_top div:last').w2toolbar({
     w2ui['layout'].content('top', $j().w2toolbar({
       name: 'mainToolbar',
       items: [
@@ -894,9 +861,9 @@ const Canvas = Class.create({
         { type: 'button', id: 'open-drawing', caption: 'Open', img: 'far fa-folder-open', hint: 'Open Drawing'},
         { type: 'button', id: 'save-drawing', caption: 'Save', img: 'far fa-save', hint: 'Save Drawing'},
         { type: 'break'},
-        { type: 'button', id: 'clone-item', caption: 'Clone', img: 'far fa-copy', hint: 'Clone an item'},
+        { type: 'button', id: 'clone-items', caption: 'Clone', img: 'far fa-copy', hint: 'Clone an item'},
         { type: 'break'},
-        { type: 'button', id: 'erase-item', caption: 'Erase', img: 'fa fa-eraser', hint: 'Erase an item'},
+        { type: 'button', id: 'delete-items', caption: 'Delete', img: 'fa fa-eraser', hint: 'Erase an item'},
         { type: 'break'},
         { type: 'button', id: 'undo', caption: 'Undo', img: 'fa fa-undo', hint: 'Undo'},
         { type: 'button', id: 'redo', caption: 'Redo', img: 'fas fa-redo', hint: 'Redo'},
@@ -908,10 +875,19 @@ const Canvas = Class.create({
         { type: 'break'},
         { type: 'button', id: 'help', caption: 'Help', img: 'fa fa-question-circle', hine: 'help'}
 
-      ]
+      ],
+      onClick: function(event) {
+        var target = event.target;
+        if(target === 'new-drawing') {
+          that.clear();
+        } else if(target === 'delete-items') {
+          that.deleteItems();
+        } else if(target === 'clone-items') {
+          that.cloneItems();
+        }
+      }
     }));
 
-    //$j('#layout_layout_panel_bottom div:last').w2toolbar({
     w2ui['layout'].content('bottom', $j().w2toolbar({
       name: 'footerToolbar',
       items: [
@@ -933,19 +909,126 @@ const Canvas = Class.create({
       } else {
         that._changeTool(that);
       }
-      // for (var i = 0; i < that.tools.length; i++) {
-      //   if ((that.id + "_" + that.tools[i].getToolName() + "_tool") === name) {
-      //     that._changeTool(i);
-      //   }
-      // }
     });
-    // for (var i = 0; i < this.nodes.length; i++) {
-    //   this.nodes[i].registerPortHighlighters();
-    // }
 
     this._registerMarkers();
     this._registerObserver();
 
+  },
+  clear: function() {
+    //Using a for loop as: for(var i=0;i<that.nodes.length;i++)
+    //produces an issues where "nodes.length" keeps reducing as we
+    //remove an element from the array while variable "i" keeps
+    //incrementing irrespective of the new value of "nodes.length".
+    //As a result not all elements of the array are iterated because
+    //variable "i" keeps incrementing and array is reduced with every
+    //remove operation which means the condition "i<nodes.length"
+    //becomes false even before remaining elements are iterated.
+
+    //So we are usig two loops:
+    //1)  the first one will iterate as per the original length of the
+    //    "nodes" array and will not consider the new value of the length
+    //    of "nodes" array
+    //2)  the second "forEach" loop runs and removes the elements from the
+    //    array and considers the updated value of the array length
+    //The first loop make sures that the second loop keeps executing till
+    //all elements in the array are iterated
+
+    var that = this;
+    var nodesLength = this.nodes.length;
+    for(var i=0; i < nodesLength; i++){
+      this.nodes.forEach(function(node){
+        that.draggables.forEach(function(item, index){
+          if(item.el.id === node.id){
+            item.disable();
+            that.draggables.splice(index, 1);
+          }
+        });
+        that.removeNode(node);
+      });
+    }
+    var edgesLength = this.edges.length;
+    for(var i=0; i < edgesLength; i++){
+      this.edges.forEach(function(edge){
+        that.removeEdge(edge);
+      });
+    }
+    w2ui['properties'].clear();
+  },
+  deleteItems: function() {
+    var that = this;
+    var itemNames = "";
+    this.nodes.forEach(function(node){
+      if(node.isSelected()){
+        itemNames += node.id + ", ";
+      }
+    });
+    this.edges.forEach(function(edge){
+      if(edge.isSelected()){
+        itemNames += edge.id + ", ";
+      }
+    });
+    itemNames = itemNames.substring(0, itemNames.length-2);
+    var result = confirm("Are you sure you want to delete following items:\n" + itemNames);
+    if(!result){
+      return;
+    }
+    //Using a for loop as: for(var i=0;i<that.nodes.length;i++)
+    //produces an issues where "nodes.length" keeps reducing as we
+    //remove an element from the array while variable "i" keeps
+    //incrementing irrespective of the new value of "nodes.length".
+    //As a result not all elements of the array are iterated because
+    //variable "i" keeps incrementing and array is reduced with every
+    //remove operation which means the condition "i<nodes.length"
+    //becomes false even before remaining elements are iterated.
+
+    //So we are usig two loops:
+    //1)  the first one will iterate as per the original length of the
+    //    "nodes" array and will not consider the new value of the length
+    //    of "nodes" array
+    //2)  the second "forEach" loop runs and removes the elements from the
+    //    array and considers the updated value of the array length
+    //The first loop make sures that the second loop keeps executing till
+    //all elements in the array are iterated
+
+    var nodesLength = this.nodes.length;
+    for(var i=0; i < nodesLength; i++){
+      this.nodes.forEach(function(node){
+        if(node.isSelected()){
+          that.draggables.forEach(function(item, index){
+            if(item.el.id === node.id){
+              item.disable();
+              that.draggables.splice(index, 1);
+            }
+          });
+          that.removeNode(node);
+        }
+      });
+    }
+    var edgesLength = this.edges.length;
+    for(var i=0; i < edgesLength; i++){
+      this.edges.forEach(function(edge){
+        if(edge.isSelected()){
+          that.removeEdge(edge);
+        }
+      });
+    }
+    w2ui['properties'].clear();
+  },
+  cloneItems: function() {
+    var that = this;
+    this.nodes.forEach(function(node){
+      if(node.isSelected()){
+        var newNode = node.clone();
+        that.addNode(newNode);
+      }
+    });
+    this.edges.forEach(function(edge){
+      if(edge.isSelected()){
+        var newEdge = edge.clone();
+        that.addEdge(newEdge);
+      }
+    });
   },
   _registerObserver: function() {
     this.mouseState = MouseState.UP;
@@ -978,62 +1061,7 @@ const Canvas = Class.create({
 
     document.onkeypress = function(e){
       if(e.code === "Delete"){
-        var itemNames = "";
-        that.nodes.forEach(function(node){
-          if(node.isSelected()){
-            itemNames += node.id + ", ";
-          }
-        });
-        that.edges.forEach(function(edge){
-          if(edge.isSelected()){
-            itemNames += edge.id + ", ";
-          }
-        });
-        itemNames = itemNames.substring(0, itemNames.length-2);
-        var result = confirm("Are you sure you want to delete following items:\n" + itemNames);
-        if(!result){
-          return;
-        }
-        //Using a for loop as: for(var i=0;i<that.nodes.length;i++)
-        //produces an issues where "nodes.length" keeps reducing as we
-        //remove an element from the array while variable "i" keeps
-        //incrementing irrespective of the new value of "nodes.length".
-        //As a result not all elements of the array are iterated because
-        //variable "i" keeps incrementing and array is reduced with every
-        //remove operation which means the condition "i<nodes.length"
-        //becomes false even before remaining elements are iterated.
-
-        //So we are usig two loops:
-        //1)  the first one will iterate as per the original length of the
-        //    "nodes" array and will not consider the new value of the length
-        //    of "nodes" array
-        //2)  the second "forEach" loop runs and removes the elements from the
-        //    array and considers the updated value of the array length
-        //The first loop make sures that the second loop keeps executing till
-        //all elements in the array are iterated
-
-        var nodesLength = that.nodes.length;
-        for(var i=0; i < nodesLength; i++){
-          that.nodes.forEach(function(node){
-            if(node.isSelected()){
-              that.draggables.forEach(function(item, index){
-                if(item.el.id === node.id){
-                  item.disable();
-                  that.draggables.splice(index, 1);
-                }
-              });
-              that.removeNode(node);
-            }
-          });
-        }
-        var edgesLength = that.edges.length;
-        for(var i=0; i < edgesLength; i++){
-          that.edges.forEach(function(edge){
-            if(edge.isSelected()){
-              that.removeEdge(edge);
-            }
-          });
-        }
+        that.deleteItems();
       }
     }
 
@@ -1120,11 +1148,7 @@ const Canvas = Class.create({
           that.mouseStartY = e.touches[0].clientY;
 	        that.isTap = true;
         }
-        // if(that.selectedTool.getShapeType() === ShapeType.SELECT){
-        //   if(e.target.id.endsWith('start_handler') || e.target.id.endsWith('end_handler')){
-        //     selectedHandler = d3.select('#' + e.target.id);
-        //   }
-        // }
+
         if (e.currentTarget.id === (that.id + '_svg')) {
           var svg_id = '#' + that.id + '_svg';
           var svg = d3.select(svg_id);
@@ -1273,9 +1297,6 @@ const Canvas = Class.create({
                   item.disable();
                   item.el.attributes['selected'].value = false;
                 });
-                // that.nodes.forEach(function(node){
-                //   node.disable();
-                // });
                 that.edges.forEach(function(edge){
                   edge.disable();
                 });
@@ -1306,7 +1327,7 @@ const Canvas = Class.create({
           }
         }
         if(that.selectedTool.getShapeType() === ShapeType.POINTER){
-          //TODO = Unselect all items if clicked on the canvas
+          //NOTHING HERE
         } else if (that.tempElement !== undefined && that.selectedTool.getShapeType() === ShapeType.LINE)
         {
           var name = prompt("Element Name:");
@@ -1322,8 +1343,8 @@ const Canvas = Class.create({
             x: that.mouseStartX,
             y: that.mouseStartY
           }, {
-            x: that.mouseX, //that.mouseEndX,
-            y: that.mouseY //that.mouseEndY
+            x: that.mouseX,
+            y: that.mouseY
           });
           that.tempElement.remove();
           that.tempElement = undefined;
@@ -1506,7 +1527,7 @@ const Canvas = Class.create({
 
     svg.append('svg:defs').append('svg:marker')
       .attr("id", "arrow_start")
-      .attr("refX", 11)
+      .attr("refX", 1)
       .attr("refY", 6)
       .attr("markerWidth", 30)
       .attr("markerHeight", 30)
@@ -1516,10 +1537,7 @@ const Canvas = Class.create({
       .attr("d", "M 0 6 12 0 9 6 12 12")
       .style("fill", "context-stroke");
   },
-  _changeTool(/*index*/ tool) {
-    // if (index < this.tools.length) {
-    //   this.selectedTool = this.tools[index];
-    // }
+  _changeTool(tool) {
     this.selectedTool = tool;
   },
   _selectPointerTool: function() {
@@ -1540,23 +1558,31 @@ const Canvas = Class.create({
       }
     }
   },
-  getFirstPortOfNode: function(id) {
-    var node = this.getNode(id);
-    return node.getFirstPort();
-  },
-  getAllPortsOfNode: function(id) {
-    var node = this.getNode(id);
-    return node.getAllPorts();
-  },
-  getLastPortOfNode: function(id) {
-    var node = this.getNode(id);
-    return node.getLastPort();
-  },
-  getNextEmptyPortOfNode: function(id) {
-    var node = this.getNode(id);
-    return node.getNextEmptyPort();
-  }
+  addNewProjectEventListener: function(listener) {},
+  addOpenProjectEventListener: function(listener) {},
+  addSaveProjectEventListener: function(listener) {},
+  addItemAddedEventListener: function(listener) {},
+  addItemRemovedEventListener: function(listener) {},
+  addItemClonedEventListener: function(listener) {},
+
+  removeNewProjectEventListener: function(listener) {},
+  removeOpenProjectEventListener: function(listener) {},
+  removeSaveProjectEventListener: function(listener) {},
+  removeItemAddedEventListener: function(listener) {},
+  removeItemRemovedEventListener: function(listener) {},
+  removeItemClonedEventListener: function(listener) {},
+
+  fireNewProjectEvent: function(project) {},
+  fireOpenProjectEvent: function(project) {},
+  fireSaveProjectEvent: function(project) {},
+  fireItemAddedEvent: function(item) {},
+  fireItemRemovedEvent: function(item) {},
+  fireItemClonedEvent: function(item) {}
 });
+
+/*********************************************************************************
+ *                          GENERIC SHAPE APIs
+ *********************************************************************************/
 
 /**
  * Shape: Base class for all shapes that could be added to the cavas
@@ -1813,6 +1839,18 @@ const Line = Class.create({
     this.endPort = null;
     this.lastHandlerMoved = '';
   },
+  clone: function() {
+    return new Line(this.id + '_copy', this.parentElement,
+                    {
+                      x: this.lineDimension.start.x + 10,
+                      y: this.lineDimension.start.y + 10
+                    }, {
+                      x: this.lineDimension.end.x + 10,
+                      y: this.lineDimension.end.y + 10
+                    }, this.title, this.lineColor, this.lineWidth,
+                    this.lineStroke, this.lineDimension.hasArrow,
+                    this.lineDimension.arrowType, this.description);
+  },
   getToolName: function() {
     return this.toolName;
   },
@@ -1895,24 +1933,36 @@ const Line = Class.create({
       .attr('x2', this.lineDimension.end.x)
       .attr('y2', this.lineDimension.end.y)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;')
-      .attr('marker-end', 'url(#arrow_end)')
       .attr('data-type', 'edge-base')
-      // .attr('parentElement', this.parentElement.id)
-      // .attr('title', this.title)
-      // .attr('description', this.description)
-      // .attr('hasArrow', this.lineDimension.hasArrow)
-      // .attr('arrowType', this.lineDimension.arrowType)
       .attr('shapeType', this.shapeType)
       .attr('toolName', this.toolName)
-      // .attr('startHandler', this.id + '_start_handler')
-      // .attr('endHandler', this.id + '_end_handler')
       .attr('handlersVisible', this.handlersVisible)
       .attr('selected', this.selected);
 
+    if(this.lineDimension.hasArrow){
+       if(this.lineDimension.arrowType === "END"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', '');
+        } else if(this.lineDimension.arrowType === "START"){
+          this.line.attr('marker-end', '');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        } else if(this.lineDimension.arrowType === "BOTH"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        }
+    } else {
+      this.line.attr('marker-end', '');
+      this.line.attr('marker-start', '');
+    }
+
+
     this.titleText = this.g.append('text')
-      .attr('id', this.id + '_title_text')
+      .attr('id', this.id + '_title_text');
+
+    this.titleTextPath = this.titleText
       .attr('dy', -10)
       .append('textPath')
+      .attr('id', this.id + '_title_text_path')
       .attr('xlink:href', '#' + this.id + '_path')
       .style('text-anchor', 'middle')
       .attr('startOffset', '50%')
@@ -2090,9 +2140,9 @@ const Line = Class.create({
           w2ui: {
             children: [
               { recid: 2, propName: 'Id', propValue: this.id,
-                w2ui: { editable: false,
-                        style: "color: grey"
-                      }
+                // w2ui: { editable: false,
+                //         style: "color: grey"
+                //       }
               },
               { recid: 3, propName: 'X1', propValue: this.lineDimension.start.x,
                 w2ui: { editable: false,
@@ -2182,7 +2232,7 @@ const Line = Class.create({
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
     } else if(propName === "Title"){
       this.title = propValue;
-      this.titleText.text(this.title);
+      this.titleTextPath.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
       // this.descriptionText.text(this.description);
@@ -2215,6 +2265,16 @@ const Line = Class.create({
         this.line.attr('marker-end', '');
         this.line.attr('marker-start', '');
       }
+    } else if(propName === 'Id') {
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.g.attr('id', this.id + '_g');
+      this.path.attr('id', this.id + '_path');
+      this.titleText.attr('id', this.id + '_title_text');
+      this.titleTextPath.attr('id', this.id + '_title_text_path')
+                        .attr('xlink:href', '#' + this.id + '_path');
+      this.startHandler.attr('id', this.id + '_start_handler');
+      this.endHandler.attr('id', this.id + '_end_handler');
     }
   },
   destroy: function() {
@@ -2224,6 +2284,7 @@ const Line = Class.create({
     if(this.endPort != null) {
       this.endPort.disconnect();
     }
+    this.g.remove();
   },
   renderToolItem() {
     var html = '';
@@ -2258,7 +2319,6 @@ var Rectangle = Class.create({
   title: "",
   description: "",
   rectDimension: undefined, //an instance of the RectDimension class
-  ports: [],
   parentElement: undefined,
   lineColor: "black",
   lineWidth: "2",
@@ -2268,13 +2328,12 @@ var Rectangle = Class.create({
   toolName: 'RECT',
   selected: true,
   opacity: 0.2,
-  initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
+  initialize: function(id, parentElement, rectDimension, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
     this.parentElement = parentElement;
     this.title = title || "";
     this.description = description || "";
     this.rectDimension = rectDimension || new RectDimension(10, 10, 100, 100);
-    this.ports = ports || [];
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "2";
     this.lineStroke = lineStroke || "Solid";
@@ -2283,6 +2342,15 @@ var Rectangle = Class.create({
     this.toolName = 'RECT';
     this.selected = true;
     this.opacity = opacity || 0.2;
+  },
+  clone: function() {
+    return new Rectangle(this.id + '_copy', this.parentElement,
+                         new RectDimension(this.rectDimension.top + 10,
+                                           this.rectDimension.left + 10,
+                                           this.rectDimension.height,
+                                           this.rectDimension.width),
+                         this.title, this.lineColor, this.lineWidth,
+                         this.lineStroke, this.fillColor, this.opacity, this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -2403,11 +2471,7 @@ var Rectangle = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -2483,10 +2547,13 @@ var Rectangle = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === "Id"){
+      this.id = propValue;
+      this.line.attr('id', this.id);
     }
   },
   destroy: function() {
-
+    this.text.remove();
   },
   renderToolItem: function() {
     var html = '';
@@ -2515,7 +2582,6 @@ var Circle = Class.create({
   title: "",
   description: "",
   circDimension: undefined, //an instance of the RectDimension class
-  ports: [],
   parentElement: undefined,
   lineColor: "black",
   lineWidth: "2",
@@ -2525,13 +2591,12 @@ var Circle = Class.create({
   selected: true,
   fillColor: 'white',
   opacity: 0.2,
-  initialize: function(id, parentElement, circDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
+  initialize: function(id, parentElement, circDimension, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
     this.parentElement = parentElement;
     this.title = title || "";
     this.description = description || "";
     this.circDimension = circDimension || new CircleDimension(10, 10, 50);
-    this.ports = ports || [];
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "2";
     this.lineStroke = lineStroke || "Solid";
@@ -2540,6 +2605,16 @@ var Circle = Class.create({
     this.selected = true;
     this.fillColor = fillColor || 'white';
     this.opacity = opacity || 0.2;
+  },
+  clone: function() {
+    return new Circle(this.id + '_copy', this.parentElement,
+                      new CircleDimension(this.circDimension.cx + 10,
+                                          this.circDimension.cy + 10,
+                                          this.circDimension.r
+                                          ),
+                      this.title, this.lineColor, this.lineWidth, this.lineStroke,
+                      this.fillColor, this.opacity, this.description
+                      );
   },
   getToolName: function() {
     return this.toolName;
@@ -2614,11 +2689,7 @@ var Circle = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'CX', propValue: this.circDimension.cx,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -2689,10 +2760,13 @@ var Circle = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
     }
   },
   destroy: function() {
-
+    this.text.remove();
   },
   renderToolItem() {
     var html = '';
@@ -2721,7 +2795,6 @@ var Ellipse = Class.create({
   title: "",
   description: "",
   ellipDimension: undefined, //an instance of the EllipseDimension class
-  ports: [],
   parentElement: undefined,
   lineColor: "black",
   lineWidth: "2",
@@ -2731,13 +2804,12 @@ var Ellipse = Class.create({
   selected: true,
   fillColor: 'white',
   opacity: 0.2,
-  initialize: function(id, parentElement, ellipDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
+  initialize: function(id, parentElement, ellipDimension, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
     this.parentElement = parentElement;
     this.title = title || "";
     this.description = description || "";
     this.ellipDimension = ellipDimension || new EllipseDimension(10, 10, 50, 100);
-    this.ports = ports || [];
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "2";
     this.lineStroke = lineStroke || "Solid";
@@ -2746,6 +2818,16 @@ var Ellipse = Class.create({
     this.selected = true;
     this.fillColor = fillColor || 'white';
     this.opacity = opacity || 0.2;
+  },
+  clone: function() {
+    return new Ellipse(this.id + '_copy', this.parentElement,
+                       new EllipseDimension(
+                                            this.ellipDimension.cx + 10,
+                                            this.ellipDimension.cy + 10,
+                                            this.ellipDimension.rx,
+                                            this.ellipDimension.ry),
+                       this.title, this.lineColor, this.lineWidth, this.lineStroke,
+                       this.fillColor, this.opacity, this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -2821,11 +2903,7 @@ var Ellipse = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'CX', propValue: this.ellipDimension.cx,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -2901,10 +2979,13 @@ var Ellipse = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
     }
   },
   destroy: function() {
-
+    this.text.remove();
   },
   renderToolItem() {
     var html = '';
@@ -2933,7 +3014,6 @@ var Polygon = Class.create({
   title: "",
   description: "",
   polyPoints: '10,10 50,50 100,10', //an instance of the EllipseDimension class
-  ports: [],
   parentElement: undefined,
   lineColor: "black",
   lineWidth: "2",
@@ -2943,13 +3023,12 @@ var Polygon = Class.create({
   selected: true,
   fillColor: 'white',
   opacity: 0.2,
-  initialize: function(id, parentElement, polyPoints, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
+  initialize: function(id, parentElement, polyPoints, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
     this.parentElement = parentElement;
     this.title = title || "";
     this.description = description || "";
     this.polyPoints = polyPoints || '10,10 50,50 100,10';
-    this.ports = ports || [];
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "2";
     this.lineStroke = lineStroke || "Solid";
@@ -2958,6 +3037,16 @@ var Polygon = Class.create({
     this.selected = true;
     this.fillColor = fillColor || 'white';
     this.opacity = opacity || 0.2;
+  },
+  clone: function() {
+    var polyPointsArray = this.polyPoints.trim().replace(/,/g, ' ').split(' ');
+    for(var i=0; i < polyPointsArray.length; i++){
+      polyPointsArray[i] = parseFloat(polyPointsArray[i]) + 10;
+    }
+    var polyPointsString = polyPointsArray.join(' ');
+    return new Polygon(this.id + '_copy', this.parentElement, polyPointsString, this.title,
+                       this.lineColor, this.lineWidth, this.lineStroke, this.fillColor,
+                       this.opacity, this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -2987,14 +3076,24 @@ var Polygon = Class.create({
       .attr('toolName', this.toolName)
       .attr('selected', this.selected);
 
+    var textX = 0;
+    var textY = 0;
     var polyPointsArray = this.polyPoints.split(' ');
-    var firstPointString = polyPointsArray[0];
-    var firstPoint = firstPointString.split(',');
+    if(this.polyPoints.indexOf(',') > 0){
+      var firstPointString = polyPointsArray[0];
+      var firstPoint = firstPointString.split(',');
+      textX = parseInt(firstPoint[0]) + 20;
+      textY = parseInt(firstPoint[1]) + 20;
+    } else {
+      textX = parseInt(polyPointsArray[0]) + 20;
+      textY = parseInt(polyPointsArray[1]) + 20;
+    }
+
 
     this.text = svg.append('text')
       .text(this.title)
-      .attr('x', parseInt(firstPoint[0]) + 20)
-      .attr('y', parseInt(firstPoint[1]) + 20)
+      .attr('x', textX)
+      .attr('y', textY)
       //.attr('text-anchor', 'middle')
       .attr('font-family', 'sans-serif')
       .attr('font-size', '.7em');
@@ -3032,11 +3131,7 @@ var Polygon = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'Points', propValue: this.polyPoints,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -3097,10 +3192,13 @@ var Polygon = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
     }
   },
   destroy: function() {
-
+    this.text.remove();
   },
   renderToolItem() {
     var html = '';
@@ -3131,7 +3229,6 @@ var Polyline = Class.create({
   title: "",
   description: "",
   polyPoints: '10,10 50,50 100,10', //instances of the Point class
-  ports: [],
   parentElement: undefined,
   lineColor: "black",
   lineWidth: "2",
@@ -3145,13 +3242,12 @@ var Polyline = Class.create({
   startPort: null,
   endPort: null,
   lastHandlerMoved: '',
-  initialize: function(id, parentElement, polyPoints, ports, title, lineColor, lineWidth, lineStroke, description) {
+  initialize: function(id, parentElement, polyPoints, title, lineColor, lineWidth, lineStroke, hasArrow, arrowType, description) {
     this.id = id;
     this.parentElement = parentElement;
     this.title = title || "";
     this.description = description || "";
     this.polyPoints = polyPoints || '10,10 50,50 100,10';
-    this.ports = ports || [];
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "2";
     this.lineStroke = lineStroke || "Solid";
@@ -3159,11 +3255,22 @@ var Polyline = Class.create({
     this.toolName = 'POLYLINE';
     this.handlersVisible = true;
     this.selected = true;
-    this.hasArrow = true;
-    this.arrowType = "END";
+    this.hasArrow = hasArrow === null || hasArrow === undefined ? true : hasArrow;
+    this.arrowType = arrowType || "END";
     this.startPort = null;
     this.endPort = null;
     this.lastHandlerMoved = '';
+  },
+  clone: function() {
+    var polyPointsArray = this.polyPoints.trim().split(' ');
+    for(var i=0; i < polyPointsArray.length; i++){
+      var point = polyPointsArray[i].trim().split(',');
+      polyPointsArray[i] = (parseFloat(point[0]) + 10) + ',' + (parseFloat(point[1]) + 10);
+    }
+    var polyPointsString = polyPointsArray.join(' ');
+    return new Polyline(this.id + '_copy', this.parentElement, polyPointsString, this.title,
+                        this.lineColor, this.lineWidth, this.lineStroke, this.hasArrow,
+                        this.arrowType, this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -3228,9 +3335,12 @@ var Polyline = Class.create({
       .attr('style', 'stroke: ' + this.lineColor + '; stroke-width: 1px;');
 
     this.text = this.g.append('text')
-      .attr('id', this.id + '_title_text')
+      .attr('id', this.id + '_title_text');
+
+    this.textPath = this.text
       .attr('dy', -10)
       .append('textPath')
+      .attr('id', this.id + '_title_text_path')
       .attr('xlink:href', '#' + this.id + '_path')
       .style('text-anchor', 'middle')
       .attr('startOffset', '50%')
@@ -3243,7 +3353,6 @@ var Polyline = Class.create({
       .attr('points', this.polyPoints)
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;')
       .attr('data-type', 'node-base')
-      .attr('marker-end', 'url(#arrow_end)')
       .attr('parentElement', this.parentElement.id)
       .attr('title', this.title)
       .attr('description', this.description)
@@ -3251,6 +3360,22 @@ var Polyline = Class.create({
       .attr('toolName', this.toolName)
       .attr('handlersVisible', true)
       .attr('selected', true);
+
+    if(this.hasArrow){
+       if(this.arrowType === "END"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', '');
+        } else if(this.arrowType === "START"){
+          this.line.attr('marker-end', '');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        } else if(this.arrowType === "BOTH"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        }
+    } else {
+      this.line.attr('marker-end', '');
+      this.line.attr('marker-start', '');
+    }
 
     this.createHandlers();
     this.populateProperties();
@@ -3430,11 +3555,7 @@ var Polyline = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'Points', propValue: this.polyPoints,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -3497,7 +3618,7 @@ var Polyline = Class.create({
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: none;');
     } else if(propName === "Title"){
       this.title = propValue;
-      this.text.text(this.title);
+      this.textPath.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
     } else if(propName === "Arrow Type"){
@@ -3529,6 +3650,24 @@ var Polyline = Class.create({
         this.line.attr('marker-end', '');
         this.line.attr('marker-start', '');
       }
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.g.attr('id', this.id + '_g');
+      this.path.attr('id', this.id + '_path');
+      this.text.attr('id', this.id + '_title_text');
+      this.textPath.attr('id', this.id + '_title_text_path')
+                        .attr('xlink:href', '#' + this.id + '_path');
+      for(var i=0; i < this.handlers.length; i++){
+        this.handlers[i].attr('id', this.id + '_' + i + 'N_handler');
+      }
+
+      var handlerNames = "";
+      this.handlers.forEach(function(handler){
+        handlerNames += handler.attr('id') + ',';
+      });
+      handlerNames = handlerNames.substring(0, handlerNames.length-1);
+      this.line.attr('handlers', handlerNames);
     }
   },
   destroy: function() {
@@ -3538,6 +3677,7 @@ var Polyline = Class.create({
     if(this.endPort != null) {
       this.endPort.disconnect();
     }
+    this.g.remove();
   },
   renderToolItem() {
     var html = '';
@@ -3566,8 +3706,7 @@ var BezireCurve = Class.create({
   id: "",
   title: "",
   description: "",
-  curvePoints: '[{x: 100, y: 350}, {x: 150, y: -300}, {x: 300, y: 0}]', //instances of the Point class
-  ports: [],
+  curvePoints: [{x: 100, y: 350}, {x: 150, y: -300}, {x: 300, y: 0}], //instances of the Point class
   parentElement: undefined,
   lineColor: "black",
   lineWidth: "2",
@@ -3582,13 +3721,12 @@ var BezireCurve = Class.create({
   startPort: null,
   endPort: null,
   lastHandlerMoved: '',
-  initialize: function(id, parentElement, curvePoints, ports, title, lineColor, lineWidth, lineStroke, description) {
+  initialize: function(id, parentElement, curvePoints, title, lineColor, lineWidth, lineStroke, hasArrow, arrowType, description) {
     this.id = id;
     this.parentElement = parentElement;
     this.title = title || "";
     this.description = description || "";
-    this.curvePoints = curvePoints || '[{x: 100, y: 350}, {x: 150, y: -300}, {x: 300, y: 0}]';
-    this.ports = ports || [];
+    this.curvePoints = curvePoints || [{x: 100, y: 350}, {x: 150, y: -300}, {x: 300, y: 0}];
     this.lineColor = lineColor || "black";
     this.lineWidth = lineWidth || "2";
     this.lineStroke = lineStroke || "Solid";
@@ -3597,11 +3735,19 @@ var BezireCurve = Class.create({
     this.controlPoint = undefined;
     this.handlersVisible = true;
     this.selected = true;
-    this.hasArrow = true;
-    this.arrowType = 'END';
+    this.hasArrow = hasArrow === null || hasArrow === undefined ? true : hasArrow;
+    this.arrowType = arrowType || 'END';
     this.startPort = null;
     this.endPort = null;
     this.lastHandlerMoved = '';
+  },
+  clone: function() {
+    var points = [{x: this.curvePoints[0].x + 10, y: this.curvePoints[0].y + 10},
+                  {x: this.curvePoints[1].x + 10, y: this.curvePoints[1].y + 10},
+                  {x: this.curvePoints[2].x + 10, y: this.curvePoints[2].y + 10}];
+    return new BezireCurve(this.id + '_copy', this.parentElement, points, this.title,
+                           this.lineColor, this.lineWidth, this.lineStroke, this.hasArrow,
+                           this.arrowType, this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -3657,34 +3803,52 @@ var BezireCurve = Class.create({
         .attr('id', this.id + '_g');
 
       this.line = this.g.append('path')
-      .attr('id', this.id)
-      .attr('d', this.curveFunc(this.curvePoints))
-      .attr('stroke', this.lineColor)
-      .attr('stroke-width', this.lineWidth)
-      .attr('fill', 'none')
-      .attr('data-type', 'node-base-inner')
-      .attr('marker-end', 'url(#arrow_end)')
-      .attr('parentElement', this.parentElement.id)
-      .attr('title', this.title)
-      .attr('description', this.description)
-      .attr('shapeType', this.shapeType)
-      .attr('toolName', this.toolName)
-      .attr('handlersVisible', true)
-      .attr('selected', true)
-      .attr('controlPoint', this.id + '_control_point')
-      .attr('startHandler', this.id + '_start_handler')
-      .attr('endHandler', this.id + '_end_handler');
+        .attr('id', this.id)
+        .attr('d', this.curveFunc(this.curvePoints))
+        .attr('stroke', this.lineColor)
+        .attr('stroke-width', this.lineWidth)
+        .attr('fill', 'none')
+        .attr('data-type', 'node-base-inner')
+        .attr('parentElement', this.parentElement.id)
+        .attr('title', this.title)
+        .attr('description', this.description)
+        .attr('shapeType', this.shapeType)
+        .attr('toolName', this.toolName)
+        .attr('handlersVisible', true)
+        .attr('selected', true)
+        .attr('controlPoint', this.id + '_control_point')
+        .attr('startHandler', this.id + '_start_handler')
+        .attr('endHandler', this.id + '_end_handler');
+
+      if(this.hasArrow){
+       if(this.arrowType === "END"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', '');
+        } else if(this.arrowType === "START"){
+          this.line.attr('marker-end', '');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        } else if(this.arrowType === "BOTH"){
+          this.line.attr('marker-end', 'url(#arrow_end)');
+          this.line.attr('marker-start', 'url(#arrow_start)');
+        }
+      } else {
+        this.line.attr('marker-end', '');
+        this.line.attr('marker-start', '');
+      }
 
       this.text = this.g.append('text')
-      .attr('id', this.id + '_title_text')
-      .attr('dy', -10)
-      .append('textPath')
-      .attr('xlink:href', '#' + this.id)
-      .style('text-anchor', 'middle')
-      .attr('startOffset', '50%')
-      .text(this.title)
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', '.7em');
+        .attr('id', this.id + '_title_text');
+
+      this.textPath = this.text
+        .attr('dy', -10)
+        .append('textPath')
+        .attr('id', this.id + '_title_text_path')
+        .attr('xlink:href', '#' + this.id)
+        .style('text-anchor', 'middle')
+        .attr('startOffset', '50%')
+        .text(this.title)
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', '.7em');
 
     this.createHandlers();
     this.populateProperties();
@@ -3854,11 +4018,7 @@ var BezireCurve = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'Points', propValue: JSON.stringify(this.curvePoints),
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -3921,7 +4081,7 @@ var BezireCurve = Class.create({
       this.line.attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px;');
     } else if(propName === "Title"){
       this.title = propValue;
-      this.text.text(this.title);
+      this.textPath.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
     } else if(propName === "Arrow Type"){
@@ -3953,6 +4113,21 @@ var BezireCurve = Class.create({
         this.line.attr('marker-end', '');
         this.line.attr('marker-start', '');
       }
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.g.attr('id', this.id + '_g');
+      this.text.attr('id', this.id + '_title_text');
+      this.textPath.attr('id', this.id + '_title_text_path')
+                        .attr('xlink:href', '#' + this.id);
+      this.controlPoint.attr('id', this.id + '_control_point');
+      this.startHandler.attr('id', this.id + '_start_handler');
+      this.endHandler.attr('id', this.id + '_end_handler');
+
+      this.line
+        .attr('controlPoint', this.id + '_control_point')
+        .attr('startHandler', this.id + '_start_handler')
+        .attr('endHandler', this.id + '_end_handler');
     }
   },
   destroy: function() {
@@ -3962,6 +4137,7 @@ var BezireCurve = Class.create({
     if(this.endPort != null) {
       this.endPort.disconnect();
     }
+    this.g.remove();
   },
   renderToolItem() {
     var html = '';
@@ -4015,6 +4191,12 @@ const Port = Class.create({
     this.shapeType = ShapeType.PORT;
     this.selected = false;
     this.portType = undefined;
+  },
+  rename: function(id) {
+    this.id = id;
+    this.line.attr('id', this.id);
+    this.text.attr('id', this.id + '_text');
+    this.text.text(this.id);
   },
   getShapeType: function() {
     return this.shapeType;
@@ -4297,12 +4479,28 @@ const BasicNode = Class.create(Rectangle, {
   OUTPUT: 1,
   shapeType: ShapeType.NODE,
   toolName: 'NODE',
+  ports: [],
   initialize: function($super, id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, description) {
-    $super(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, description);
+    $super(id, parentElement, rectDimension, title, lineColor, lineWidth, lineStroke, description);
     this.shapeType = ShapeType.NODE;
     this.toolName = 'NODE';
-    this.ports[this.INPUT] = new Port(this.id + '_input', this, this.rectDimension.left - 5, (this.rectDimension.top + (this.rectDimension.height / 2)), 'LEFT');
-    this.ports[this.OUTPUT] = new Port(this.id + '_output', this, (this.rectDimension.left + this.rectDimension.width) - 5, (this.rectDimension.top + (this.rectDimension.height / 2)), 'RIGHT');
+    this.ports = [];
+    if(ports === undefined || ports === null || ports.length === 0){
+      this.ports[this.INPUT] = new Port(this.id + '_input', this, this.rectDimension.left - 5, (this.rectDimension.top + (this.rectDimension.height / 2)), 'LEFT');
+      this.ports[this.OUTPUT] = new Port(this.id + '_output', this, (this.rectDimension.left + this.rectDimension.width) - 5, (this.rectDimension.top + (this.rectDimension.height / 2)), 'RIGHT');
+    } else {
+      this.ports = ports;
+    }
+  },
+  clone: function() {
+    return new BasicNode(this.id + '_copy', this.parentElement,
+                         new RectDimension(
+                                           this.rectDimension.left + 10,
+                                           this.rectDimension.top + 10,
+                                           this.rectDimension.height,
+                                           this.rectDimension.width),
+                         [], this.title, this.lineColor, this.lineWidth, this.lineStroke,
+                         this.description);
   },
   render: function($super) {
     var svg_id = '#' + this.parentElement.id + '_svg';
@@ -4314,13 +4512,6 @@ const BasicNode = Class.create(Rectangle, {
       .attr('width', this.rectDimension.width)
       .attr('height', this.rectDimension.height/2)
       .attr('style', 'stroke-width: 2px; stroke: black; fill: violet; fill-opacity: 0.5');
-
-    // this.border = svg.append('rect')
-    //   .attr('x', this.rectDimension.left)
-    //   .attr('y', this.rectDimension.top)
-    //   .attr('width', this.rectDimension.width)
-    //   .attr('height', this.rectDimension.height)
-    //   .attr('style', 'stroke-width: ' + this.lineWidth + 'px; stroke: ' + this.lineColor + '; fill: none');
 
     $super();
     var that = this;
@@ -4334,10 +4525,10 @@ const BasicNode = Class.create(Rectangle, {
   },
   setProperty: function($super, propName, propValue){
     $super(propName, propValue);
-
-    // this.border
-    //   .attr('style', 'stroke-width: ' + this.lineWidth + 'px; stroke: ' + this.lineColor + '; fill: none');
-
+    if(propName === 'Id') {
+      this.ports[this.INPUT].rename(this.id + '_input');
+      this.ports[this.OUTPUT].rename(this.id + '_output');
+    }
   },
   setSize: function($super, dx, dy){
     $super(dx, dy);
@@ -4353,12 +4544,6 @@ const BasicNode = Class.create(Rectangle, {
       .attr('y', this.rectDimension.top)
       .attr('width', this.rectDimension.width)
       .attr('height', this.rectDimension.height/2);
-
-    // this.border
-    //   .attr('x', this.rectDimension.left)
-    //   .attr('y', this.rectDimension.top)
-    //   .attr('width', this.rectDimension.width)
-    //   .attr('height', this.rectDimension.height);
   },
   setCoordinates: function($super, dx, dy){
     $super(dx, dy);
@@ -4374,12 +4559,6 @@ const BasicNode = Class.create(Rectangle, {
       .attr('y', this.rectDimension.top)
       .attr('width', this.rectDimension.width)
       .attr('height', this.rectDimension.height/2);
-
-    // this.border
-    //   .attr('x', this.rectDimension.left)
-    //   .attr('y', this.rectDimension.top)
-    //   .attr('width', this.rectDimension.width)
-    //   .attr('height', this.rectDimension.height);
   },
   onMove: function($super, dx, dy){
     $super(dx, dy);
@@ -4387,7 +4566,6 @@ const BasicNode = Class.create(Rectangle, {
       port.hide();
     });
     this.innerRect.attr('visibility', 'hidden');
-    // this.border.attr('visibility', 'hidden');
   },
   onResize: function($super, dx, dy, obj){
     $super(dx, dy, obj);
@@ -4395,7 +4573,6 @@ const BasicNode = Class.create(Rectangle, {
       port.hide();
     });
     this.innerRect.attr('visibility', 'hidden');
-    // this.border.attr('visibility', 'hidden');
   },
   onRotate: function($super, obj){
     $super(obj);
@@ -4406,7 +4583,6 @@ const BasicNode = Class.create(Rectangle, {
       port.show();
     });
     this.innerRect.attr('visibility', 'visible');
-    // this.border.attr('visibility', 'visible');
   },
   renderToolItem: function() {
     var html = '';
@@ -4438,6 +4614,10 @@ const BasicNode = Class.create(Rectangle, {
     this.innerRect.remove();
   }
 });
+
+/**********************************************************************************
+ *                            FLOWCHART APIs
+ **********************************************************************************/
 
 /**
  * FlowChartTerminator: An terminator node in an flowchart representing the start
@@ -4485,8 +4665,19 @@ var FlowChartTerminator = Class.create({
 
     if(this.ports.length === 0) {
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
-    this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
+      this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
     }
+  },
+  clone: function() {
+    return new FlowChartTerminator(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -4593,11 +4784,7 @@ var FlowChartTerminator = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -4693,6 +4880,11 @@ var FlowChartTerminator = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
     }
   },
   destroy: function() {
@@ -4775,6 +4967,17 @@ var FlowChartProcess = Class.create({
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartProcess(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -4881,11 +5084,7 @@ var FlowChartProcess = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -4981,6 +5180,13 @@ var FlowChartProcess = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
     }
   },
   destroy: function() {
@@ -5063,6 +5269,17 @@ var FlowChartDecision = Class.create({
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartDecision(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -5183,11 +5400,7 @@ var FlowChartDecision = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -5283,6 +5496,13 @@ var FlowChartDecision = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
     }
   },
   destroy: function() {
@@ -5333,9 +5553,8 @@ var FlowChartDocument = Class.create({
   opacity: 1,
   classType: FlowChartDocument,
   TOP: 0,
-  BOTTOM: 1,
-  LEFT: 2,
-  RIGHT: 3,
+  LEFT: 1,
+  RIGHT: 2,
   showPortsLabel: false,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
@@ -5354,9 +5573,8 @@ var FlowChartDocument = Class.create({
     this.opacity = opacity || 1;
     this.classType = FlowChartDocument;
     this.TOP = 0;
-    this.BOTTOM = 1;
-    this.LEFT = 2;
-    this.RIGHT = 3;
+    this.LEFT = 1;
+    this.RIGHT = 2;
     this.showPortsLabel = false;
 
     if(this.ports.length === 0) {
@@ -5364,6 +5582,17 @@ var FlowChartDocument = Class.create({
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartDocument(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -5483,11 +5712,7 @@ var FlowChartDocument = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -5583,6 +5808,12 @@ var FlowChartDocument = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
     }
   },
   destroy: function() {
@@ -5665,6 +5896,17 @@ var FlowChartSubroutine = Class.create({
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartSubroutine(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -5821,11 +6063,7 @@ var FlowChartSubroutine = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -5929,6 +6167,15 @@ var FlowChartSubroutine = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
+      this.vLine1.attr('id', this.id + '_vline1');
+      this.vLine2.attr('id', this.id + '_vline2');
     }
   },
   destroy: function() {
@@ -5987,7 +6234,6 @@ var FlowChartDelay = Class.create({
   TOP: 0,
   BOTTOM: 1,
   LEFT: 2,
-  RIGHT: 3,
   showPortsLabel: false,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
@@ -6008,7 +6254,6 @@ var FlowChartDelay = Class.create({
     this.TOP = 0;
     this.BOTTOM = 1;
     this.LEFT = 2;
-    this.RIGHT = 3;
     this.showPortsLabel = false;
 
     if(this.ports.length === 0) {
@@ -6016,6 +6261,17 @@ var FlowChartDelay = Class.create({
       this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartDelay(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -6138,11 +6394,7 @@ var FlowChartDelay = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -6238,6 +6490,12 @@ var FlowChartDelay = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
+      this.ports[this.LEFT].rename(this.id + '_left');
     }
   },
   destroy: function() {
@@ -6289,8 +6547,6 @@ var FlowChartData = Class.create({
   classType: FlowChartData,
   TOP: 0,
   BOTTOM: 1,
-  LEFT: 2,
-  RIGHT: 3,
   showPortsLabel: false,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
@@ -6310,14 +6566,23 @@ var FlowChartData = Class.create({
     this.classType = FlowChartData;
     this.TOP = 0;
     this.BOTTOM = 1;
-    this.LEFT = 2;
-    this.RIGHT = 3;
     this.showPortsLabel = false;
 
     if(this.ports.length === 0) {
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
       this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
     }
+  },
+  clone: function() {
+    return new FlowChartData(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -6435,11 +6700,7 @@ var FlowChartData = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -6535,6 +6796,11 @@ var FlowChartData = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
     }
   },
   destroy: function() {
@@ -6565,7 +6831,7 @@ var FlowChartData = Class.create({
 });
 
 /**
- * FlowChartDocument: An document node in a flowchart
+ * FlowChartMultiDocument: An multi document node in a flowchart
  * @constructor
  */
 var FlowChartMultiDocument = Class.create({
@@ -6585,9 +6851,8 @@ var FlowChartMultiDocument = Class.create({
   opacity: 1,
   classType: FlowChartMultiDocument,
   TOP: 0,
-  BOTTOM: 1,
-  LEFT: 2,
-  RIGHT: 3,
+  LEFT: 1,
+  RIGHT: 2,
   showPortsLabel: false,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
@@ -6606,9 +6871,8 @@ var FlowChartMultiDocument = Class.create({
     this.opacity = opacity || 1;
     this.classType = FlowChartMultiDocument;
     this.TOP = 0;
-    this.BOTTOM = 1;
-    this.LEFT = 2;
-    this.RIGHT = 3;
+    this.LEFT = 1;
+    this.RIGHT = 2;
     this.showPortsLabel = false;
 
     if(this.ports.length === 0) {
@@ -6616,6 +6880,17 @@ var FlowChartMultiDocument = Class.create({
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartMultiDocument(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -6657,7 +6932,7 @@ var FlowChartMultiDocument = Class.create({
       .attr('style', 'stroke: ' + this.lineColor + ';stroke-width: ' + this.lineWidth + 'px; fill: ' + this.fillColor + ';fill-opacity: ' + this.opacity);
 
     this.rect2 = svg.append('rect')
-      .attr('id', this.id + '_rect1')
+      .attr('id', this.id + '_rect2')
       .attr('x', this.rectDimension.left + 7)
       .attr('y', this.rectDimension.top + 7)
       .attr('width', this.rectDimension.width - 14)
@@ -6807,11 +7082,7 @@ var FlowChartMultiDocument = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -6915,6 +7186,15 @@ var FlowChartMultiDocument = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
+      this.rect1.attr('id', this.id + '_rect1');
+      this.rect2.attr('id', this.id + '_rect2');
+      this.path.attr('id', this.id + '_path');
     }
   },
   destroy: function() {
@@ -6998,6 +7278,17 @@ var FlowChartPreparation = Class.create({
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
       this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
     }
+  },
+  clone: function() {
+    return new FlowChartPreparation(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -7123,11 +7414,7 @@ var FlowChartPreparation = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -7223,6 +7510,11 @@ var FlowChartPreparation = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
     }
   },
   destroy: function() {
@@ -7299,6 +7591,17 @@ var FlowChartDisplay = Class.create({
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
       this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
     }
+  },
+  clone: function() {
+    return new FlowChartDisplay(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -7437,11 +7740,7 @@ var FlowChartDisplay = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -7537,6 +7836,11 @@ var FlowChartDisplay = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
     }
   },
   destroy: function() {
@@ -7586,10 +7890,8 @@ var FlowChartInput = Class.create({
   selected: true,
   opacity: 1,
   classType: FlowChartInput,
-  TOP: 0,
-  BOTTOM: 1,
-  LEFT: 2,
-  RIGHT: 3,
+  LEFT: 0,
+  RIGHT: 1,
   showPortsLabel: false,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
@@ -7607,16 +7909,25 @@ var FlowChartInput = Class.create({
     this.selected = true;
     this.opacity = opacity || 1;
     this.classType = FlowChartInput;
-    this.TOP = 0;
-    this.BOTTOM = 1;
-    this.LEFT = 2;
-    this.RIGHT = 3;
+     this.LEFT = 0;
+    this.RIGHT = 1;
     this.showPortsLabel = false;
 
     if(this.ports.length === 0) {
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartInput(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -7729,11 +8040,7 @@ var FlowChartInput = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -7829,6 +8136,11 @@ var FlowChartInput = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
     }
   },
   destroy: function() {
@@ -7880,8 +8192,6 @@ var FlowChartLoop = Class.create({
   classType: FlowChartLoop,
   TOP: 0,
   BOTTOM: 1,
-  LEFT: 2,
-  RIGHT: 3,
   showPortsLabel: false,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
@@ -7901,14 +8211,23 @@ var FlowChartLoop = Class.create({
     this.classType = FlowChartLoop;
     this.TOP = 0;
     this.BOTTOM = 1;
-    this.LEFT = 2;
-    this.RIGHT = 3;
     this.showPortsLabel = false;
 
     if(this.ports.length === 0) {
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
       this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
     }
+  },
+  clone: function() {
+    return new FlowChartLoop(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -8024,11 +8343,7 @@ var FlowChartLoop = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -8124,6 +8439,11 @@ var FlowChartLoop = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
     }
   },
   destroy: function() {
@@ -8175,8 +8495,6 @@ var FlowChartLoopLimit = Class.create({
   classType: FlowChartLoopLimit,
   TOP: 0,
   BOTTOM: 1,
-  LEFT: 2,
-  RIGHT: 3,
   showPortsLabel: false,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
@@ -8196,14 +8514,23 @@ var FlowChartLoopLimit = Class.create({
     this.classType = FlowChartLoopLimit;
     this.TOP = 0;
     this.BOTTOM = 1;
-    this.LEFT = 2;
-    this.RIGHT = 3;
     this.showPortsLabel = false;
 
     if(this.ports.length === 0) {
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
       this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
     }
+  },
+  clone: function() {
+    return new FlowChartLoopLimit(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -8320,11 +8647,7 @@ var FlowChartLoopLimit = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -8420,6 +8743,11 @@ var FlowChartLoopLimit = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
     }
   },
   destroy: function() {
@@ -8471,8 +8799,6 @@ var FlowChartStoredData = Class.create({
   classType: FlowChartStoredData,
   TOP: 0,
   BOTTOM: 1,
-  LEFT: 2,
-  RIGHT: 3,
   showPortsLabel: false,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
@@ -8492,14 +8818,23 @@ var FlowChartStoredData = Class.create({
     this.classType = FlowChartStoredData;
     this.TOP = 0;
     this.BOTTOM = 1;
-    this.LEFT = 2;
-    this.RIGHT = 3;
     this.showPortsLabel = false;
 
     if(this.ports.length === 0) {
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
       this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
     }
+  },
+  clone: function() {
+    return new FlowChartStoredData(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -8624,11 +8959,7 @@ var FlowChartStoredData = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -8724,6 +9055,11 @@ var FlowChartStoredData = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
     }
   },
   destroy: function() {
@@ -8813,6 +9149,17 @@ var FlowChartConnector = Class.create({
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.cx - this.r - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.cx + this.r - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartConnector(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -8942,11 +9289,7 @@ var FlowChartConnector = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -9057,6 +9400,13 @@ var FlowChartConnector = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
     }
   },
   destroy: function() {
@@ -9106,9 +9456,6 @@ var FlowChartOffPageConnector = Class.create({
   opacity: 1,
   classType: FlowChartOffPageConnector,
   TOP: 0,
-  BOTTOM: 1,
-  LEFT: 2,
-  RIGHT: 3,
   showPortsLabel: false,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
@@ -9127,14 +9474,22 @@ var FlowChartOffPageConnector = Class.create({
     this.opacity = opacity || 1;
     this.classType = FlowChartOffPageConnector;
     this.TOP = 0;
-    this.BOTTOM = 1;
-    this.LEFT = 2;
-    this.RIGHT = 3;
     this.showPortsLabel = false;
 
     if(this.ports.length === 0) {
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
     }
+  },
+  clone: function() {
+    return new FlowChartOffPageConnector(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -9247,11 +9602,7 @@ var FlowChartOffPageConnector = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -9347,6 +9698,10 @@ var FlowChartOffPageConnector = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
     }
   },
   destroy: function() {
@@ -9437,6 +9792,17 @@ var FlowChartOR = Class.create({
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.cx - this.r - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.cx + this.r - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartOR(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -9617,11 +9983,7 @@ var FlowChartOR = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -9740,6 +10102,15 @@ var FlowChartOR = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
+      this.line1.attr('id', this.id + '_line1');
+      this.line2.attr('id', this.id + '_line2');
     }
   },
   destroy: function() {
@@ -9842,6 +10213,17 @@ var FlowChartAND = Class.create({
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.cx - this.r - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.cx + this.r - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartAND(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -10053,11 +10435,7 @@ var FlowChartAND = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -10176,6 +10554,15 @@ var FlowChartAND = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
+      this.line1.attr('id', this.id + '_line1');
+      this.line2.attr('id', this.id + '_line2');
     }
   },
   destroy: function() {
@@ -10232,8 +10619,6 @@ var FlowChartCollate = Class.create({
   classType: FlowChartCollate,
   TOP: 0,
   BOTTOM: 1,
-  LEFT: 2,
-  RIGHT: 3,
   showPortsLabel: false,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id;
@@ -10253,14 +10638,23 @@ var FlowChartCollate = Class.create({
     this.classType = FlowChartCollate;
     this.TOP = 0;
     this.BOTTOM = 1;
-    this.LEFT = 2;
-    this.RIGHT = 3;
     this.showPortsLabel = false;
 
     if(this.ports.length === 0) {
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
       this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
     }
+  },
+  clone: function() {
+    return new FlowChartCollate(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -10379,11 +10773,7 @@ var FlowChartCollate = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -10479,6 +10869,11 @@ var FlowChartCollate = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
     }
   },
   destroy: function() {
@@ -10555,6 +10950,17 @@ var FlowChartSort = Class.create({
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
       this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
     }
+  },
+  clone: function() {
+    return new FlowChartSort(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -10674,11 +11080,7 @@ var FlowChartSort = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -10774,6 +11176,11 @@ var FlowChartSort = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
     }
   },
   destroy: function() {
@@ -10850,6 +11257,17 @@ var FlowChartMerge = Class.create({
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
       this.ports[this.BOTTOM] = new Port(this.id + '_bottom', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top + this.rectDimension.height - 5), 'BOTTOM', false);
     }
+  },
+  clone: function() {
+    return new FlowChartMerge(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -10963,11 +11381,7 @@ var FlowChartMerge = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -11063,6 +11477,11 @@ var FlowChartMerge = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
     }
   },
   destroy: function() {
@@ -11145,6 +11564,17 @@ var FlowChartInternalStorage = Class.create({
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartInternalStorage(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -11301,11 +11731,7 @@ var FlowChartInternalStorage = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -11409,6 +11835,15 @@ var FlowChartInternalStorage = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.TOP].rename(this.id + '_top');
+      this.ports[this.BOTTOM].rename(this.id + '_bottom');
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
+      this.vLine1.attr('id', this.id + '_vline1');
+      this.vLine2.attr('id', this.id + '_vline2');
     }
   },
   destroy: function() {
@@ -11492,6 +11927,17 @@ var FlowChartDatabase = Class.create({
       this.ports[this.LEFT] = new Port(this.id + '_left', this, (this.rectDimension.left - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'LEFT', false);
       this.ports[this.RIGHT] = new Port(this.id + '_right', this, (this.rectDimension.left + this.rectDimension.width - 5), (this.rectDimension.top + (this.rectDimension.height/2) - 5), 'RIGHT', false);
     }
+  },
+  clone: function() {
+    return new FlowChartDatabase(this.id + '_copy', this.parentElement,
+                                   new RectDimension(
+                                                     this.rectDimension.left + 10,
+                                                     this.rectDimension.top + 10,
+                                                     this.rectDimension.height,
+                                                     this.rectDimension.width),
+                                   [], this.title, this.lineColor, this.lineWidth,
+                                   this.lineStroke, this.fillColor, this.opacity,
+                                   this.description);
   },
   getToolName: function() {
     return this.toolName;
@@ -11679,11 +12125,7 @@ var FlowChartDatabase = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id,
-                          w2ui: { editable: false,
-                                  style: "color: grey"
-                                }
-                      },
+                      { recid: 2, propName: 'Id', propValue: this.id},
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -11791,6 +12233,14 @@ var FlowChartDatabase = Class.create({
       this.text.text(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
+    } else if(propName === 'Id'){
+      this.id = propValue;
+      this.line.attr('id', this.id);
+      this.ports[this.LEFT].rename(this.id + '_left');
+      this.ports[this.RIGHT].rename(this.id + '_right');
+      this.curve1.attr('id', this.id + '_curve1');
+      this.curve2.attr('id', this.id + '_curve2');
+      this.curve3.attr('id', this.id + '_curve3');
     }
   },
   destroy: function() {
@@ -11831,3 +12281,161 @@ var FlowChartDatabase = Class.create({
     return html;
   }
 });
+
+/********************************************************************************
+ *                          PROJECT EXPLORER APIs
+ ********************************************************************************/
+
+/**
+ * ProjectNavigator: Class to handle and populate items in the project navigator
+ * sidebar available in the GUI
+ * @constructor
+ */
+ var ProjectNavigator = Class.create({
+  id: null,
+  navigator: null, //w2ui sidetab instance
+  initializeParentListeners: [],
+  itemAddedListeners: [],
+  itemRemovedListeners: [],
+  itemSelectedListeners: [],
+  initializeContextMenuListeners: [],
+  contextMenuItemSelectedListeners: [],
+  initialize: function(id, initializeParentListener, itemAddedListener, itemRemovedListener, itemSelectedListener, initializeContextMenuListener, contextMenuItemSelectedListener) {
+    this.id = id;
+    this.initializeParentListeners = [];
+    this.itemAddedListeners = [];
+    this.itemRemovedListeners = [];
+    this.itemSelectedListeners = [];
+    this.initializeContextMenuListeners = [];
+    this.contextMenuItemSelectedListeners = [];
+
+    if(initializeParentListener !== null) {
+      this.initializeParentListeners.push(initializeParentListener);
+    }
+
+    if(itemAddedListener !== null) {
+      this.itemAddedListeners.push(itemAddedListener);
+    }
+
+    if(itemRemovedListener !== null) {
+      this.itemRemovedListeners.push(itemRemovedListener);
+    }
+
+    if(itemSelectedListener !== null) {
+      this.itemSelectedListeners.push(itemSelectedListener);
+    }
+
+    if(initializeContextMenuListener !== null) {
+      this.initializeContextMenuListeners.push(initializeContextMenuListener);
+    }
+
+    if(contextMenuItemSelectedListener !== null) {
+      this.contextMenuItemSelectedListeners.push(contextMenuItemSelectedListener);
+    }
+  },
+  setNavigator: function(navigator) {
+    this.navigator = navigator;
+  },
+  addInitializeParentEventListener: function(listener) {
+    if(listener != null) {
+      this.initializeParentListeners.push(initializeParentListener);
+    }
+  },
+  addItemAddedEventListener: function(listener) {
+    if(listener != null) {
+      this.itemAddedListeners.push(itemAddedListener);
+    }
+  },
+  addItemRemovedEventListener: function(listener) {
+    if(listener != null) {
+      this.itemRemovedListeners.push(itemRemovedListener);
+    }
+  },
+  addItemSelectedEventListener: function(listener) {
+    if(listener != null) {
+      this.itemSelectedListeners.push(itemSelectedListener);
+    }
+  },
+  addInitializeContextMenuEventListener: function(listener) {
+    if(listener != null) {
+      this.initializeContextMenuListeners.push(initializeContextMenuListener);
+    }
+  },
+  addContextMenuItemSelectedEventListener: function(listener) {
+    if(listener != null) {
+      this.contextMenuItemSelectedListeners.push(contextMenuItemSelectedListener);
+    }
+  },
+  removeInitializeParentEventListener: function(listener) {
+    if(listener != null) {
+      var index = this.initializeParentListeners.indexOf(listener);
+      this.initializeParentListeners.splice(index, 1);
+    }
+  },
+  removeItemAddedEventListener: function(listener) {
+    if(listener != null) {
+      var index = this.itemAddedListeners.indexOf(listener);
+      this.itemAddedListeners.splice(index, 1);
+    }
+  },
+  removeItemRemovedEventListener: function(listener) {
+    if(listener != null) {
+      var index = this.itemRemovedListeners.indexOf(listener);
+      this.itemRemovedListeners.splice(index, 1);
+    }
+  },
+  removeItemSelectedEventListener: function(listener) {
+    if(listener != null) {
+      var index = this.itemSelectedListeners.indexOf(listener);
+      this.itemSelectedListeners.splice(index, 1);
+    }
+  },
+  removeInitializeContextMenuEventListener: function(listener) {
+    if(listener != null) {
+      var index = this.initializeContextMenuListeners.indexOf(listener);
+      this.initializeContextMenuListeners.splice(index, 1);
+    }
+  },
+  removeContextMenuItemSelectedEventListener: function(listener) {
+    if(listener != null) {
+      var index = this.contextMenuItemSelectedListeners.indexOf(listener);
+      this.contextMenuItemSelectedListeners.splice(index, 1);
+    }
+  },
+  fireInitializeParentEvent: function() {
+    var that = this;
+    this.initializeParentListeners.forEach(function(listener) {
+      listener(that.navigator);
+    });
+  },
+  fireItemAddedEvent: function(item) {
+    var that = this;
+    this.itemAddedListeners.forEach(function(listener) {
+      listener(that.navigator, item);
+    });
+  },
+  fireItemRemovedEvent: function(item) {
+    var that = this;
+    this.itemRemovedListeners.forEach(function(listener) {
+      listener(that.navigator, item);
+    });
+  },
+  fireItemSelectedEvent: function(item) {
+    var that = this;
+    this.itemSelectedListeners.forEach(function(listener) {
+      listener(that.navigator, item);
+    });
+  },
+  fireInitializeContextMenuEvent: function() {
+    var that = this;
+    this.initializeContextMenuListeners.forEach(function(listener) {
+      listener(that.navigator);
+    });
+  },
+  fireContextMenuItemSelectedEvent: function(item) {
+    var that = this;
+    this.contextMenuItemSelectedListeners.forEach(function(listener) {
+      listener(that.navigator, item);
+    });
+  }
+ });
