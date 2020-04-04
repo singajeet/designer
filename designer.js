@@ -419,6 +419,269 @@ const ToolBox = Class.create({
 });
 
 /**
+ * Application: The application class represents the overall GUI
+ */
+var Application = Class.create({
+  id: null,
+  canvas: null,
+  projectNavigator: null,
+  newProjectEventListeners: [],
+  openProjectEventListeners: [],
+  saveProjectEventListeners: [],
+  initialize: function(id, canvas, projectNavigator) {
+    this.id = id;
+    this.canvas = canvas;
+    this.projectNavigator = projectNavigator;
+  },
+  render: function() {
+    var that = this;
+    var html="<div id='layout' style='width: 100%; height: 100%'></div>";
+    this.dom = $j('body').prepend(html);
+
+    var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
+    $j('#layout').w2layout({
+      name: 'layout',
+      panels: [
+        {type: 'top', size: 40, style: pstyle, content: 'top', resizable: false},
+        { type: 'left', size: 140, style: pstyle, content: 'left', resizable: true },
+        { type: 'main', style: pstyle, content: 'main' },
+        { type: 'right', size: 250, style: pstyle, content: 'right', resizable: true },
+        { type: 'bottom', size: 40, style: pstyle, content: 'bottom', resizable: false },
+      ]
+    });
+
+    var mainHtml = this.canvas.render();
+    w2ui['layout'].content('main', mainHtml);
+
+    //activate the toolbox
+    this.canvas.getToolBox().activate();
+    this.canvas.setOffsetX(w2ui['layout'].get('left').size + 90);
+    this.canvas.setOffsetY(w2ui['layout'].get('top').size + 20);
+
+    w2ui['layout'].on('resize', function(event){
+      if(event.panel === "left"){
+        that.canvas.setOffsetX(w2ui['layout'].get('left').size + 90);
+      }
+    });
+
+    w2ui['layout'].content('left', $j().w2sidebar({
+      name: 'projectNavigator',
+      onClick: function(event) {
+        if(that.projectNavigator !== undefined && that.projectNavigator !== null) {
+          that.projectNavigator.fireItemSelectedEvent(event.target);
+        }
+      },
+      onMenuClick: function(event) {
+        if(that.projectNavigator !== undefined && that.projectNavigator !== null) {
+          that.projectNavigator.fireContextMenuItemSelectedEvent(this.menu[event.menuIndex].id);
+        }
+      }
+    }));
+    if(this.projectNavigator !== undefined && this.projectNavigator !== null) {
+      this.projectNavigator.setNavigator(w2ui['projectNavigator']);
+      this.projectNavigator.fireInitializeParentEvent();
+      this.projectNavigator.fireInitializeContextMenuEvent();
+    }
+
+    w2ui['layout'].content('right', $j().w2grid({
+      name: 'properties',
+      header: 'Properties',
+      show: { header: true,
+              toolbar: true,
+              lineNumbers: true,
+              footer: true
+            },
+      multiSearch: true,
+      searches: [
+        { field: 'propName', caption: 'Name', type: 'text'},
+        { field: 'propValue', caption: 'Value', type: 'text'}
+      ],
+      columns: [
+        {field: 'propName', caption: 'Name', size: '100px'},
+        {field: 'propValue', caption: 'Value', size: '100px', editable: { type: 'text'}}
+      ],
+      onChange: function(event){
+        var rowIndex = event.index;
+        var newValue = event.value_new;
+        var colName = w2ui['properties'].getCellValue(rowIndex, 0);
+        var selectionCounter = 0;
+
+        var selectedItem = null;
+        that.canvas.getAllEdges().forEach(function(item){
+          if(item.isSelected()){
+            selectedItem = item;
+            selectionCounter++;
+          }
+        });
+
+        //If selected item is not an edge, search in nodes
+        if(selectedItem === null){
+          that.canvas.getAllNodes().forEach(function(item){
+            if(item.isSelected()){
+              selectedItem = item;
+              selectionCounter++;
+            }
+          });
+        }
+
+        //If selected item is not a node, search in ports
+        if(selectedItem === null){
+          that.canvas.getAllPorts().forEach(function(port){
+            if(port.isSelected()){
+              selectedItem = port;
+              selectionCounter++;
+            }
+          });
+        }
+
+        if(selectionCounter > 1){
+          alert('Please select only one item on canvas. Multiple item selection is not allowed while making changes to properties.');
+        } else {
+          that.projectNavigator.fireItemRemovedEvent(selectedItem);
+          selectedItem.setProperty(colName, newValue);
+          that.projectNavigator.fireItemAddedEvent(selectedItem);
+        }
+      }
+    }));
+
+    w2ui['layout'].content('top', $j().w2toolbar({
+      name: 'mainToolbar',
+      items: [
+        { type: 'button', id: 'new-drawing', caption: 'New', img: 'far fa-file', hint: 'New Drawing'},
+        { type: 'button', id: 'open-drawing', caption: 'Open', img: 'far fa-folder-open', hint: 'Open Drawing'},
+        { type: 'button', id: 'save-drawing', caption: 'Save', img: 'far fa-save', hint: 'Save Drawing'},
+        { type: 'break'},
+        { type: 'button', id: 'clone-items', caption: 'Clone', img: 'far fa-copy', hint: 'Clone an item'},
+        { type: 'break'},
+        { type: 'button', id: 'delete-items', caption: 'Delete', img: 'fa fa-eraser', hint: 'Erase an item'},
+        { type: 'break'},
+        { type: 'button', id: 'undo', caption: 'Undo', img: 'fa fa-undo', hint: 'Undo'},
+        { type: 'button', id: 'redo', caption: 'Redo', img: 'fas fa-redo', hint: 'Redo'},
+        { type: 'break'},
+        { type: 'button', id: 'settings', caption: 'Settings', img: 'fas fa-cogs', hint: 'Settings'},
+        { type: 'break'},
+        { type: 'spacer'},
+        { type: 'button', id: 'about', caption: 'About', img: 'fa fa-info', hint: 'About'},
+        { type: 'break'},
+        { type: 'button', id: 'help', caption: 'Help', img: 'fa fa-question-circle', hine: 'help'}
+
+      ],
+      onClick: function(event) {
+        var target = event.target;
+        if(target === 'new-drawing') {
+          that.canvas.clear();
+          that.promptNewProjectName();
+        } else if(target === 'delete-items') {
+          that.canvas.deleteItems();
+        } else if(target === 'clone-items') {
+          that.canvas.cloneItems();
+        }
+      }
+    }));
+
+    w2ui['layout'].content('bottom', $j().w2toolbar({
+      name: 'footerToolbar',
+      items: [
+        { type: 'spacer' },
+        { type: 'html', id: 'info',
+            html: function(item){
+              var html = "<div style='padding: 3px 10px'>Version 1.0</div>";
+              return html;
+            }
+        }
+      ]
+    }));
+
+    $j('[name="tools"]').bind('click', function(e) {
+      var name = e.currentTarget.id;
+      var tool = that.canvas.getToolBox().getTool(name);
+      if(tool !== null){
+        that.canvas.changeTool(tool);
+      } else {
+        that.canvas.changeTool(that.canvas);
+      }
+    });
+
+    this.canvas.postRender();
+
+    this.canvas.addItemAddedEventListener(itemAdded);
+    this.canvas.addItemRemovedEventListener(itemRemoved);
+
+    function itemAdded(item) {
+      that.projectNavigator.fireItemAddedEvent(item);
+    }
+    function itemRemoved(item) {
+      that.projectNavigator.fireItemRemovedEvent(item);
+    }
+  },
+  promptNewProjectName: function() {
+    var that = this;
+    w2popup.open({
+      width: 580,
+      height: 350,
+      title: 'New Project',
+      body: '<div class="w2ui-centered" style="line-height: 1.8">' +
+            '   Please enter name of new project:<br>' +
+            '   Project: <input id="project-name" class="w2ui-input">' +
+            '</div>',
+      buttons: '<button class="w2ui-btn" onclick="w2popup.close()">Ok</button>'+
+               '<button class="w2ui-btn" onclick="w2popup.close()">Cancel</button>',
+      onClose: function(event) {
+        that.fireNewProjectEvent($j('#project-name')[0].value);
+      }
+    });
+  },
+  addNewProjectEventListener: function(listener) {
+    if(listener !== null) {
+      this.newProjectEventListeners.push(listener);
+    }
+  },
+  addOpenProjectEventListener: function(listener) {
+    if(listener !== null) {
+      this.openProjectEventListeners.push(listener);
+    }
+  },
+  addSaveProjectEventListener: function(listener) {
+    if(listener !== null) {
+      this.saveProjectEventListeners.push(listener);
+    }
+  },
+  removeNewProjectEventListener: function(listener) {
+    if(listener !== null) {
+      var index = this.newProjectEventListeners.indexOf(listener);
+      this.newProjectEventListeners.splice(index, 1);
+    }
+  },
+  removeOpenProjectEventListener: function(listener) {
+    if(listener !== null) {
+      var index = this.openProjectEventListeners.indexOf(listener);
+      this.openProjectEventListeners.splice(index, 1);
+    }
+  },
+  removeSaveProjectEventListener: function(listener) {
+    if(listener !== null) {
+      var index = this.saveProjectEventListeners.indexOf(listener);
+      this.saveProjectEventListeners.splice(index, 1);
+    }
+  },
+  fireNewProjectEvent: function(project) {
+    var that = this;
+    this.newProjectEventListeners.forEach(function(listener){
+      listener(w2ui['projectNavigator'], project);
+    });
+  },
+  fireOpenProjectEvent: function(project) {
+    this.openProjectEventListeners.forEach(function(listener){
+      listener(project);
+    });
+  },
+  fireSaveProjectEvent: function(project) {
+    this.saveProjectEventListeners.forEach(function(listener){
+      listener(project);
+    });
+  },
+});
+/**
  * Canvas: class provides the functionality to hold the
  * nodes and edges objects
  *
@@ -467,14 +730,10 @@ const Canvas = Class.create({
   draggables: [],
   offsetX: 0,
   offsetY: 0,
-  projectNavigator: null,
-  newProjectEventListeners: [],
-  openProjectEventListeners: [],
-  saveProjectEventListeners: [],
   itemAddedEventListeners: [],
   itemRemovedEventListeners: [],
   itemClonedEventListeners: [],
-  initialize: function(id, projectNavigator, containerId, height, width, nodes, edges, grid) {
+  initialize: function(id, containerId, height, width, nodes, edges, grid) {
     this.id = id;
     this.containerId = containerId;
     this.height = height;
@@ -485,7 +744,6 @@ const Canvas = Class.create({
     this.edges = edges || [];
     this.ports = [];
     this.grid = grid || [10, 10];
-    // this.tools = [this];
     this.toolBox = undefined;
     this.observable = undefined;
     this.mouseX = 0;
@@ -505,7 +763,6 @@ const Canvas = Class.create({
     this.draggbles = [];
     this.offsetX = 0;
     this.offsetY = 0;
-    this.projectNavigator = projectNavigator;
     this.newProjectEventListeners = [];
     this.openProjectEventListeners = [];
     this.saveProjectEventListeners = [];
@@ -591,9 +848,7 @@ const Canvas = Class.create({
     this.edges.push(edge);
     edge.render();
 
-    if(this.projectNavigator !== null && this.projectNavigator !== undefined) {
-      this.projectNavigator.fireItemAddedEvent(edge);
-    }
+    this.fireItemAddedEvent(edge);
   },
   /**
    * Method: removeEdge
@@ -602,14 +857,18 @@ const Canvas = Class.create({
   removeEdge: function(edge) {
     //Call destroy method of edge
     edge.destroy();
+
     var index = this.edges.indexOf(edge);
     this.edges.splice(index, 1);
-    // var edgeEle = document.getElementById(edge.id);
-    // var edgeG = edgeEle.parentNode;
-    // edgeG.parentNode.removeChild(edgeG);
-    if(this.projectNavigator !== null && this.projectNavigator !== undefined) {
-      this.projectNavigator.fireItemRemovedEvent(edge);
-    }
+
+    this.fireItemRemovedEvent(edge);
+  },
+  /**
+   * Method: getAllEdges
+   * Description: Returns all available edges on canvas
+   */
+  getAllEdges: function() {
+    return this.edges;
   },
   /**
    * Method: addNode
@@ -649,9 +908,7 @@ const Canvas = Class.create({
       node.populateProperties();
     });
 
-    if(this.projectNavigator !== null && this.projectNavigator !== undefined) {
-      this.projectNavigator.fireItemAddedEvent(node);
-    }
+    this.fireItemAddedEvent(node);
   },
   /**
    * Method: removeNode
@@ -668,9 +925,14 @@ const Canvas = Class.create({
       nodeToRemove.parentNode.removeChild(nodeToRemove);
     }
 
-    if(this.projectNavigator !== null && this.projectNavigator !== undefined) {
-      this.projectNavigator.fireItemRemovedEvent(node);
-    }
+    this.fireItemRemovedEvent(node);
+  },
+  /**
+   * Method: getAllNodes
+   * Description: Returns all nodes available
+   */
+  getAllNodes: function() {
+    return this.nodes;
   },
   /**
    * Method: addPort
@@ -721,6 +983,13 @@ const Canvas = Class.create({
     return null;
   },
   /**
+   * Method: getAllPorts()
+   * Description: Returns all ports available on the canvas
+   */
+  getAllPorts: function() {
+    return this.ports;
+  },
+  /**
    * Method: setToolBox
    * Description: sets the toolbox instance for this canvas
    */
@@ -733,26 +1002,6 @@ const Canvas = Class.create({
    */
   render: function() {
     /*Renders the canvas along with Nodes and edges*/
-    var html="<div id='layout' style='width: 100%; height: 100%'></div>";
-    if (this.containerId === undefined || this.containerId === null) {
-      this.dom = $j('body').prepend(html);
-    } else {
-      var container = $j(this.containerId);
-      this.dom = $j(html).appendTo($j(container));
-    }
-
-    var that = this;
-    var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
-    $j('#layout').w2layout({
-      name: 'layout',
-      panels: [
-        {type: 'top', size: 40, style: pstyle, content: 'top', resizable: false},
-        { type: 'left', size: 140, style: pstyle, content: 'left', resizable: true },
-        { type: 'main', style: pstyle, content: 'main' },
-        { type: 'right', size: 250, style: pstyle, content: 'right', resizable: true },
-        { type: 'bottom', size: 40, style: pstyle, content: 'bottom', resizable: false },
-      ]
-    });
     var toolsHtml = this.toolBox.render();
 
     var svgHtml = "";
@@ -764,156 +1013,20 @@ const Canvas = Class.create({
     mainHtml += "<td style='width: 50px; vertical-align: top'>";
     mainHtml += toolsHtml + "</td><td>" + svgHtml + "</td></tr></table>";
 
-    w2ui['layout'].content('main', mainHtml);
-    //activate the toolbox
-    this.toolBox.activate();
-    this.offsetX = w2ui['layout'].get('left').size + 90;
-    this.offsetY = w2ui['layout'].get('top').size + 20;
-
-    w2ui['layout'].on('resize', function(event){
-      if(event.panel === "left"){
-        that.offsetX = w2ui['layout'].get('left').size + 90;
-      }
-    });
-
-    w2ui['layout'].content('left', $j().w2sidebar({
-      name: 'projectNavigator',
-      onClick: function(event) {
-        if(that.projectNavigator !== undefined && that.projectNavigator !== null) {
-          that.projectNavigator.fireItemSelectedEvent(event.target);
-        }
-      },
-      onMenuClick: function(event) {
-        if(that.projectNavigator !== undefined && that.projectNavigator !== null) {
-          that.projectNavigator.fireContextMenuItemSelectedEvent(this.menu[event.menuIndex].id);
-        }
-      }
-    }));
-    if(this.projectNavigator !== undefined && this.projectNavigator !== null) {
-      this.projectNavigator.setNavigator(w2ui['projectNavigator']);
-      this.projectNavigator.fireInitializeParentEvent();
-      this.projectNavigator.fireInitializeContextMenuEvent();
-    }
-
-    w2ui['layout'].content('right', $j().w2grid({
-      name: 'properties',
-      header: 'Properties',
-      show: { header: true,
-              toolbar: true,
-              lineNumbers: true,
-              footer: true
-            },
-      multiSearch: true,
-      searches: [
-        { field: 'propName', caption: 'Name', type: 'text'},
-        { field: 'propValue', caption: 'Value', type: 'text'}
-      ],
-      columns: [
-        {field: 'propName', caption: 'Name', size: '100px'},
-        {field: 'propValue', caption: 'Value', size: '100px', editable: { type: 'text'}}
-      ],
-      onChange: function(event){
-        var rowIndex = event.index;
-        var newValue = event.value_new;
-        var colName = w2ui['properties'].getCellValue(rowIndex, 0);
-        var selectionCounter = 0;
-
-        var selectedItem = null;
-        that.edges.forEach(function(item){
-          if(item.isSelected()){
-            selectedItem = item;
-            selectionCounter++;
-          }
-        });
-
-        //If selected item is not an edge, search in nodes
-        if(selectedItem === null){
-          that.nodes.forEach(function(item){
-            if(item.isSelected()){
-              selectedItem = item;
-              selectionCounter++;
-            }
-          });
-        }
-
-        //If selected item is not a node, search in ports
-        if(selectedItem === null){
-          that.ports.forEach(function(port){
-            if(port.isSelected()){
-              selectedItem = port;
-              selectionCounter++;
-            }
-          });
-        }
-
-        if(selectionCounter > 1){
-          alert('Please select only one item on canvas. Multiple item selection is not allowed while making changes to properties.');
-        } else {
-          selectedItem.setProperty(colName, newValue);
-        }
-      }
-    }));
-
-    w2ui['layout'].content('top', $j().w2toolbar({
-      name: 'mainToolbar',
-      items: [
-        { type: 'button', id: 'new-drawing', caption: 'New', img: 'far fa-file', hint: 'New Drawing'},
-        { type: 'button', id: 'open-drawing', caption: 'Open', img: 'far fa-folder-open', hint: 'Open Drawing'},
-        { type: 'button', id: 'save-drawing', caption: 'Save', img: 'far fa-save', hint: 'Save Drawing'},
-        { type: 'break'},
-        { type: 'button', id: 'clone-items', caption: 'Clone', img: 'far fa-copy', hint: 'Clone an item'},
-        { type: 'break'},
-        { type: 'button', id: 'delete-items', caption: 'Delete', img: 'fa fa-eraser', hint: 'Erase an item'},
-        { type: 'break'},
-        { type: 'button', id: 'undo', caption: 'Undo', img: 'fa fa-undo', hint: 'Undo'},
-        { type: 'button', id: 'redo', caption: 'Redo', img: 'fas fa-redo', hint: 'Redo'},
-        { type: 'break'},
-        { type: 'button', id: 'settings', caption: 'Settings', img: 'fas fa-cogs', hint: 'Settings'},
-        { type: 'break'},
-        { type: 'spacer'},
-        { type: 'button', id: 'about', caption: 'About', img: 'fa fa-info', hint: 'About'},
-        { type: 'break'},
-        { type: 'button', id: 'help', caption: 'Help', img: 'fa fa-question-circle', hine: 'help'}
-
-      ],
-      onClick: function(event) {
-        var target = event.target;
-        if(target === 'new-drawing') {
-          that.clear();
-        } else if(target === 'delete-items') {
-          that.deleteItems();
-        } else if(target === 'clone-items') {
-          that.cloneItems();
-        }
-      }
-    }));
-
-    w2ui['layout'].content('bottom', $j().w2toolbar({
-      name: 'footerToolbar',
-      items: [
-        { type: 'spacer' },
-        { type: 'html', id: 'info',
-            html: function(item){
-              var html = "<div style='padding: 3px 10px'>Version 1.0</div>";
-              return html;
-            }
-        }
-      ]
-    }));
-
-    $j('[name="tools"]').bind('click', function(e) {
-      var name = e.currentTarget.id;
-      var tool = that.toolBox.getTool(name);
-      if(tool !== null){
-        that._changeTool(tool);
-      } else {
-        that._changeTool(that);
-      }
-    });
-
+    return mainHtml;
+  },
+  postRender: function() {
     this._registerMarkers();
     this._registerObserver();
-
+  },
+  getToolBox: function() {
+    return this.toolBox;
+  },
+  setOffsetX: function(x) {
+    this.offsetX = x;
+  },
+  setOffsetY: function(y) {
+    this.offsetY = y;
   },
   clear: function() {
     //Using a for loop as: for(var i=0;i<that.nodes.length;i++)
@@ -1021,12 +1134,14 @@ const Canvas = Class.create({
       if(node.isSelected()){
         var newNode = node.clone();
         that.addNode(newNode);
+        that.fireItemClonedEvent(newNode);
       }
     });
     this.edges.forEach(function(edge){
       if(edge.isSelected()){
         var newEdge = edge.clone();
         that.addEdge(newEdge);
+        that.fireItemClonedEvent(newEdge);
       }
     });
   },
@@ -1537,7 +1652,7 @@ const Canvas = Class.create({
       .attr("d", "M 0 6 12 0 9 6 12 12")
       .style("fill", "context-stroke");
   },
-  _changeTool(tool) {
+  changeTool(tool) {
     this.selectedTool = tool;
   },
   _selectPointerTool: function() {
@@ -1558,26 +1673,54 @@ const Canvas = Class.create({
       }
     }
   },
-  addNewProjectEventListener: function(listener) {},
-  addOpenProjectEventListener: function(listener) {},
-  addSaveProjectEventListener: function(listener) {},
-  addItemAddedEventListener: function(listener) {},
-  addItemRemovedEventListener: function(listener) {},
-  addItemClonedEventListener: function(listener) {},
-
-  removeNewProjectEventListener: function(listener) {},
-  removeOpenProjectEventListener: function(listener) {},
-  removeSaveProjectEventListener: function(listener) {},
-  removeItemAddedEventListener: function(listener) {},
-  removeItemRemovedEventListener: function(listener) {},
-  removeItemClonedEventListener: function(listener) {},
-
-  fireNewProjectEvent: function(project) {},
-  fireOpenProjectEvent: function(project) {},
-  fireSaveProjectEvent: function(project) {},
-  fireItemAddedEvent: function(item) {},
-  fireItemRemovedEvent: function(item) {},
-  fireItemClonedEvent: function(item) {}
+  addItemAddedEventListener: function(listener) {
+    if(listener !== null) {
+      this.itemAddedEventListeners.push(listener);
+    }
+  },
+  addItemRemovedEventListener: function(listener) {
+    if(listener !== null) {
+      this.itemRemovedEventListeners.push(listener);
+    }
+  },
+  addItemClonedEventListener: function(listener) {
+    if(listener !== null) {
+      this.itemClonedEventListeners.push(listener);
+    }
+  },
+  removeItemAddedEventListener: function(listener) {
+    if(listener !== null) {
+      var index = this.itemAddedEventListeners.indexOf(listener);
+      this.itemAddedEventListeners.splice(index, 1);
+    }
+  },
+  removeItemRemovedEventListener: function(listener) {
+    if(listener !== null) {
+      var index = this.itemRemovedEventListeners.indexOf(listener);
+      this.itemRemovedEventListener.splice(index, 1);
+    }
+  },
+  removeItemClonedEventListener: function(listener) {
+    if(listener !== null) {
+      var index = this.itemClonedEventListeners.indexOf(listener);
+      this.itemClonedEventListener.splice(index, 1);
+    }
+  },
+  fireItemAddedEvent: function(item) {
+    this.itemAddedEventListeners.forEach(function(listener){
+      listener(item);
+    });
+  },
+  fireItemRemovedEvent: function(item) {
+    this.itemRemovedEventListeners.forEach(function(listener){
+      listener(item);
+    });
+  },
+  fireItemClonedEvent: function(item) {
+    this.itemClonedEventListeners.forEach(function(listener){
+      listener(item);
+    });
+  }
 });
 
 /*********************************************************************************

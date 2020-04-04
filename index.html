@@ -29,7 +29,9 @@
 		    try{
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback);
 
-		    	var c = new Canvas('canvas_grid', projectNavigator);
+		    	var c = new Canvas('canvas_grid');
+          var a = new Application('app', c, projectNavigator);
+          a.addNewProjectEventListener(onNewProject);
 
           var edgesGroup = new ToolGroup('edges_group', 'Edges');
           var nodesGroup = new ToolGroup('nodes_group', 'Nodes');
@@ -110,7 +112,7 @@
 
           c.setToolBox(toolbox);
 
-          c.render();
+          a.render();
 
           function initializeParentCallback(navigator) {
             navigator.add([
@@ -151,6 +153,11 @@
 
           function contextMenuItemSelectedCallback(navigator, item) {
             console.log('Context Menu Item Selected: ' + item);
+          }
+
+          function onNewProject(navigator, project) {
+            navigator.add([{id: project + '-project', text: project, icon: 'fas fa-drafting-compass'}]);
+            console.log('New Project Created: ' + project);
           }
 
 		    }catch(err){
