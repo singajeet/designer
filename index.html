@@ -27,6 +27,9 @@
 
 	    $j(document).ready(function(){
 		    try{
+          var projectId = '';
+          var dbConnection = null;
+
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback);
 
 		    	var c = new Canvas('canvas_grid');
@@ -36,6 +39,7 @@
           var edgesGroup = new ToolGroup('edges_group', 'Edges');
           var nodesGroup = new ToolGroup('nodes_group', 'Nodes');
           var flowchartGroup = new ToolGroup('flowchart_group', 'Flowchart');
+          var databaseGroup = new ToolGroup('database_group', 'Database');
 
           var toolbox = new ToolBox('tool_box', c);
 
@@ -72,6 +76,8 @@
           var fcIntStorageTool = new FlowChartInternalStorage('FCIntStorageTool', c);
           var fcDBTool =  new FlowChartDatabase('FCDBTool', c);
 
+          var dbTable = new DatabaseTable('DBTable', c);
+
           edgesGroup.addTool(lineTool);
           edgesGroup.addTool(polylineTool);
           edgesGroup.addTool(bezireCurve);
@@ -106,9 +112,12 @@
           flowchartGroup.addTool(fcIntStorageTool);
           flowchartGroup.addTool(fcDBTool);
 
+          databaseGroup.addTool(dbTable);
+
           toolbox.addGroup(edgesGroup);
           toolbox.addGroup(nodesGroup);
           toolbox.addGroup(flowchartGroup);
+          toolbox.addGroup(databaseGroup);
 
           c.setToolBox(toolbox);
 
@@ -116,21 +125,15 @@
 
           function initializeParentCallback(navigator) {
             navigator.add([
-                { id: 'projects', text: 'Projects', img: 'icon-folder', expanded: true, group: true,
-                  nodes: [{ id: 'project1', text: 'Project1', icon: 'fas fa-drafting-compass',
-                            nodes: [{ id: 'project1-edges', text: 'Edges', img: 'icon-folder'},
-                                    { id: 'project1-nodes', text: 'Nodes', img: 'icon-folder'}
-                                    ]
-                          }
-                        ]}
+                { id: 'projects', text: 'Projects', img: 'icon-folder', expanded: true, group: true}
               ]);
           }
 
           function itemAddedCallback(navigator, item) {
             if(item.toolName === 'LINE' || item.toolName === 'POLYLINE' || item.toolName === 'BEZIRE_CURVE') {
-              navigator.insert('project1-edges', null, [{id: item.id, text: item.id + ' - ' + item.toolName}]);
+              navigator.insert(projectId + '-edges', null, [{id: item.id, text: item.id + ' - ' + item.toolName}]);
             } else {
-              navigator.insert('project1-nodes', null, [{id: item.id, text: item.id + ' - ' + item.toolName}]);
+              navigator.insert(projectId + '-nodes', null, [{id: item.id, text: item.id + ' - ' + item.toolName}]);
             }
           }
 
@@ -144,20 +147,33 @@
 
           function initializeContextMenuCallback(navigator) {
             navigator.menu = [
-                      { id: 'add-item', text: 'Add Item', img: 'fas fa-plus'},
-                      { id: 'remove-item', text: 'Remove Item', img: 'fas fa-minus'},
-                      { id: 'sep-1', text: '--'},
-                      { id: 'clone-item', text: 'Clone', img: 'far fa-copy'}
-                    ];
+              { id: 'add-db-connection', text: 'Add Connection', img: 'fas fa-plus'},
+              { id: 'delete-db-connection', text: 'Delete Connection', img: 'fas fa-minus'},
+              { id: 'sep-1', text: '--'},
+              { id: 'add-table', text: 'Add Table', img: ''},
+              { id: 'add-view', text: 'Add View', img: ''},
+              { id: 'add-materialized-view', text: 'Add Materialized View', img: ''},
+              { id: 'add-package', text: 'Add Package', img: ''},
+              { id: 'sep-2', text: '--'},
+              { id: 'delete-db-object', text: 'delete Object', img: 'fas fa-minus'}
+            ];
           }
 
           function contextMenuItemSelectedCallback(navigator, item) {
-            console.log('Context Menu Item Selected: ' + item);
+            if(item === 'add-db-connection') {
+              dbConnection = new DatabaseConnection();
+              dbConnection.promptConnection();
+            }
           }
 
           function onNewProject(navigator, project) {
-            navigator.add([{id: project + '-project', text: project, icon: 'fas fa-drafting-compass'}]);
-            console.log('New Project Created: ' + project);
+            projectId = project + '-project';
+            navigator.insert('projects', null, [{id: projectId, text: project, icon: 'fas fa-drafting-compass',
+                            nodes: [
+                              { id: projectId + '-edges', text: 'Edges', img: 'icon-folder'},
+                              { id: projectId + '-nodes', text: 'Nodes', img: 'icon-folder'}
+                            ]
+                          }]);
           }
 
 		    }catch(err){

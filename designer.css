@@ -253,3 +253,66 @@
 .scroll::-webkit-scrollbar-thumb:window-inactive {
     background: rgba(192,192,192,0.4);
 }
+
+/* Style buttons */
+.node_toolbar_left_btn {
+  font-size: 8px;
+  margin-left: 2px;
+  margin-top: 3px;
+  vertical-align: top;
+}
+
+.node_toolbar_right_btn {
+  font-size: 8px;
+  margin-right: 2px;
+  margin-top: 3px;
+  vertical-align: top;
+  float: right;
+}
+
+/* Darker background on mouse-over */
+/*.node_toolbar_btn:hover {
+  background-color: RoyalBlue;
+}*/
+
+.node_toolbar {
+    height: 20px;
+    width: 100%;
+    border-bottom: 1px solid #99bbe8;
+    background-color: transparent;
+    background-image: linear-gradient(#dae6f3, #c2d5ed);
+}
+
+.node_table {
+    border-bottom: 1px solid #c5c5c5;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.node_table_header {
+    background-color: transparent;
+    background-image: linear-gradient(#f9f9f9, #e4e4e4);
+    text-align: left;
+    font-family: sans-serif;
+    font-size: 0.7em;
+    border: 1px solid #c5c5c5;
+}
+
+.node_table_row:nth-child(even) {
+    background-color: #f3f6fa;
+}
+
+.node_table_row:hover {
+    background-color: #e6f0ff;
+}
+
+.node_table_row_clicked {
+    background-color: #b6d5ff !important;
+}
+
+.node_table_cell {
+    text-align: left;
+    font-family: sans-serif;
+    font-size: 0.7em;
+    border-left: 1px solid #c5c5c5;
+}
