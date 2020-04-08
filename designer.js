@@ -12746,6 +12746,7 @@ var DatabaseTable = Class.create({
   showPortsLabel: false,
   columns: [],
   selectedRows: [],
+  columnSeq: 1,
   initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id.toLowerCase();
     this.parentElement = parentElement;
@@ -12769,6 +12770,7 @@ var DatabaseTable = Class.create({
     this.showPortsLabel = false;
     this.columns = [];
     this.selectedRows = [];
+    this.columnSeq = 1;
 
     if(this.ports.length === 0) {
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
@@ -12889,6 +12891,12 @@ var DatabaseTable = Class.create({
     this.removeColumnButton.append('xhtml:i')
       .attr('class', 'fas fa-minus');
 
+    this.editColumnButton = this.toolbar.append('xhtml:button')
+      .attr('id', this.id + '_edit_column_button')
+      .attr('class', 'node_toolbar_left_btn');
+    this.editColumnButton.append('xhtml:i')
+      .attr('class', 'fas fa-pencil-alt');
+
     this.commitColumnButton = this.toolbar.append('xhtml:button')
       .attr('id', this.id + '_commit_column_button')
       .attr('class', 'node_toolbar_right_btn');
@@ -12927,6 +12935,10 @@ var DatabaseTable = Class.create({
 
     $j('#' + this.id + '_remove_column_button').bind('click', function(e){
       that.showRemoveColumnDialog();
+    });
+
+    $j('#' + this.id + '_edit_column_button').bind('click', function(e){
+      that.showEditColumnDialog();
     });
 
     var that = this;
@@ -13034,6 +13046,96 @@ var DatabaseTable = Class.create({
         .ok(function(){});
     }
   },
+  showEditColumnDialog: function() {
+    var that = this;
+    if(this.selectedRows.length === 0) {
+      w2alert('Please select the record to be edited');
+    } else if(this.selectedRows.length === 1){
+      var columnName = this.selectedRows[0].substr(this.selectedRows[0].indexOf('_') + 1);
+      var selectedRecord = this.getColumn(columnName);
+      var dbColumnTypeOptions = ['CHAR', 'NCHAR', 'VARCHAR2', 'VARCHAR', 'NVARCHAR2', 'CLOB', 
+                                  'NCLOB', 'LONG', 'NUMBER', 'BINARY_FLOAT', 'BINARY_DOUBLE',
+                                  'DATE', 'BLOB', 'BFILE', 'RAW', 'LONG RAW', 'ROWID'];
+      var dbColumnTypeSelect = '<select id="db-column-type" class="w2ui-input">';
+      for(var i=0; i<dbColumnTypeOptions.length; i++){
+        if(dbColumnTypeOptions[i] === selectedRecord.getColumnType()){
+          dbColumnTypeSelect += '<option selected>' + dbColumnTypeOptions[i] + '</option>';  
+        } else {
+          dbColumnTypeSelect += '<option>' + dbColumnTypeOptions[i] + '</option>';
+        }
+      }
+      dbColumnTypeSelect += '</select>';
+      w2popup.open({
+        width: 320,
+        height: 320,
+        title: 'Edit Column',
+        body: '<div class="w2ui-left" style="line-height: 1.8">' +
+              '   Please edit details of column below:<br>' +
+              '   <table>' +
+              '    <tr>' +
+              '     <td>Column Name:</td>' +
+              '     <td><input id="db-column-name" class="w2ui-input" value="' + selectedRecord.getColumnName() + '"/></td>' +
+              '    </tr>' +
+              '    <tr>' +
+              '     <td>Column Type:</td>' +
+              '     <td>' + dbColumnTypeSelect + '</td>' +
+              '    </tr>' +
+              '    <tr>' +
+              '     <td>Semantics:</td>' +
+              '     <td><select id="db-semantics-type" class="w2ui-input">' +
+              '                 <option>BINARY</option>' +
+              '                 <option>CHAR</option>' +
+              '         </select></td>' +
+              '    </tr>' +
+              '    <tr>' +
+              '     <td>Precision/Size:</td>' +
+              '     <td><input id="db-precision" class="w2ui-input" /></td>' +
+              '    </tr>' +
+              '    <tr>' +
+              '     <td>Scale:</td>' +
+              '     <td><input id="db-scale" class="w2ui-input" /></td>' +
+              '    </tr>' +
+              '    <tr>' +
+              '     <td>Primary Key:</td>' +
+              '     <td><input id="db-primary-key" class="w2ui-input" type="checkbox"/>' +
+              '    </tr>' +
+              '    <tr>' +
+              '     <td>Not Null:</td>' +
+              '     <td><input id="db-not-null" class="w2ui-input" type="checkbox"/>' +
+              '    </tr>' +
+              '   </table>' +
+              '</div>' +
+              '<input type="hidden" id="db-col-info-available">',
+        buttons: '<button class="w2ui-btn" onclick="$j(\'#db-col-info-available\')[0].value = true;w2popup.close();">Ok</button>'+
+                 '<button class="w2ui-btn" onclick="w2popup.close();">Cancel</button>',
+        onClose: function(event) {
+          //var value = $j('#project-name')[0].value;
+          if($j('#db-col-info-available')[0].value === "true"){
+            var dbColumnName = $j('#db-column-name')[0].value;
+            var dbColumnType = $j('#db-column-type')[0].value;
+            var dbSemanticsType = $j('#db-semantics-type')[0].value;
+            var dbPrecision = $j('#db-precision')[0].value;
+            var dbScale = $j('#db-scale')[0].value;
+            var dbPrimaryKey = $j('#db-primary-key')[0].checked;
+            var dbNotNull = $j('#db-not-null')[0].checked;
+            var col = new DatabaseColumn(dbColumnName, dbColumnType, dbSemanticsType, dbPrecision, dbScale, dbPrimaryKey, dbNotNull);
+            that.addNewColumn(col);
+          }
+        }
+      });
+    } else {
+      w2alert('Multiple selection of records is not allowed for edit operation');
+    }
+  },
+  getColumn: function(columnName){
+    var selectedColumn = null;
+    this.columns.forEach(function(column){
+      if(column.getColumnName().toUpperCase() === columnName.toUpperCase()){
+        selectedColumn = column;
+      }
+    });
+    return selectedColumn;
+  },
   addNewColumn: function(column){
     var that = this;
 
@@ -13056,11 +13158,11 @@ var DatabaseTable = Class.create({
       }
     });
 
-    var recordId = this.columns.length;
-
     row.append('xhtml:td')
       .attr('class', 'node_table_cell')
-      .text(recordId);
+      .text(this.columnSeq);
+
+    this.columnSeq++;
 
     row.append('xhtml:td')
       .attr('class', 'node_table_cell')
@@ -13378,6 +13480,13 @@ var DatabaseTable = Class.create({
   },
   destroy: function() {
     var that = this;
+    this.headerLine1.remove();
+    this.headerLine1Shadow.remove();
+    this.headerLine2.remove();
+    this.headerLine2Shadow.remove();
+    this.headerLine3.remove();
+    this.headerLine3Shadow.remove();
+    this.foreignObject.remove();
     this.ports.forEach(function(port){
       that.parentElement.removePort(port);
     });
