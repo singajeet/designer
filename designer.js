@@ -12715,6 +12715,27 @@ var DatabaseColumn = Class.create({
   },
   isNotNull: function() {
     return this.notNull;
+  },
+  setColumnName: function(value) {
+    this.columnName = value;
+  },
+  setColumnType: function(value) {
+    this.columnType = value;
+  },
+  setSemantics: function(value) {
+    this.semantics = value;
+  },
+  setPrecision: function(value) {
+    this.precision = value;
+  },
+  setScale: function(value) {
+    this.scale = value;
+  },
+  setPrimaryKey: function(value) {
+    this.primaryKey = value;
+  },
+  setNotNull: function(value) {
+    this.notNull = value;
   }
 });
 
@@ -13012,8 +13033,7 @@ var DatabaseTable = Class.create({
       buttons: '<button class="w2ui-btn" onclick="$j(\'#db-col-info-available\')[0].value = true;w2popup.close();">Ok</button>'+
                '<button class="w2ui-btn" onclick="w2popup.close();">Cancel</button>',
       onClose: function(event) {
-        //var value = $j('#project-name')[0].value;
-        if($j('#db-col-info-available')[0].value === "true"){
+       if($j('#db-col-info-available')[0].value === "true"){
           var dbColumnName = $j('#db-column-name')[0].value;
           var dbColumnType = $j('#db-column-type')[0].value;
           var dbSemanticsType = $j('#db-semantics-type')[0].value;
@@ -13065,6 +13085,18 @@ var DatabaseTable = Class.create({
         }
       }
       dbColumnTypeSelect += '</select>';
+
+      var dbSemanticsTypeOptions = ['BINARY', 'CHAR'];
+      var dbSemanticsTypeSelect = '<select id="db-semantics-type" class="w2ui-input">';
+      for(var i=0; i<dbSemanticsTypeOptions.length; i++){
+        if(dbSemanticsTypeOptions[i] === selectedRecord.getSemantics()){
+          dbSemanticsTypeSelect += '<option selected>' + dbSemanticsTypeOptions[i] + '</options>';
+        } else {
+          dbSemanticsTypeSelect += '<option>' + dbSemanticsTypeOptions[i] + '</options>';
+        }
+      }
+      dbSemanticsTypeSelect += '</select>';
+      
       w2popup.open({
         width: 320,
         height: 320,
@@ -13074,7 +13106,7 @@ var DatabaseTable = Class.create({
               '   <table>' +
               '    <tr>' +
               '     <td>Column Name:</td>' +
-              '     <td><input id="db-column-name" class="w2ui-input" value="' + selectedRecord.getColumnName() + '"/></td>' +
+              '     <td><input id="db-column-name" class="w2ui-input" value="' + selectedRecord.getColumnName() + '" disabled/></td>' +
               '    </tr>' +
               '    <tr>' +
               '     <td>Column Type:</td>' +
@@ -13082,26 +13114,23 @@ var DatabaseTable = Class.create({
               '    </tr>' +
               '    <tr>' +
               '     <td>Semantics:</td>' +
-              '     <td><select id="db-semantics-type" class="w2ui-input">' +
-              '                 <option>BINARY</option>' +
-              '                 <option>CHAR</option>' +
-              '         </select></td>' +
+              '     <td>' + dbSemanticsTypeSelect + '</td>' +
               '    </tr>' +
               '    <tr>' +
               '     <td>Precision/Size:</td>' +
-              '     <td><input id="db-precision" class="w2ui-input" /></td>' +
+              '     <td><input id="db-precision" class="w2ui-input" value="' + selectedRecord.getPrecision() + '" /></td>' +
               '    </tr>' +
               '    <tr>' +
               '     <td>Scale:</td>' +
-              '     <td><input id="db-scale" class="w2ui-input" /></td>' +
+              '     <td><input id="db-scale" class="w2ui-input" value="' + selectedRecord.getScale() + '" /></td>' +
               '    </tr>' +
               '    <tr>' +
               '     <td>Primary Key:</td>' +
-              '     <td><input id="db-primary-key" class="w2ui-input" type="checkbox"/>' +
+              '     <td><input id="db-primary-key" class="w2ui-input" type="checkbox" ' + (selectedRecord.isPrimaryKey() ? 'checked' : '') + '/>' +
               '    </tr>' +
               '    <tr>' +
               '     <td>Not Null:</td>' +
-              '     <td><input id="db-not-null" class="w2ui-input" type="checkbox"/>' +
+              '     <td><input id="db-not-null" class="w2ui-input" type="checkbox" ' + (selectedRecord.isNotNull() ? 'checked' : '') + '/>' +
               '    </tr>' +
               '   </table>' +
               '</div>' +
@@ -13109,17 +13138,15 @@ var DatabaseTable = Class.create({
         buttons: '<button class="w2ui-btn" onclick="$j(\'#db-col-info-available\')[0].value = true;w2popup.close();">Ok</button>'+
                  '<button class="w2ui-btn" onclick="w2popup.close();">Cancel</button>',
         onClose: function(event) {
-          //var value = $j('#project-name')[0].value;
           if($j('#db-col-info-available')[0].value === "true"){
-            var dbColumnName = $j('#db-column-name')[0].value;
-            var dbColumnType = $j('#db-column-type')[0].value;
-            var dbSemanticsType = $j('#db-semantics-type')[0].value;
-            var dbPrecision = $j('#db-precision')[0].value;
-            var dbScale = $j('#db-scale')[0].value;
-            var dbPrimaryKey = $j('#db-primary-key')[0].checked;
-            var dbNotNull = $j('#db-not-null')[0].checked;
-            var col = new DatabaseColumn(dbColumnName, dbColumnType, dbSemanticsType, dbPrecision, dbScale, dbPrimaryKey, dbNotNull);
-            that.addNewColumn(col);
+            selectedRecord.setColumnName($j('#db-column-name')[0].value);
+            selectedRecord.setColumnType($j('#db-column-type')[0].value);
+            selectedRecord.setSemantics($j('#db-semantics-type')[0].value);
+            selectedRecord.setPrecision($j('#db-precision')[0].value);
+            selectedRecord.setScale($j('#db-scale')[0].value);
+            selectedRecord.setPrimaryKey($j('#db-primary-key')[0].checked);
+            selectedRecord.setNotNull($j('#db-not-null')[0].checked);
+            that.editColumn(that.selectedRows[0], selectedRecord);
           }
         }
       });
@@ -13159,12 +13186,14 @@ var DatabaseTable = Class.create({
     });
 
     row.append('xhtml:td')
+      .attr('id', rowId + '_col_seq')
       .attr('class', 'node_table_cell')
       .text(this.columnSeq);
 
     this.columnSeq++;
 
     row.append('xhtml:td')
+      .attr('id', rowId + '_col_name')
       .attr('class', 'node_table_cell')
       .text(column.getColumnName().toUpperCase());
 
@@ -13186,6 +13215,7 @@ var DatabaseTable = Class.create({
       columnType += ')';
     }
     row.append('xhtml:td')
+      .attr('id', rowId + '_col_type')
       .attr('class', 'node_table_cell')
       .text(columnType);
   },
@@ -13202,6 +13232,29 @@ var DatabaseTable = Class.create({
       });
     this.selectedRows.clear();
     console.log(this.columns);
+  },
+  editColumn: function(rowId, column){
+    var colTypeTdId = '#' + rowId + '_col_type';
+
+    var columnType = column.getColumnType();
+    if(columnType === 'CHAR' || columnType === 'NCHAR' || columnType === 'VARCHAR' || columnType === 'VARCHAR2' || columnType === 'NVARCHAR2') {
+      columnType += '(' + column.getPrecision() + ')';
+    } else if(columnType === 'NUMBER') {
+      columnType += '(';
+
+      if(column.getPrecision() !== '') {
+        columnType += column.getPrecision();
+      } else {
+        columnType += '*';
+      }
+
+      if(column.getScale() !== '') {
+        columnType += ', ' + column.getScale();
+      }
+      columnType += ')';
+    }
+
+    d3.select(colTypeTdId).text(columnType);
   },
   isSelected: function(){
     return JSON.parse(this.line.attr('selected'));
