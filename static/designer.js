@@ -478,7 +478,7 @@ var Application = Class.create({
       }
     }));
     if(this.projectNavigator !== undefined && this.projectNavigator !== null) {
-      this.projectNavigator.setNavigator(w2ui['projectNavigator']);
+      this.projectNavigator.setNavigationTree(w2ui['projectNavigator']);
       this.projectNavigator.fireInitializeParentEvent();
       this.projectNavigator.fireInitializeContextMenuEvent();
     }
@@ -613,6 +613,9 @@ var Application = Class.create({
     function itemRemoved(item) {
       that.projectNavigator.fireItemRemovedEvent(item);
     }
+  },
+  getNavigationTree: function() {
+    return w2ui['projectNavigator'];
   },
   promptNewProjectName: function() {
     var that = this;
@@ -1138,15 +1141,19 @@ const Canvas = Class.create({
     this.nodes.forEach(function(node){
       if(node.isSelected()){
         var newNode = node.clone();
-        that.addNode(newNode);
-        that.fireItemClonedEvent(newNode);
+        if(newNode !== null) {
+          that.addNode(newNode);
+          that.fireItemClonedEvent(newNode);
+        }
       }
     });
     this.edges.forEach(function(edge){
       if(edge.isSelected()){
         var newEdge = edge.clone();
-        that.addEdge(newEdge);
-        that.fireItemClonedEvent(newEdge);
+        if(newEdge !== null) {
+          that.addEdge(newEdge);
+          that.fireItemClonedEvent(newEdge);
+        }
       }
     });
   },
@@ -12441,7 +12448,7 @@ var FlowChartDatabase = Class.create({
  */
 var ProjectNavigator = Class.create({
   id: null,
-  navigator: null, //w2ui sidetab instance
+  navigationTree: null, //w2ui sidetab instance
   initializeParentListeners: [],
   itemAddedListeners: [],
   itemRemovedListeners: [],
@@ -12450,6 +12457,7 @@ var ProjectNavigator = Class.create({
   contextMenuItemSelectedListeners: [],
   initialize: function(id, initializeParentListener, itemAddedListener, itemRemovedListener, itemSelectedListener, initializeContextMenuListener, contextMenuItemSelectedListener) {
     this.id = id;
+    this.navigationTree = null;
     this.initializeParentListeners = [];
     this.itemAddedListeners = [];
     this.itemRemovedListeners = [];
@@ -12481,8 +12489,8 @@ var ProjectNavigator = Class.create({
       this.contextMenuItemSelectedListeners.push(contextMenuItemSelectedListener);
     }
   },
-  setNavigator: function(navigator) {
-    this.navigator = navigator;
+  setNavigationTree: function(navigationTree) {
+    this.navigationTree = navigationTree;
   },
   addInitializeParentEventListener: function(listener) {
     if(listener != null) {
@@ -12553,37 +12561,37 @@ var ProjectNavigator = Class.create({
   fireInitializeParentEvent: function() {
     var that = this;
     this.initializeParentListeners.forEach(function(listener) {
-      listener(that.navigator);
+      listener(that.navigationTree);
     });
   },
   fireItemAddedEvent: function(item) {
     var that = this;
     this.itemAddedListeners.forEach(function(listener) {
-      listener(that.navigator, item);
+      listener(that.navigationTree, item);
     });
   },
   fireItemRemovedEvent: function(item) {
     var that = this;
     this.itemRemovedListeners.forEach(function(listener) {
-      listener(that.navigator, item);
+      listener(that.navigationTree, item);
     });
   },
   fireItemSelectedEvent: function(item) {
     var that = this;
     this.itemSelectedListeners.forEach(function(listener) {
-      listener(that.navigator, item);
+      listener(that.navigationTree, item);
     });
   },
   fireInitializeContextMenuEvent: function() {
     var that = this;
     this.initializeContextMenuListeners.forEach(function(listener) {
-      listener(that.navigator);
+      listener(that.navigationTree);
     });
   },
   fireContextMenuItemSelectedEvent: function(item) {
     var that = this;
     this.contextMenuItemSelectedListeners.forEach(function(listener) {
-      listener(that.navigator, item);
+      listener(that.navigationTree, item);
     });
   }
  });
@@ -12603,7 +12611,23 @@ var DatabaseConnection = Class.create({
   password: null,
   connectionInfoAvailableEventListeners: [],
   initialize: function() {
+    this.connectionName = null;
+    this.connectionString = null;
+    this.username = null;
+    this.password = null;
     this.connectionInfoAvailableEventListeners = [];
+  },
+  getConnectionName: function() {
+    return this.connectionName;
+  },
+  getConnectionString: function() {
+    return this.connectionString;
+  },
+  getUsername: function() {
+    return this.username;
+  },
+  getPassword: function () {
+    return this.password;
   },
   promptConnection: function() {
     var that = this;
@@ -12634,7 +12658,7 @@ var DatabaseConnection = Class.create({
         ' </tr>' +
         '</table>' +
         '</div>' +
-        '<input type="hidden" id="db-info-available">',
+        '<input type="hidden" id="db-conn-info-available">',
       buttons: '<button class="w2ui-btn" onclick="$j(\'#db-conn-info-available\')[0].value = true; w2popup.close()">Ok</button>'+
                '<button class="w2ui-btn" onclick="w2popup.close()">Cancel</button>',
       onClose: function(event) {
@@ -12664,6 +12688,109 @@ var DatabaseConnection = Class.create({
     this.connectionInfoAvailableEventListeners.forEach(function(listener){
       listener(that.connectionName, that.connectionString, that.username, that.password);
     });
+  }
+});
+
+/**
+ * DatabaseSchema: This class represents an schema in database
+ * @constructor
+ * @param {DatabaseConnection} connection - an instance of DatabaseConnection class
+ */
+var DatabaseSchema = Class.create({
+  schemaName: null,
+  connection: null,
+  tables: [],
+  views: [],
+  indexes: [],
+  materializedViews: [],
+  procedures: [],
+  functions: [],
+  packages: [],
+  sequences: [],
+  synonyms: [],
+  publicSynonyms: [],
+  triggers: [],
+  types: [],
+  queues: [],
+  databaseLinks: [],
+  publicDatabaseLinks: [],
+  directories: [],
+  initialize: function(connection) {
+    this.connection = connection;
+    this.schemaName = this.connection.getUsername();
+    this.populateSchemaObjects();
+  },
+  populateSchemaObjects: function() {
+    this.tables = [];
+    this.views = [];
+    this.indexes = [];
+    this.materializedViews = [];
+    this.procedures = [];
+    this.functions = [];
+    this.packages = [];
+    this.sequences = [];
+    this.synonyms = [];
+    this.publicSynonyms = [];
+    this.triggers = [];
+    this.types = [];
+    this.queues = [];
+    this.databaseLinks = [];
+    this.publicDatabaseLinks = [];
+    this.directories = [];
+  },
+  getSchemaName: function() {
+    return this.schemaName;
+  },
+  getConnection: function() {
+    return this.connection;
+  },
+  getTables: function() {
+    return this.tables;
+  },
+  getViews: function() {
+    return this.views;
+  },
+  getIndexes: function() {
+    return this.indexes;
+  },
+  getMaterializedViews: function() {
+    return this.materializedViews;
+  },
+  getProcedures: function() {
+    return this.procedures;
+  },
+  getFunctions: function() {
+    return this.functions;
+  },
+  getPackages: function() {
+    return this.packages;
+  },
+  getSequences: function() {
+    return this.sequences;
+  },
+  getSynonyms: function() {
+    return this.synonyms;
+  },
+  getPublicSynonyms: function() {
+    return this.publicSynonyms;
+  },
+  getTriggers: function() {
+    return this.triggers;
+  },
+  getTypes: function() {
+    return this.types;
+  },
+  getQueues: function() {
+    return this.queues;
+  },
+  getDatabaseLinks: function() {
+    return this.databaseLinks;
+  },
+  getPublicDatabaseLinks: function() {
+    return this.publicDatabaseLinks;
+  },
+  getDirectories: function() {
+    return this.directories;
   }
 });
 
@@ -12768,7 +12895,8 @@ var DatabaseTable = Class.create({
   columns: [],
   selectedRows: [],
   columnSeq: 1,
-  initialize: function(id, parentElement, rectDimension, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
+  schema: null,
+  initialize: function(id, parentElement, rectDimension, columns, schema, ports, title, lineColor, lineWidth, lineStroke, fillColor, opacity, description) {
     this.id = id.toLowerCase();
     this.parentElement = parentElement;
     this.title = title || id || "";
@@ -12789,9 +12917,10 @@ var DatabaseTable = Class.create({
     this.LEFT = 2;
     this.RIGHT = 3;
     this.showPortsLabel = false;
-    this.columns = [];
+    this.columns = columns || [];
     this.selectedRows = [];
     this.columnSeq = 1;
+    this.schema = schema || null;
 
     if(this.ports.length === 0) {
       this.ports[this.TOP] = new Port(this.id + '_top', this, (this.rectDimension.left + (this.rectDimension.width/2) - 5), (this.rectDimension.top - 5), 'TOP', false);
@@ -12801,15 +12930,21 @@ var DatabaseTable = Class.create({
     }
   },
   clone: function() {
-    return new DatabaseTable(this.id + '_copy', this.parentElement,
-                                   new RectDimension(
-                                                     this.rectDimension.left + 10,
-                                                     this.rectDimension.top + 10,
-                                                     this.rectDimension.height,
-                                                     this.rectDimension.width),
-                                   [], this.title, this.lineColor, this.lineWidth,
-                                   this.lineStroke, this.fillColor, this.opacity,
-                                   this.description);
+    var table = null;
+    var title = prompt('Please enter name of new table');
+    var id = title.toLowerCase();
+
+    table = new DatabaseTable(id, this.parentElement,
+                                  new RectDimension(
+                                                   this.rectDimension.left + 10,
+                                                   this.rectDimension.top + 10,
+                                                   this.rectDimension.height,
+                                                   this.rectDimension.width),
+                                  this.columns, this.schema,
+                                  [], title, this.lineColor, this.lineWidth,
+                                  this.lineStroke, this.fillColor, this.opacity,
+                                  this.description);
+    return table;
   },
   getToolName: function() {
     return this.toolName;
@@ -13073,13 +13208,13 @@ var DatabaseTable = Class.create({
     } else if(this.selectedRows.length === 1){
       var columnName = this.selectedRows[0].substr(this.selectedRows[0].indexOf('_') + 1);
       var selectedRecord = this.getColumn(columnName);
-      var dbColumnTypeOptions = ['CHAR', 'NCHAR', 'VARCHAR2', 'VARCHAR', 'NVARCHAR2', 'CLOB', 
+      var dbColumnTypeOptions = ['CHAR', 'NCHAR', 'VARCHAR2', 'VARCHAR', 'NVARCHAR2', 'CLOB',
                                   'NCLOB', 'LONG', 'NUMBER', 'BINARY_FLOAT', 'BINARY_DOUBLE',
                                   'DATE', 'BLOB', 'BFILE', 'RAW', 'LONG RAW', 'ROWID'];
       var dbColumnTypeSelect = '<select id="db-column-type" class="w2ui-input">';
       for(var i=0; i<dbColumnTypeOptions.length; i++){
         if(dbColumnTypeOptions[i] === selectedRecord.getColumnType()){
-          dbColumnTypeSelect += '<option selected>' + dbColumnTypeOptions[i] + '</option>';  
+          dbColumnTypeSelect += '<option selected>' + dbColumnTypeOptions[i] + '</option>';
         } else {
           dbColumnTypeSelect += '<option>' + dbColumnTypeOptions[i] + '</option>';
         }
@@ -13096,7 +13231,7 @@ var DatabaseTable = Class.create({
         }
       }
       dbSemanticsTypeSelect += '</select>';
-      
+
       w2popup.open({
         width: 320,
         height: 320,
@@ -13162,6 +13297,16 @@ var DatabaseTable = Class.create({
       }
     });
     return selectedColumn;
+  },
+  getAllColumns: function(){
+    return this.columns;
+  },
+  setSchema: function(schema){
+    this.schema = schema;
+    this.populateProperties();
+  },
+  getSchema: function(){
+    return this.schema;
   },
   addNewColumn: function(column){
     var that = this;
@@ -13426,7 +13571,11 @@ var DatabaseTable = Class.create({
         { recid: 1, propName: 'Layout',
           w2ui: {
             children: [
-                      { recid: 2, propName: 'Id', propValue: this.id},
+                      { recid: 2, propName: 'Id', propValue: this.id,
+                          w2ui: { editable: false,
+                                  style: "color: grey"
+                                }
+                      },
                       { recid: 3, propName: 'X', propValue: this.rectDimension.left,
                           w2ui: { editable: false,
                                   style: "color: grey"
@@ -13485,8 +13634,9 @@ var DatabaseTable = Class.create({
         { recid: 15, propName: 'Details',
           w2ui: {
             children: [
-                      { recid: 16, propName: 'Title', propValue: this.title},
-                      { recid: 17, propName: 'Description', propValue: this.description}
+                      { recid: 16, propName: 'Table Name', propValue: this.title},
+                      { recid: 17, propName: 'Description', propValue: this.description},
+                      { recid: 18, propName: 'Schema', propValue: (this.schema !== null ? this.schema.getSchemaName() : '')}
             ]
           }
         }
@@ -13517,9 +13667,10 @@ var DatabaseTable = Class.create({
           port.hideLabel();
         });
       }
-    } else if(propName === "Title"){
+    } else if(propName === "Table Name"){
       this.title = propValue;
       this.text.text(this.title);
+      this.rename(this.title);
     } else if(propName === "Description"){
       this.description = propValue;
     } else if(propName === 'Id'){
@@ -13530,6 +13681,9 @@ var DatabaseTable = Class.create({
       this.ports[this.LEFT].rename(this.id + '_left');
       this.ports[this.RIGHT].rename(this.id + '_right');
     }
+  },
+  rename: function(newTableName) {
+
   },
   destroy: function() {
     var that = this;

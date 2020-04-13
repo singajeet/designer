@@ -4,22 +4,21 @@
     <title>Page Title</title>
     <meta charset="utf-1">
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <link rel="stylesheet" href="designer.css">
-    <link rel="stylesheet" href="css/jquery-ui.css">
-    <link rel="stylesheet" href="css/subjx.css" >
-    <link rel="stylesheet" href="css/w2ui.min.css" >
-    <!-- <link rel="stylesheet" href="css/font-awesome.min.css" > -->
-    <link rel="stylesheet" href="css/fontawesome/css/all.min.css" >
-    <script src="js/jquery-3.4.1.min.js"></script>
-    <script src="js/subjx.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/prototype.js"></script>
-    <script src="js/d3.min.js"></script>
-    <!-- <script src="https://d3js.org/d3.v5.js"></script> -->
-    <script src="designer.js" ></script>
+    <link rel="stylesheet" href="/static/designer.css">
+    <link rel="stylesheet" href="/static/css/jquery-ui.css">
+    <link rel="stylesheet" href="/static/css/subjx.css" >
+    <link rel="stylesheet" href="/static/css/w2ui.min.css" >
+    <link rel="stylesheet" href="/static/css/fontawesome/css/all.min.css" >
+    <script src="/static/js/jquery-3.4.1.min.js"></script>
+    <script src="/static/js/subjx.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/static/js/prototype.js"></script>
+    <script src="/static/js/d3.min.js"></script>
+    <script src="/static/js/socket.io.slim.js"></script>
+    <script src="/static/designer.js" ></script>
   	<script>
   		var $j = jQuery.noConflict();
   	</script>
-    <script src="js/w2ui.min.js"></script>
+    <script src="/static/js/w2ui.min.js"></script>
   </head>
   <body style='height: 100%; width: 100%; overflow: hidden;'> <!--height:auto;max-width:100%;-->
 
@@ -29,6 +28,8 @@
 		    try{
           var projectId = '';
           var dbConnection = null;
+          var schema = null;
+          var connectionId = '';
 
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback);
 
@@ -123,30 +124,33 @@
 
           a.render();
 
-          function initializeParentCallback(navigator) {
-            navigator.add([
+          function initializeParentCallback(navigationTree) {
+            navigationTree.add([
                 { id: 'projects', text: 'Projects', img: 'icon-folder', expanded: true, group: true}
               ]);
           }
 
-          function itemAddedCallback(navigator, item) {
+          function itemAddedCallback(navigationTree, item) {
             if(item.toolName === 'LINE' || item.toolName === 'POLYLINE' || item.toolName === 'BEZIRE_CURVE') {
-              navigator.insert(projectId + '-edges', null, [{id: item.id, text: item.id + ' - ' + item.toolName}]);
+              navigationTree.insert(projectId + '-edges', null, [{id: item.id, text: item.id + ' - ' + item.toolName}]);
+            } else if(item.toolName === 'DATABASE_TABLE') {
+              item.setSchema(schema);
+              navigationTree.insert(connectionId + '-tables', null, [{id: item.id, text: item.title}])
             } else {
-              navigator.insert(projectId + '-nodes', null, [{id: item.id, text: item.id + ' - ' + item.toolName}]);
+              navigationTree.insert(projectId + '-nodes', null, [{id: item.id, text: item.id + ' - ' + item.toolName}]);
             }
           }
 
-          function itemRemovedCallback(navigator, item) {
-            navigator.remove(item.id);
+          function itemRemovedCallback(navigationTree, item) {
+            navigationTree.remove(item.id);
           }
 
-          function itemSelectedCallback(navigator, item) {
+          function itemSelectedCallback(navigationTree, item) {
             console.log('Item Selected: ' + item);
           }
 
-          function initializeContextMenuCallback(navigator) {
-            navigator.menu = [
+          function initializeContextMenuCallback(navigationTree) {
+            navigationTree.menu = [
               { id: 'add-db-connection', text: 'Add Connection', img: 'fas fa-plus'},
               { id: 'delete-db-connection', text: 'Delete Connection', img: 'fas fa-minus'},
               { id: 'sep-1', text: '--'},
@@ -159,16 +163,44 @@
             ];
           }
 
-          function contextMenuItemSelectedCallback(navigator, item) {
+          function contextMenuItemSelectedCallback(navigationTree, item) {
             if(item === 'add-db-connection') {
               dbConnection = new DatabaseConnection();
+              dbConnection.addConnectionInfoAvailableEventListener(connectionInfoAvailable);
               dbConnection.promptConnection();
+
+              function connectionInfoAvailable(connName, connString, username, password) {
+                schema = new DatabaseSchema(dbConnection);
+                connectionId = projectId + '-' + connName.toLowerCase();
+                navigationTree.insert(projectId, null, [
+                                        {id: connectionId, text: connName, img: 'icon-folder',
+                                          nodes: [
+                                            {id: connectionId + '-tables', text: 'Tables', img: 'icon-folder'},
+                                            {id: connectionId + '-views', text: 'Views', img: 'icon-folder'},
+                                            {id: connectionId + '-indexes', text: 'Indexes', img: 'icon-folder'},
+                                            {id: connectionId + '-mviews', text: 'Materialized Views', img: 'icon-folder'},
+                                            {id: connectionId + '-procedures', text: 'Procedures', img: 'icon-folder'},
+                                            {id: connectionId + '-functions', text: 'Functions', img: 'icon-folder'},
+                                            {id: connectionId + '-packages', text: 'Packages', img: 'icon-folder'},
+                                            {id: connectionId + '-sequences', text: 'Sequences', img: 'icon-folder'},
+                                            {id: connectionId + '-synonyms', text: 'Synonyms', img: 'icon-folder'},
+                                            {id: connectionId + '-public-synonyms', text: 'Public Synonyms', img: 'icon-folder'},
+                                            {id: connectionId + '-triggers', text: 'Triggers', img: 'icon-folder'},
+                                            {id: connectionId + '-types', text: 'Types', img: 'icon-folder'},
+                                            {id: connectionId + '-queues', text: 'Queues', img: 'icon-folder'},
+                                            {id: connectionId + '-database-links', text: 'Database Links', img: 'icon-folder'},
+                                            {id: connectionId + '-public-database-links', text: 'Public Database Links', img: 'icon-folder'},
+                                            {id: connectionId + '-directories', text: 'Directories', img: 'icon-folder'}
+                                          ]
+                                        }
+                                      ]);
+              }
             }
           }
 
-          function onNewProject(navigator, project) {
+          function onNewProject(navigationTree, project) {
             projectId = project + '-project';
-            navigator.insert('projects', null, [{id: projectId, text: project, icon: 'fas fa-drafting-compass',
+            navigationTree.insert('projects', null, [{id: projectId, text: project, icon: 'fas fa-drafting-compass',
                             nodes: [
                               { id: projectId + '-edges', text: 'Edges', img: 'icon-folder'},
                               { id: projectId + '-nodes', text: 'Nodes', img: 'icon-folder'}
