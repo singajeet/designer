@@ -316,3 +316,83 @@
     font-size: 0.7em;
     border-left: 1px solid #c5c5c5;
 }
+
+.nodes_icon {
+    content:url('/static/icons/class_diagram.png');
+}
+
+.edges_icon {
+    content:url('/static/icons/association1MD.png');
+}
+
+.tables_icon {
+    content: url('/static/icons/table_and_list.png')
+}
+
+.table_icon {
+    content: url('/static/icons/table.png')
+}
+
+.view_icon {
+    content: url('/static/icons/view.png')
+}
+
+.index_icon {
+    content: url('/static/icons/index.png')
+}
+
+.mview_icon {
+    content: url('/static/icons/materialized_view.png')
+}
+
+.procedure_icon {
+    content: url('/static/icons/plsql_proc.png')
+}
+
+.function_icon {
+    content: url('/static/icons/plsql_function.png')
+}
+
+.package_icon {
+    content: url('/static/icons/plsql_package.png')
+}
+
+.package_body_icon {
+    content: url('/static/icons/packagetreeview.png')
+}
+
+.sequence_icon {
+    content: url('/static/icons/sequence.png')
+}
+
+.synonym_icon {
+    content: url('/static/icons/synonym.png')
+}
+
+.public_synonym_icon {
+    content: url('/static/icons/publicsynonym.png')
+}
+
+.trigger_icon {
+    content: url('/static/icons/trigger.png')
+}
+
+.type_icon {
+    content: url('/static/icons/objecttype.png')
+}
+
+.queue_icon {
+    content: url('/static/icons/objecttype.png')
+}
+
+.dblink_icon {
+    content: url('/static/icons/link.png')
+}
+
+.public_dblink_icon {
+    content: url('/static/icons/publicdblink.png')
+}
+
+.directory_icon {
+    content: url('/static/icons/directorytreeview.png')
+}

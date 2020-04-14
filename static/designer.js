@@ -12821,7 +12821,6 @@ var DatabaseSchema = Class.create({
 
     socket.emit('set_schema', this.schemaName)
     socket.emit('get_tables');
-    //this.tables = [];
     this.views = [];
     this.indexes = [];
     this.materializedViews = [];

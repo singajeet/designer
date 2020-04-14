@@ -4,7 +4,7 @@
     <title>Page Title</title>
     <meta charset="utf-1">
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <link rel="stylesheet" href="/static/designer.css">
+    <link rel="stylesheet" href="/static/designer.css?2=2">
     <link rel="stylesheet" href="/static/css/jquery-ui.css">
     <link rel="stylesheet" href="/static/css/subjx.css" >
     <link rel="stylesheet" href="/static/css/w2ui.min.css" >
@@ -181,22 +181,22 @@
                 navigationTree.insert(projectId, null, [
                                         {id: connectionId, text: dbConnection.getConnectionName(), img: 'icon-folder',
                                           nodes: [
-                                            {id: connectionId + '-tables', text: 'Tables', img: 'icon-folder'},
-                                            {id: connectionId + '-views', text: 'Views', img: 'icon-folder'},
-                                            {id: connectionId + '-indexes', text: 'Indexes', img: 'icon-folder'},
-                                            {id: connectionId + '-mviews', text: 'Materialized Views', img: 'icon-folder'},
-                                            {id: connectionId + '-procedures', text: 'Procedures', img: 'icon-folder'},
-                                            {id: connectionId + '-functions', text: 'Functions', img: 'icon-folder'},
-                                            {id: connectionId + '-packages', text: 'Packages', img: 'icon-folder'},
-                                            {id: connectionId + '-sequences', text: 'Sequences', img: 'icon-folder'},
-                                            {id: connectionId + '-synonyms', text: 'Synonyms', img: 'icon-folder'},
-                                            {id: connectionId + '-public-synonyms', text: 'Public Synonyms', img: 'icon-folder'},
-                                            {id: connectionId + '-triggers', text: 'Triggers', img: 'icon-folder'},
-                                            {id: connectionId + '-types', text: 'Types', img: 'icon-folder'},
-                                            {id: connectionId + '-queues', text: 'Queues', img: 'icon-folder'},
-                                            {id: connectionId + '-database-links', text: 'Database Links', img: 'icon-folder'},
-                                            {id: connectionId + '-public-database-links', text: 'Public Database Links', img: 'icon-folder'},
-                                            {id: connectionId + '-directories', text: 'Directories', img: 'icon-folder'}
+                                            {id: connectionId + '-tables', text: 'Tables', img: 'tables_icon'},
+                                            {id: connectionId + '-views', text: 'Views', img: 'view_icon'},
+                                            {id: connectionId + '-indexes', text: 'Indexes', img: 'index_icon'},
+                                            {id: connectionId + '-mviews', text: 'Materialized Views', img: 'mview_icon'},
+                                            {id: connectionId + '-procedures', text: 'Procedures', img: 'procedure_icon'},
+                                            {id: connectionId + '-functions', text: 'Functions', img: 'function_icon'},
+                                            {id: connectionId + '-packages', text: 'Packages', img: 'package_icon'},
+                                            {id: connectionId + '-sequences', text: 'Sequences', img: 'sequence_icon'},
+                                            {id: connectionId + '-synonyms', text: 'Synonyms', img: 'synonym_icon'},
+                                            {id: connectionId + '-public-synonyms', text: 'Public Synonyms', img: 'public_synonym_icon'},
+                                            {id: connectionId + '-triggers', text: 'Triggers', img: 'trigger_icon'},
+                                            {id: connectionId + '-types', text: 'Types', img: 'type_icon'},
+                                            {id: connectionId + '-queues', text: 'Queues', img: 'queue_icon'},
+                                            {id: connectionId + '-database-links', text: 'Database Links', img: 'dblink_icon'},
+                                            {id: connectionId + '-public-database-links', text: 'Public Database Links', img: 'public_dblink_icon'},
+                                            {id: connectionId + '-directories', text: 'Directories', img: 'directory_icon'}
                                           ]
                                         }
                                       ]);
@@ -205,7 +205,7 @@
               function onTablesAvailable(tables) {
                 tables.forEach(function(table) {
                   navigationTree.insert(connectionId + '-tables', null, [
-                                          {id: connectionId + '-tables-' + table, text: table}
+                                          {id: connectionId + '-tables-' + table, text: table, icon: 'table_icon'}
                                         ]);
                 });
               }
@@ -216,8 +216,8 @@
             projectId = project + '-project';
             navigationTree.insert('projects', null, [{id: projectId, text: project, icon: 'fas fa-drafting-compass',
                             nodes: [
-                              { id: projectId + '-edges', text: 'Edges', img: 'icon-folder'},
-                              { id: projectId + '-nodes', text: 'Nodes', img: 'icon-folder'}
+                              { id: projectId + '-edges', text: 'Edges', img: 'edges_icon'},
+                              { id: projectId + '-nodes', text: 'Nodes', icon: 'nodes_icon'}
                             ]
                           }]);
           }

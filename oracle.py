@@ -52,9 +52,9 @@ class DatabaseConnection(Namespace):
         if passw is not None:
             self._password = passw
         try:
-            self._db = cx_Oracle.connect(self._username, self._password, self._connection_string)
+            #self._db = cx_Oracle.connect(self._username, self._password, self._connection_string)
             emit('connected', namespace=self._namespace_url)
-            print("Connected to database version: " + self._db.version)
+            #print("Connected to database version: " + self._db.version)
         except Exception as e:
             print("Error: " + str(e))
             msg = "Cannot connect to database: " + str(e)
@@ -100,10 +100,11 @@ class DatabaseSchema(Namespace):
     def on_get_tables(self):
         """For internal use only: will be called when 'get_tables' event will be emitted
         """
-        db_conn = self._db_connection.get_connection()
-        cursor = db_conn.cursor()
-        cursor.execute("SELECT table_name FROM sys.user_tables")
-        result_array = []
-        for result in cursor:
-            result_array.append(result[0])
-        emit('tables_result', result_array, namespace=self._namespace_url)
+        # db_conn = self._db_connection.get_connection()
+        # cursor = db_conn.cursor()
+        # cursor.execute("SELECT table_name FROM sys.user_tables")
+        # result_array = []
+        # for result in cursor:
+        #     result_array.append(result[0])
+        # emit('tables_result', result_array, namespace=self._namespace_url)
+        emit('tables_result', ['table1', 'table2'], namespace=self._namespace_url)
