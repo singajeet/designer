@@ -166,14 +166,20 @@
           function contextMenuItemSelectedCallback(navigationTree, item) {
             if(item === 'add-db-connection') {
               dbConnection = new DatabaseConnection();
-              dbConnection.addConnectionInfoAvailableEventListener(connectionInfoAvailable);
+              dbConnection.addConnectionInfoAvailableEventListener(onConnectionInfoAvailable);
+              dbConnection.addConnectedEventListener(onConnected);
               dbConnection.promptConnection();
 
-              function connectionInfoAvailable(connName, connString, username, password) {
-                schema = new DatabaseSchema(dbConnection);
+              function onConnectionInfoAvailable(connName, connString, username, password) {
                 connectionId = projectId + '-' + connName.toLowerCase();
+                dbConnection.connect();
+              }
+
+              function onConnected() {
+                schema = new DatabaseSchema(dbConnection);
+                schema.addTablesAvailableEventListener(onTablesAvailable);
                 navigationTree.insert(projectId, null, [
-                                        {id: connectionId, text: connName, img: 'icon-folder',
+                                        {id: connectionId, text: dbConnection.getConnectionName(), img: 'icon-folder',
                                           nodes: [
                                             {id: connectionId + '-tables', text: 'Tables', img: 'icon-folder'},
                                             {id: connectionId + '-views', text: 'Views', img: 'icon-folder'},
@@ -194,6 +200,14 @@
                                           ]
                                         }
                                       ]);
+              }
+
+              function onTablesAvailable(tables) {
+                tables.forEach(function(table) {
+                  navigationTree.insert(connectionId + '-tables', null, [
+                                          {id: connectionId + '-tables-' + table, text: table}
+                                        ]);
+                });
               }
             }
           }

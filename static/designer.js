@@ -12610,12 +12610,18 @@ var DatabaseConnection = Class.create({
   username: null,
   password: null,
   connectionInfoAvailableEventListeners: [],
+  connectedEventListeners: [],
+  connected: false,
   initialize: function() {
     this.connectionName = null;
     this.connectionString = null;
     this.username = null;
     this.password = null;
     this.connectionInfoAvailableEventListeners = [];
+    this.connected = false;
+  },
+  isConnected: function() {
+    return this.connected;
   },
   getConnectionName: function() {
     return this.connectionName;
@@ -12672,6 +12678,38 @@ var DatabaseConnection = Class.create({
       }
     });
   },
+  connect: function() {
+    var socket = io('/oracle_db_connection');
+    var that = this;
+
+    socket.on('connected', function(e) {
+      that.connected = true;
+      that.fireConnectedEvent();
+    });
+
+    socket.on('failed', function(e) {
+      w2alert('Connection failed!<br>' + e.message);
+    });
+
+    var props = {'connectionString': this.connectionString, 'username': this.username, 'password': this.password};
+    socket.emit('db_connect', props);
+  },
+  addConnectedEventListener: function(listener) {
+    if(listener != null && listener != undefined) {
+      this.connectedEventListeners.push(listener);
+    }
+  },
+  removeConnectedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.connectedEventListeners.indexOf(listener);
+      this.connectedEventListeners.splice(index, 1);
+    }
+  },
+  fireConnectedEvent: function() {
+    this.connectedEventListeners.forEach(function(listener){
+      listener();
+    });
+  },
   addConnectionInfoAvailableEventListener: function(listener) {
     if(listener !== null && listener !== undefined) {
       this.connectionInfoAvailableEventListeners.push(listener);
@@ -12715,13 +12753,75 @@ var DatabaseSchema = Class.create({
   databaseLinks: [],
   publicDatabaseLinks: [],
   directories: [],
+  tablesAvailableEventListeners: [],
+  viewsAvailableEventListeners: [],
+  indexesAvailableEventListeners: [],
+  materializedViewsAvailableEventListeners: [],
+  proceduresAvailableEventListeners: [],
+  functionsAvailableEventListeners: [],
+  packagesAvailableEventListeners: [],
+  sequencesAvailableEventListeners: [],
+  synonymsAvailableEventListeners: [],
+  publicSynonymsAvailableEventListeners: [],
+  triggersAvailableEventListeners: [],
+  typesAvailableEventListeners: [],
+  queuesAvailableEventListeners: [],
+  databaseLinksAvailableEventListeners: [],
+  publicDatabaseLinksAvailableEventListeners: [],
+  directoriesAvailableEventListeners: [],
   initialize: function(connection) {
     this.connection = connection;
-    this.schemaName = this.connection.getUsername();
-    this.populateSchemaObjects();
+    this.schemaName = this.connection.getUsername().toUpperCase();
+    if(this.connection.isConnected()) {
+      this.populateSchemaObjects();
+    } else {
+      this.connection.addConnectedEventListener(this.populateSchemaObjects);
+    }
+
+    tablesAvailableEventListeners = [];
+    viewsAvailableEventListeners = [];
+    indexesAvailableEventListeners = [];
+    materializedViewsAvailableEventListeners = [];
+    proceduresAvailableEventListeners = [];
+    functionsAvailableEventListeners = [];
+    packagesAvailableEventListeners = [];
+    sequencesAvailableEventListeners = [];
+    synonymsAvailableEventListeners = [];
+    publicSynonymsAvailableEventListeners = [];
+    triggersAvailableEventListeners = [];
+    typesAvailableEventListeners = [];
+    queuesAvailableEventListeners = [];
+    databaseLinksAvailableEventListeners = [];
+    publicDatabaseLinksAvailableEventListeners = [];
+    directoriesAvailableEventListeners = [];
+  },
+  addTablesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.tablesAvailableEventListeners.push(listener);
+    }
+  },
+  removeTablesAvailableEventListener: function(listener) {
+    var index = this.tablesAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.tablesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireTablesAvailableEvent: function(result) {
+    this.tablesAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
   },
   populateSchemaObjects: function() {
-    this.tables = [];
+    var socket = io('/oracle_db_schema')
+    var that = this;
+    socket.on('tables_result', function(result){
+      that.tables = result;
+      that.fireTablesAvailableEvent(result);
+    });
+
+    socket.emit('set_schema', this.schemaName)
+    socket.emit('get_tables');
+    //this.tables = [];
     this.views = [];
     this.indexes = [];
     this.materializedViews = [];

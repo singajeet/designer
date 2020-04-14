@@ -6,6 +6,7 @@ with oracle database
 Author: Ajeet Singh
 Date: 11/04/2020
 """
+import logging
 from flask_socketio import emit, Namespace
 import cx_Oracle
 
@@ -20,6 +21,7 @@ class DatabaseConnection(Namespace):
     _db = None
     _socket_io = None
     _namespace_url = None
+    _logger = None
 
     def __init__(self, socket_io):
         """Default constructor for DatabaseConnection class
@@ -31,6 +33,7 @@ class DatabaseConnection(Namespace):
         self._namespace_url = '/oracle_db_connection'
         self._socket_io = socket_io
         socket_io.on_namespace(self)
+        self._logger = logging.getLogger(__name__)
 
     def on_db_connect(self, props):
         """For internal user only: This method is called by websocket when
@@ -50,8 +53,10 @@ class DatabaseConnection(Namespace):
             self._password = passw
         try:
             self._db = cx_Oracle.connect(self._username, self._password, self._connection_string)
+            emit('connected', namespace=self._namespace_url)
+            print("Connected to database version: " + self._db.version)
         except Exception as e:
-            print("DatabaseConnection: Error: " + str(e))
+            print("Error: " + str(e))
             msg = "Cannot connect to database: " + str(e)
             emit('failed',{'status': False, 'message': msg},
                  namespace=self._namespace_url)
@@ -81,7 +86,6 @@ class DatabaseSchema(Namespace):
         self._namespace_url = '/oracle_db_schema'
         self._socket_io = socket_io
         self._db_connection = db_connection
-        print("DatabaseSchema: Object created with db instance: " + str(self._db_connection))
         socket_io.on_namespace(self)
 
     def on_set_schema(self, schema_name):
@@ -96,11 +100,9 @@ class DatabaseSchema(Namespace):
     def on_get_tables(self):
         """For internal use only: will be called when 'get_tables' event will be emitted
         """
-        print("DatabaseSchema: Connecting to DB using instance: " + str(self._db_connection))
         db_conn = self._db_connection.get_connection()
-        print("DatabaseSchema: CX Oracle instance: " + str(db_conn))
         cursor = db_conn.cursor()
-        cursor.execute("SELECT table_name FROM sys.dba_tables WHERE owner='" + self._schema_name + "'")
+        cursor.execute("SELECT table_name FROM sys.user_tables")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
