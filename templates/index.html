@@ -4,17 +4,18 @@
     <title>Page Title</title>
     <meta charset="utf-1">
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <link rel="stylesheet" href="/static/designer.css?2=2">
+    <link rel="stylesheet" href="/static/designer.css?2=3">
     <link rel="stylesheet" href="/static/css/jquery-ui.css">
     <link rel="stylesheet" href="/static/css/subjx.css" >
     <link rel="stylesheet" href="/static/css/w2ui.min.css" >
     <link rel="stylesheet" href="/static/css/fontawesome/css/all.min.css" >
     <script src="/static/js/jquery-3.4.1.min.js"></script>
+    <script src="/static/js/jquery-ui.min.js"></script>
     <script src="/static/js/subjx.js" type="text/javascript" charset="utf-8"></script>
     <script src="/static/js/prototype.js"></script>
     <script src="/static/js/d3.min.js"></script>
     <script src="/static/js/socket.io.slim.js"></script>
-    <script src="/static/designer.js" ></script>
+    <script src="/static/designer.js?3=3" ></script>
   	<script>
   		var $j = jQuery.noConflict();
   	</script>
@@ -133,7 +134,7 @@
           function itemAddedCallback(navigationTree, item) {
             if(item.toolName === 'LINE' || item.toolName === 'POLYLINE' || item.toolName === 'BEZIRE_CURVE') {
               navigationTree.insert(projectId + '-edges', null, [{id: item.id, text: item.id + ' - ' + item.toolName}]);
-            } else if(item.toolName === 'DATABASE_TABLE') {
+            } else if(item.toolName === 'DATABASE_TABLE' && connectionId !== '') {
               item.setSchema(schema);
               navigationTree.insert(connectionId + '-tables', null, [{id: item.id, text: item.title}])
             } else {
@@ -178,6 +179,7 @@
               function onConnected() {
                 schema = new DatabaseSchema(dbConnection);
                 schema.addTablesAvailableEventListener(onTablesAvailable);
+                schema.addViewsAvailableEventListener(onViewsAvailable);
                 navigationTree.insert(projectId, null, [
                                         {id: connectionId, text: dbConnection.getConnectionName(), img: 'icon-folder',
                                           nodes: [
@@ -206,6 +208,14 @@
                 tables.forEach(function(table) {
                   navigationTree.insert(connectionId + '-tables', null, [
                                           {id: connectionId + '-tables-' + table, text: table, icon: 'table_icon'}
+                                        ]);
+                });
+              }
+
+              function onViewsAvailable(views) {
+                views.forEach(function(view) {
+                  navigationTree.insert(connectionId + '-views', null, [
+                                          {id: connectionId + '-views-' + view, text: view, icon: 'view_icon'}
                                         ]);
                 });
               }

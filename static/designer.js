@@ -424,6 +424,7 @@ const ToolBox = Class.create({
 var Application = Class.create({
   id: null,
   canvas: null,
+  tabs: null,
   projectNavigator: null,
   newProjectEventListeners: [],
   openProjectEventListeners: [],
@@ -432,6 +433,7 @@ var Application = Class.create({
     this.id = id;
     this.canvas = canvas;
     this.projectNavigator = projectNavigator;
+    this.tabs = null;
   },
   render: function() {
     var that = this;
@@ -450,8 +452,22 @@ var Application = Class.create({
       ]
     });
 
-    var mainHtml = this.canvas.render();
+    var mainHtml = "<div id='tabs' style='height: 100%'>" +
+                   " <ul>" +
+                   "  <li><a href='#canvas-tab'>Canvas</a></li>" +
+                   " </ul>" +
+                   " <div id='canvas-tab' style='height: 94%; padding: 0px !important;'>" + this.canvas.render() +
+                   " </div>" +
+                   "</div>";
     w2ui['layout'].content('main', mainHtml);
+    this.tabs = $j('#tabs').tabs();
+
+    // Close icon: removing the tab on click
+    this.tabs.on("click", "span.ui-icon-close", function() {
+      var panelId = $j(this).closest("li").remove().attr("aria-controls");
+      $j("#" + panelId).remove();
+      that.tabs.tabs("refresh");
+    });
 
     //activate the toolbox
     this.canvas.getToolBox().activate();
@@ -613,6 +629,12 @@ var Application = Class.create({
     function itemRemoved(item) {
       that.projectNavigator.fireItemRemovedEvent(item);
     }
+  },
+  addTab: function(id, label, content) {
+    var li = "<li><a href='#" + id + "'>" + label + "</a><span class='ui-icon ui-icon-close' role='presentation'>Remove Tab</span></li>";
+    this.tabs.find(".ui-tabs-nav").append(li);
+    this.tabs.append("<div id='" + id + "'>" + content + "</div>");
+    this.tabs.tabs("refresh");
   },
   getNavigationTree: function() {
     return w2ui['projectNavigator'];
@@ -12811,6 +12833,22 @@ var DatabaseSchema = Class.create({
       listener(result);
     });
   },
+  addViewsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.viewsAvailableEventListeners.push(listener);
+    }
+  },
+  removeViewsAvailableEventListener: function(listener) {
+    var index = this.viewsAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.viewsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireViewsAvailableEvent: function(result) {
+    this.viewsAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
   populateSchemaObjects: function() {
     var socket = io('/oracle_db_schema')
     var that = this;
@@ -12819,9 +12857,14 @@ var DatabaseSchema = Class.create({
       that.fireTablesAvailableEvent(result);
     });
 
+    socket.on('views_result', function(result){
+      that.views = result;
+      that.fireViewsAvailableEvent(result);
+    });
+
     socket.emit('set_schema', this.schemaName)
     socket.emit('get_tables');
-    this.views = [];
+    socket.emit('get_views');
     this.indexes = [];
     this.materializedViews = [];
     this.procedures = [];
