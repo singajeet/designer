@@ -396,3 +396,84 @@
 .directory_icon {
     content: url('/static/icons/directorytreeview.png')
 }
+
+.database_connection_icon {
+    content: url('/static/icons/dbconn.png');
+}
+
+.shuttle_right_icon {
+    content: url('/static/icons/shuttle_right.png');
+}
+
+.delete_icon {
+    content: url('/static/icons/delete.png')
+}
+
+.add_icon {
+    content: url('/static/icons/add.png');
+}
+
+.import_icon {
+    content: url('/static/icons/import.png');
+}
+
+.export_icon {
+    content: url('/static/icons/export.png');
+}
+
+.new_icon {
+    content: url('/static/icons/new.png');
+}
+
+.open_icon {
+    content: url('/static/icons/open.png');
+}
+
+.save_icon {
+    content: url('/static/icons/saveall.png');
+}
+
+.copy_icon {
+    content: url('/static/icons/copy.png');
+}
+
+.paste_icon {
+    content: url('/static/icons/paste.png');
+}
+
+.undo_icon {
+    content: url('/static/icons/undo.png');
+}
+
+.redo_icon {
+    content: url('/static/icons/redo.png');
+}
+
+.settings_icon {
+    content: url('/static/icons/settings.png');
+}
+
+.info_icon {
+    content: url('/static/icons/info.png');
+}
+
+.help_icon {
+    content: url('/static/icons/help.png');
+}
+
+.connect_icon {
+    content: url('/static/icons/navconnections.png');
+}
+
+.disconnect_icon {
+    content: url('/static/icons/noaccess.png');
+}
+
+div.menu {
+    overflow-y: visible !important;
+}
+
+.ui-tabs-panel {
+    height: 94%;
+    padding: 5px !important;
+}

@@ -429,11 +429,18 @@ var Application = Class.create({
   newProjectEventListeners: [],
   openProjectEventListeners: [],
   saveProjectEventListeners: [],
+  tabClosedEventListeners: [],
+  tabCounter: 0,
   initialize: function(id, canvas, projectNavigator) {
     this.id = id;
     this.canvas = canvas;
     this.projectNavigator = projectNavigator;
+    this.newProjectEventListeners = [];
+    this.openProjectEventListeners = [];
+    this.saveProjectEventListeners = [];
+    this.tabClosedEventListeners = [];
     this.tabs = null;
+    this.tabCounter = 0;
   },
   render: function() {
     var that = this;
@@ -465,14 +472,16 @@ var Application = Class.create({
     // Close icon: removing the tab on click
     this.tabs.on("click", "span.ui-icon-close", function() {
       var panelId = $j(this).closest("li").remove().attr("aria-controls");
+      that.fireTabClosedEvent(panelId);
       $j("#" + panelId).remove();
       that.tabs.tabs("refresh");
+      that.tabCounter--;
     });
 
     //activate the toolbox
     this.canvas.getToolBox().activate();
     this.canvas.setOffsetX(w2ui['layout'].get('left').size + 90);
-    this.canvas.setOffsetY(w2ui['layout'].get('top').size + 20);
+    this.canvas.setOffsetY(w2ui['layout'].get('top').size + 60);
 
     w2ui['layout'].on('resize', function(event){
       if(event.panel === "left"){
@@ -484,12 +493,17 @@ var Application = Class.create({
       name: 'projectNavigator',
       onClick: function(event) {
         if(that.projectNavigator !== undefined && that.projectNavigator !== null) {
-          that.projectNavigator.fireItemSelectedEvent(event.target);
+          that.projectNavigator.fireItemSelectedEvent(event);
         }
       },
       onMenuClick: function(event) {
         if(that.projectNavigator !== undefined && that.projectNavigator !== null) {
-          that.projectNavigator.fireContextMenuItemSelectedEvent(this.menu[event.menuIndex].id);
+          that.projectNavigator.fireContextMenuItemSelectedEvent(event);
+        }
+      },
+      onContextMenu: function(event) {
+        if(that.projectNavigator !== undefined && that.projectNavigator !== null) {
+          that.projectNavigator.fireContextMenuEvent(event);
         }
       }
     }));
@@ -563,23 +577,23 @@ var Application = Class.create({
     w2ui['layout'].content('top', $j().w2toolbar({
       name: 'mainToolbar',
       items: [
-        { type: 'button', id: 'new-drawing', caption: 'New', img: 'far fa-file', hint: 'New Drawing'},
-        { type: 'button', id: 'open-drawing', caption: 'Open', img: 'far fa-folder-open', hint: 'Open Drawing'},
-        { type: 'button', id: 'save-drawing', caption: 'Save', img: 'far fa-save', hint: 'Save Drawing'},
+        { type: 'button', id: 'new-drawing', caption: 'New', icon: 'new_icon', hint: 'New Drawing'},
+        { type: 'button', id: 'open-drawing', caption: 'Open', icon: 'open_icon', hint: 'Open Drawing'},
+        { type: 'button', id: 'save-drawing', caption: 'Save', icon: 'save_icon', hint: 'Save Drawing'},
         { type: 'break'},
-        { type: 'button', id: 'clone-items', caption: 'Clone', img: 'far fa-copy', hint: 'Clone an item'},
+        { type: 'button', id: 'clone-items', caption: 'Clone', icon: 'copy_icon', hint: 'Clone an item'},
         { type: 'break'},
-        { type: 'button', id: 'delete-items', caption: 'Delete', img: 'fa fa-eraser', hint: 'Erase an item'},
+        { type: 'button', id: 'delete-items', caption: 'Delete', icon: 'delete_icon', hint: 'Erase an item'},
         { type: 'break'},
-        { type: 'button', id: 'undo', caption: 'Undo', img: 'fa fa-undo', hint: 'Undo'},
-        { type: 'button', id: 'redo', caption: 'Redo', img: 'fas fa-redo', hint: 'Redo'},
+        { type: 'button', id: 'undo', caption: 'Undo', icon: 'undo_icon', hint: 'Undo'},
+        { type: 'button', id: 'redo', caption: 'Redo', icon: 'redo_icon', hint: 'Redo'},
         { type: 'break'},
-        { type: 'button', id: 'settings', caption: 'Settings', img: 'fas fa-cogs', hint: 'Settings'},
+        { type: 'button', id: 'settings', caption: 'Settings', icon: 'settings_icon', hint: 'Settings'},
         { type: 'break'},
         { type: 'spacer'},
-        { type: 'button', id: 'about', caption: 'About', img: 'fa fa-info', hint: 'About'},
+        { type: 'button', id: 'about', caption: 'About', icon: 'info_icon', hint: 'About'},
         { type: 'break'},
-        { type: 'button', id: 'help', caption: 'Help', img: 'fa fa-question-circle', hine: 'help'}
+        { type: 'button', id: 'help', caption: 'Help', icon: 'help_icon', hine: 'help'}
 
       ],
       onClick: function(event) {
@@ -635,6 +649,8 @@ var Application = Class.create({
     this.tabs.find(".ui-tabs-nav").append(li);
     this.tabs.append("<div id='" + id + "'>" + content + "</div>");
     this.tabs.tabs("refresh");
+    this.tabCounter++;
+    this.tabs.tabs('option', 'active', this.tabCounter);
   },
   getNavigationTree: function() {
     return w2ui['projectNavigator'];
@@ -674,6 +690,11 @@ var Application = Class.create({
       this.saveProjectEventListeners.push(listener);
     }
   },
+  addTabClosedEventListener: function(listener) {
+    if(listener !== null) {
+      this.tabClosedEventListeners.push(listener);
+    }
+  },
   removeNewProjectEventListener: function(listener) {
     if(listener !== null) {
       var index = this.newProjectEventListeners.indexOf(listener);
@@ -692,6 +713,12 @@ var Application = Class.create({
       this.saveProjectEventListeners.splice(index, 1);
     }
   },
+  removeTabClosedEventListener: function(listener) {
+    if(listener !== null) {
+      var index = this.tabClosedEventListeners.indexOf(listener);
+      this.tabClosedEventListeners.splice(index, 1);
+    }
+  },
   fireNewProjectEvent: function(project) {
     var that = this;
     this.newProjectEventListeners.forEach(function(listener){
@@ -708,6 +735,11 @@ var Application = Class.create({
       listener(w2ui['projectNavigator'], project);
     });
   },
+  fireTabClosedEvent: function(tabId) {
+    this.tabClosedEventListeners.forEach(function(listener){
+      listener(tabId);
+    });
+  }
 });
 
 /**
@@ -12477,7 +12509,8 @@ var ProjectNavigator = Class.create({
   itemSelectedListeners: [],
   initializeContextMenuListeners: [],
   contextMenuItemSelectedListeners: [],
-  initialize: function(id, initializeParentListener, itemAddedListener, itemRemovedListener, itemSelectedListener, initializeContextMenuListener, contextMenuItemSelectedListener) {
+  contextMenuListeners: [],
+  initialize: function(id, initializeParentListener, itemAddedListener, itemRemovedListener, itemSelectedListener, initializeContextMenuListener, contextMenuItemSelectedListener, contextMenuListener) {
     this.id = id;
     this.navigationTree = null;
     this.initializeParentListeners = [];
@@ -12486,6 +12519,7 @@ var ProjectNavigator = Class.create({
     this.itemSelectedListeners = [];
     this.initializeContextMenuListeners = [];
     this.contextMenuItemSelectedListeners = [];
+    this.contextMenuListeners = [];
 
     if(initializeParentListener !== null) {
       this.initializeParentListeners.push(initializeParentListener);
@@ -12510,38 +12544,47 @@ var ProjectNavigator = Class.create({
     if(contextMenuItemSelectedListener !== null) {
       this.contextMenuItemSelectedListeners.push(contextMenuItemSelectedListener);
     }
+
+    if(contextMenuListener !== null) {
+      this.contextMenuListeners.push(contextMenuListener);
+    }
   },
   setNavigationTree: function(navigationTree) {
     this.navigationTree = navigationTree;
   },
   addInitializeParentEventListener: function(listener) {
     if(listener != null) {
-      this.initializeParentListeners.push(initializeParentListener);
+      this.initializeParentListeners.push(listener);
     }
   },
   addItemAddedEventListener: function(listener) {
     if(listener != null) {
-      this.itemAddedListeners.push(itemAddedListener);
+      this.itemAddedListeners.push(listener);
     }
   },
   addItemRemovedEventListener: function(listener) {
     if(listener != null) {
-      this.itemRemovedListeners.push(itemRemovedListener);
+      this.itemRemovedListeners.push(listener);
     }
   },
   addItemSelectedEventListener: function(listener) {
     if(listener != null) {
-      this.itemSelectedListeners.push(itemSelectedListener);
+      this.itemSelectedListeners.push(listener);
     }
   },
   addInitializeContextMenuEventListener: function(listener) {
     if(listener != null) {
-      this.initializeContextMenuListeners.push(initializeContextMenuListener);
+      this.initializeContextMenuListeners.push(listener);
     }
   },
   addContextMenuItemSelectedEventListener: function(listener) {
     if(listener != null) {
-      this.contextMenuItemSelectedListeners.push(contextMenuItemSelectedListener);
+      this.contextMenuItemSelectedListeners.push(listener);
+    }
+  },
+  addContextMenuEventListener: function(listener) {
+    if(listener != null) {
+      this.contextMenuListeners.push(listener);
     }
   },
   removeInitializeParentEventListener: function(listener) {
@@ -12580,6 +12623,12 @@ var ProjectNavigator = Class.create({
       this.contextMenuItemSelectedListeners.splice(index, 1);
     }
   },
+  removeContextMenuEventListener: function(listener) {
+    if(listener != null) {
+      var index = this.contextMenuListeners.indexOf(listener);
+      this.contextMenuListeners.splice(index, 1);
+    }
+  },
   fireInitializeParentEvent: function() {
     var that = this;
     this.initializeParentListeners.forEach(function(listener) {
@@ -12615,12 +12664,54 @@ var ProjectNavigator = Class.create({
     this.contextMenuItemSelectedListeners.forEach(function(listener) {
       listener(that.navigationTree, item);
     });
+  },
+  fireContextMenuEvent: function(item) {
+    var that = this;
+    this.contextMenuListeners.forEach(function(listener) {
+      listener(that.navigationTree, item);
+    });
   }
  });
 
 /*********************************************************************************
  *                        DATABASE OBJECTS APIs
  *********************************************************************************/
+var DatabaseNavNodeType = {
+    CONNECTION_FOLDER: 'DB-CONNECTION-FOLDER',
+    TABLES_FOLDER: 'DB-TABLES-FOLDER',
+    VIEWS_FOLDER: 'DB-VIEWS-FOLDER',
+    INDEXES_FOLDER: 'DB-INDEXES-FOLDER',
+    MVIEWS_FOLDER: 'DB-MVIEWS-FOLDER',
+    PROCEDURES_FOLDER: 'DB-PROCEDURES-FOLDER',
+    FUNCTIONS_FOLDER: 'DB-FUNCTION-FOLDER',
+    PACKAGES_FOLDER: 'DB-PACKAGES-FOLDER',
+    SEQUENCES_FOLDER: 'DB-SEQUENCES-FOLDER',
+    SYNONYMS_FOLDER: 'DB-SYNONYMS-FOLDER',
+    PUBLIC_SYNONYMS_FOLDER: 'DB-PUBLIC-SYNONYMS-FOLDER',
+    TRIGGERS_FOLDER: 'DB-TRIGGERS-FOLDER',
+    TYPES_FOLDER: 'DB-TYPES-FOLDER',
+    QUEUES_FOLDER: 'DB-QUEUES-FOLDER',
+    DBLINKS_FOLDER: 'DB-DBLINKS-FOLDER',
+    PUBLIC_DBLINKS_FOLDER: 'DB-PUBLIC-DBLINKS-FOLDER',
+    DIRECTORIES_FOLDER: 'DB-DIRECTORIES-FOLDER',
+    TABLE: 'DB-TABLE',
+    VIEW: 'DB-VIEW',
+    INDEX: 'DB-INDEX',
+    MVIEW: 'DB-MVIEW',
+    PROCEDURE: 'DB-PROCEDURE',
+    FUNCTION: 'DB-FUNCTION',
+    PACKAGE: 'DB-PACKAGE',
+    PACKAGE_BODY: 'DB-PACKAGE-BODY',
+    SEQUENCE: 'DB-SEQUENCE',
+    SYNONYM: 'DB-SYNONYM',
+    PUBLIC_SYNONYM: 'DB-PUBLIC-SYNONYM',
+    TRIGGER: 'DB-TRIGGER',
+    TYPE: 'DB-TYPE',
+    QUEUE: 'DB-QUEUE',
+    DBLINK: 'DB-DBLINK',
+    PUBLIC_DBLINK: 'DB-PUBLIC-DBLINK',
+    DIRECTORY: 'DB-DIRECTORY'
+  };
 /**
  * DatabaseConnection: This class holds information regarding the database connection
  * and is used to show dialog to user to collect the DB connection information
@@ -12634,7 +12725,9 @@ var DatabaseConnection = Class.create({
   connectionInfoAvailableEventListeners: [],
   connectedEventListeners: [],
   connected: false,
-  initialize: function() {
+  projectId: null,
+  initialize: function(projectId) {
+    this.projectId = projectId;
     this.connectionName = null;
     this.connectionString = null;
     this.username = null;
@@ -12644,6 +12737,9 @@ var DatabaseConnection = Class.create({
   },
   isConnected: function() {
     return this.connected;
+  },
+  getProjectId: function() {
+    return this.projectId;
   },
   getConnectionName: function() {
     return this.connectionName;
@@ -12657,11 +12753,26 @@ var DatabaseConnection = Class.create({
   getPassword: function () {
     return this.password;
   },
+  setProjectId: function(value) {
+    this.projectId = value;
+  },
+  setConnectionName: function(value) {
+    this.connectionName = value;
+  },
+  setConnectionString: function(value) {
+    this.connectionString = value;
+  },
+  setUsername: function(value) {
+    this.username = value;
+  },
+  setPassword: function (value) {
+    this.password = value;
+  },
   promptConnection: function() {
     var that = this;
     w2popup.open({
       width: 320,
-      height: 250,
+      height: 275,
       title: 'Database Connection',
       body: '<div class="w2ui-left" style="line-height: 1.8">' +
         '<table>' +
@@ -12746,7 +12857,7 @@ var DatabaseConnection = Class.create({
   fireConnectionInfoAvailableEvent: function() {
     var that = this;
     this.connectionInfoAvailableEventListeners.forEach(function(listener){
-      listener(that.connectionName, that.connectionString, that.username, that.password);
+      listener(that.projectId, that.connectionName, that.connectionString, that.username, that.password, that);
     });
   }
 });
@@ -12794,12 +12905,7 @@ var DatabaseSchema = Class.create({
   initialize: function(connection) {
     this.connection = connection;
     this.schemaName = this.connection.getUsername().toUpperCase();
-    if(this.connection.isConnected()) {
-      this.populateSchemaObjects();
-    } else {
-      this.connection.addConnectedEventListener(this.populateSchemaObjects);
-    }
-
+    
     tablesAvailableEventListeners = [];
     viewsAvailableEventListeners = [];
     indexesAvailableEventListeners = [];
@@ -12849,7 +12955,238 @@ var DatabaseSchema = Class.create({
       listener(result);
     });
   },
+  addIndexesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.indexesAvailableEventListeners.push(listener);
+    }
+  },
+  removeIndexesAvailableEventListener: function(listener) {
+    var index = this.indexesAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.indexesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireIndexesAvailableEvent: function(result) {
+    this.indexesAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addMViewsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.materializedViewsAvailableEventListeners.push(listener);
+    }
+  },
+  removeMViewsAvailableEventListener: function(listener) {
+    var index = this.materializedViewsAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.materializedViewsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireMViewsAvailableEvent: function(result) {
+    this.materializedViewsAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addProceduresAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.proceduresAvailableEventListeners.push(listener);
+    }
+  },
+  removeProceduresAvailableEventListener: function(listener) {
+    var index = this.proceduresAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.proceduresAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireProceduresAvailableEvent: function(result) {
+    this.proceduresAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addFunctionsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.functionsAvailableEventListeners.push(listener);
+    }
+  },
+  removeFunctionsAvailableEventListener: function(listener) {
+    var index = this.functionsAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.functionsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireFunctionsAvailableEvent: function(result) {
+    this.functionsAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addPackagesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.packagesAvailableEventListeners.push(listener);
+    }
+  },
+  removePackagesAvailableEventListener: function(listener) {
+    var index = this.packagesAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.packagesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  firePackagesAvailableEvent: function(result) {
+    this.packagesAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addSequencesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sequencesAvailableEventListeners.push(listener);
+    }
+  },
+  removeSequencesAvailableEventListener: function(listener) {
+    var index = this.sequencesAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.sequencesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireSequencesAvailableEvent: function(result) {
+    this.sequencesAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addSynonymsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.synonymsAvailableEventListeners.push(listener);
+    }
+  },
+  removeSynonymsAvailableEventListener: function(listener) {
+    var index = this.synonymsAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.synonymsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireSynonymsAvailableEvent: function(result) {
+    this.synonymsAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addPublicSynonymsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.publicSynonymsAvailableEventListeners.push(listener);
+    }
+  },
+  removePublicSynonymsAvailableEventListener: function(listener) {
+    var index = this.publicSynonymsAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.publicSynonymsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  firePublicSynonymsAvailableEvent: function(result) {
+    this.publicSynonymsAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addTriggersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.triggersAvailableEventListeners.push(listener);
+    }
+  },
+  removeTriggersAvailableEventListener: function(listener) {
+    var index = this.triggersAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.triggersAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireTriggersAvailableEvent: function(result) {
+    this.triggersAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addTypesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.typesAvailableEventListeners.push(listener);
+    }
+  },
+  removeTypesAvailableEventListener: function(listener) {
+    var index = this.typesAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.typesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireTypesAvailableEvent: function(result) {
+    this.typesAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addQueuesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.queuesAvailableEventListeners.push(listener);
+    }
+  },
+  removeQueuesAvailableEventListener: function(listener) {
+    var index = this.queuesAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.queuesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireQueuesAvailableEvent: function(result) {
+    this.queuesAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addDatabaseLinksAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.databaseLinksAvailableEventListeners.push(listener);
+    }
+  },
+  removeDatabaseLinksAvailableEventListener: function(listener) {
+    var index = this.databaseLinksAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.databaseLinksAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireDatabaseLinksAvailableEvent: function(result) {
+    this.databaseLinksAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addPublicDatabaseLinksAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.publicDatabaseLinksAvailableEventListeners.push(listener);
+    }
+  },
+  removePublicDatabaseLinksAvailableEventListener: function(listener) {
+    var index = this.publicDatabaseLinksAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.publicDatabaseLinksAvailableEventListeners.splice(index, 1);
+    }
+  },
+  firePublicDatabaseLinksAvailableEvent: function(result) {
+    this.publicDatabaseLinksAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
+  addDirectoriesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.directoriesAvailableEventListeners.push(listener);
+    }
+  },
+  removeDirectoriesAvailableEventListener: function(listener) {
+    var index = this.directoriesAvailableEventListeners.indexOf(listener);
+    if(index >= 0) {
+      this.directoriesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireDirectoriesAvailableEvent: function(result) {
+    this.directoriesAvailableEventListeners.forEach(function(listener) {
+      listener(result);
+    });
+  },
   populateSchemaObjects: function() {
+    if(this.connection.isConnected()) {
+      this._populateSchemaObjects();
+    } else {
+      this.connection.addConnectedEventListener(this._populateSchemaObjects);
+    }
+  },
+  _populateSchemaObjects: function() {
     var socket = io('/oracle_db_schema')
     var that = this;
     socket.on('tables_result', function(result){
@@ -12862,23 +13199,93 @@ var DatabaseSchema = Class.create({
       that.fireViewsAvailableEvent(result);
     });
 
+    socket.on('indexes_result', function(result){
+      that.indexes = result;
+      that.fireIndexesAvailableEvent(result);
+    });
+
+    socket.on('mviews_result', function(result){
+      that.materializedViews = result;
+      that.fireMViewsAvailableEvent(result);
+    });
+
+    socket.on('procedures_result', function(result){
+      that.procedures = result;
+      that.fireProceduresAvailableEvent(result);
+    });
+
+    socket.on('functions_result', function(result){
+      that.functions = result;
+      that.fireFunctionsAvailableEvent(result);
+    });
+
+    socket.on('packages_result', function(result){
+      that.packages = result;
+      that.firePackagesAvailableEvent(result);
+    });
+
+    socket.on('sequences_result', function(result){
+      that.sequences = result;
+      that.fireSequencesAvailableEvent(result);
+    });
+
+    socket.on('synonyms_result', function(result){
+      that.synonyms = result;
+      that.fireSynonymsAvailableEvent(result);
+    });
+
+    socket.on('public_synonyms_result', function(result){
+      that.publicSynonyms = result;
+      that.firePublicSynonymsAvailableEvent(result);
+    });
+
+    socket.on('triggers_result', function(result){
+      that.triggers = result;
+      that.fireTriggersAvailableEvent(result);
+    });
+
+    socket.on('types_result', function(result){
+      that.types = result;
+      that.fireTypesAvailableEvent(result);
+    });
+
+    socket.on('queues_result', function(result){
+      that.queues = result;
+      that.fireQueuesAvailableEvent(result);
+    });
+
+    socket.on('dblinks_result', function(result){
+      that.databaseLinks = result;
+      that.fireDatabaseLinksAvailableEvent(result);
+    });
+
+    socket.on('public_dblinks_result', function(result){
+      that.publicDatabaseLinks = result;
+      that.firePublicDatabaseLinksAvailableEvent(result);
+    });
+
+    socket.on('directories_result', function(result){
+      that.directories = result;
+      that.fireDirectoriesAvailableEvent(result);
+    });
+
     socket.emit('set_schema', this.schemaName)
     socket.emit('get_tables');
     socket.emit('get_views');
-    this.indexes = [];
-    this.materializedViews = [];
-    this.procedures = [];
-    this.functions = [];
-    this.packages = [];
-    this.sequences = [];
-    this.synonyms = [];
-    this.publicSynonyms = [];
-    this.triggers = [];
-    this.types = [];
-    this.queues = [];
-    this.databaseLinks = [];
-    this.publicDatabaseLinks = [];
-    this.directories = [];
+    socket.emit('get_indexes');
+    socket.emit('get_mviews');
+    socket.emit('get_procedures');
+    socket.emit('get_functions');
+    socket.emit('get_packages');
+    socket.emit('get_sequences');
+    socket.emit('get_synonyms');
+    // socket.emit('get_public_synonyms');
+    socket.emit('get_triggers');
+    socket.emit('get_types');
+    socket.emit('get_queues');
+    socket.emit('get_dblinks');
+    socket.emit('get_public_dblinks');
+    socket.emit('get_directories');
   },
   getSchemaName: function() {
     return this.schemaName;
@@ -13009,11 +13416,11 @@ var DatabaseColumn = Class.create({
 });
 
 /**
- * DatabaseTable: This class represents an table in database and will present the
+ * DatabaseTableNode: This class represents an table in database and will present the
  * GUI to user to interact for the creation and modification of tables
  * @constructor
  */
-var DatabaseTable = Class.create({
+var DatabaseTableNode = Class.create({
   id: "",
   title: "",
   description: "",
@@ -13028,7 +13435,7 @@ var DatabaseTable = Class.create({
   toolName: 'DATABASE_TABLE',
   selected: true,
   opacity: 1,
-  classType: DatabaseTable,
+  classType: DatabaseTableNode,
   TOP: 0,
   BOTTOM: 1,
   LEFT: 2,
@@ -13053,7 +13460,7 @@ var DatabaseTable = Class.create({
     this.toolName = 'DATABASE_TABLE';
     this.selected = true;
     this.opacity = opacity || 1;
-    this.classType = DatabaseTable;
+    this.classType = DatabaseTableNode;
     this.TOP = 0;
     this.BOTTOM = 1;
     this.LEFT = 2;
@@ -13076,7 +13483,7 @@ var DatabaseTable = Class.create({
     var title = prompt('Please enter name of new table');
     var id = title.toLowerCase();
 
-    table = new DatabaseTable(id, this.parentElement,
+    table = new DatabaseTableNode(id, this.parentElement,
                                   new RectDimension(
                                                    this.rectDimension.left + 10,
                                                    this.rectDimension.top + 10,
