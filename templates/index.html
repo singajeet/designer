@@ -16,6 +16,7 @@
     <script src="/static/js/d3.min.js"></script>
     <script src="/static/js/socket.io.slim.js"></script>
     <script src="/static/designer.js" ></script>
+    <script src="/static/ui.js" ></script>
   	<script>
   		var $j = jQuery.noConflict();
   	</script>
@@ -37,7 +38,9 @@
           // var dbConnection = null;
           // var schema = null;
           // var connectionId = '';
-          var propertySheets = {};
+          var tabs = {};
+          var openedTabs = [];
+          var tables = {};
 
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback,
             contextMenuCallback);
@@ -149,11 +152,13 @@
           }
 
           function onTabClosed(tabId) {
-            var propSheet = propertySheets[tabId];
-            if(propSheet !== null && propSheet !== undefined) {
-              propSheet.destroy();
-              delete propertySheets[tabId];
-            }
+            tabs[tabId].destroy();
+            
+            var index = openedTabs.indexOf(tabId);
+            openedTabs.splice(index, 1);
+
+            delete tables[tabId];
+            delete tabs[tabId];
           }
 
           function createConnection(navigationTree, project) {
@@ -200,40 +205,89 @@
           }
 
           function itemSelectedCallback(navigationTree, item) {
-            //
+            
             if(item.node.nodeType === DatabaseNavNodeType.TABLE) {
-              var content = "<div id='" + item.node.id + "-table-grid' style='width: 100%; height: 100%;'></div>";
-              a.addTab(item.node.id + '-table-tab', item.node.text, content);
-
-              propertySheets[item.node.id + '-table-tab'] = $j('#' + item.node.id + '-table-grid').w2grid({
-                                                              name: item.node.id + '-table-properties',
-                                                              header: item.node.text,
-                                                              show: { header: true,
-                                                                      toolbar: true,
-                                                                      lineNumbers: true,
-                                                                      footer: true
-                                                                    },
-                                                              multiSearch: true,
-                                                              searches: [
-                                                                { field: 'columnName', caption: 'Column Name', type: 'text'},
-                                                                { field: 'dataType', caption: 'Data Type', type: 'text'}
-                                                              ],
-                                                              columns: [
-                                                                {field: 'columnName', caption: 'Column Name', size: '150px'},
-                                                                {field: 'dataType', caption: 'Data Type', size: '150px'},
-                                                                {field: 'nullable', caption: 'Nullable', size: '70px'},
-                                                                {field: 'dataDefault', caption: 'Data Default', size: '100px'},
-                                                                {field: 'columnId', caption: 'Column ID', size: '80px'},
-                                                                {field: 'comments', caption: 'Comments', size: '100%'}
-                                                              ]
-                                                            });
-              var socket = io('/oracle_db_table');
-              socket.on('columns_result', function(result){
-                w2ui[item.node.id + '-table-properties'].records = result;
-                w2ui[item.node.id + '-table-properties'].refresh();
-              });
-              socket.emit('get_columns', item.node.text);
+              var index = openedTabs.indexOf(item.node.id + '-table-tab');
+              if(index === -1){
+                createTableTab(item.node.id, item.node.text);
+                openedTabs.push(item.node.id + '-table-tab');
+              }
             }
+          }
+
+          function createTableTab(id, label) {
+              var tabId = id + '-table-tab';
+              tables[tabId] = new DatabaseTable(label, tabId);
+              tabs[tabId] = new TableTabUI(id, label);
+
+              tables[tabId].addColumnsAvailableEventListener(onColumnsAvailable);
+              tables[tabId].addColumnHeadersAvailableEventListener(onColumnHeadersAvailable);
+              tables[tabId].addDataAvailableEventListener(onDataAvailable);
+              tables[tabId].addConstraintsAvailableEventListener(onConstraintsAvailable);
+              tables[tabId].addGrantsAvailableEventListener(onGrantsAvailable);
+              tables[tabId].addConstraintDetailsAvailableEventListener(onConstraintDetailsAvailable);
+
+              var content = tabs[tabId].getTabContent();
+              a.addTab(tabId, label, content, 'table_icon');
+              tabs[tabId].initTab();
+
+              tabs[tabId].createColumnsGrid();
+
+              tabs[tabId].addTabsBeforeActivateEventListener(function(event, ui){
+                var panel = ui.newPanel;
+                var name = panel.attr('tabname');
+                if(name === 'data') {
+                  if(!tabs[tabId].isDataGridCreated()) {
+                    tabs[tabId].createDataGrid();
+                    tables[tabId].getData();
+                  }
+                } else if(name === 'constraints') {
+                  if(!tabs[tabId].isConstraintsGridCreated()) {
+                    tabs[tabId].createConstraintsGrid();
+                    tables[tabId].getConstraints();
+                  }
+                } else if(name === 'grants') {
+                  if(!tabs[tabId].isGrantsGridCreated()) {
+                    tabs[tabId].createGrantsGrid();
+                    tables[tabId].getGrants();
+                  }
+                }
+              });
+
+              tabs[tabId].addConstraintsGridClickedEventListener(function(record, tab){
+                tables[tabId].getConstraintDetails(record.constraintName);
+              });
+              
+              function onColumnsAvailable(result, tabId){
+                tabs[tabId].getColumnsGrid().records = result;
+                tabs[tabId].getColumnsGrid().refresh();
+              }
+              tables[tabId].getColumns();
+              
+              function onColumnHeadersAvailable(result, tabId){
+                tabs[tabId].getDataGrid().columns = result;
+                tabs[tabId].getDataGrid().refresh();
+              }
+
+              function onDataAvailable(result, tabId){
+                tabs[tabId].getDataGrid().records = result;
+                tabs[tabId].getDataGrid().refresh();
+              }
+
+              function onConstraintsAvailable(result, tabId){
+                tabs[tabId].getConstraintsGrid().records = result;
+                tabs[tabId].getConstraintsGrid().refresh();
+              }
+
+              function onConstraintDetailsAvailable(result, tabId){
+                tabs[tabId].getConstraintDetailsGrid().records = result;
+                tabs[tabId].getConstraintDetailsGrid().refresh();
+              }
+
+              function onGrantsAvailable(result, tabId){
+                tabs[tabId].getGrantsGrid().records = result;
+                tabs[tabId].getGrantsGrid().refresh();
+              }
           }
 
           function initializeContextMenuCallback(navigationTree) {

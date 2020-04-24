@@ -477,3 +477,12 @@ div.menu {
     height: 94%;
     padding: 5px !important;
 }
+
+.tab_header_icon {
+    float: left;
+    height: 22px;
+    width: 22px;
+    margin-top: 7px;
+    margin-left: 5px;
+    margin-right: -5px;
+}

@@ -1,0 +1,151 @@
+var socket = io('/oracle_db_table');
+              var content = "<div id='" + id + "-table-info-tabs' style='width: 100%; height: 100%;'>" +
+                            " <ul>" +
+                            "   <li><a href='#" + id + "-table-columns-grid'>Columns</a></li>" +
+                            "   <li><a href='#" + id + "-table-data-grid'>Data</a></li>" +
+                            "   <li><a href='#" + id + "-table-constraints-grid'>Constraints</a></li>" +
+                            "   <li><a href='#" + id + "-table-grants-grid'>Grants</a></li>" +
+                            "   <li><a href='#" + id + "-table-statistics-grid'>Statistics</a></li>" +
+                            "   <li><a href='#" + id + "-table-triggers-grid'>Triggers</a></li>" +
+                            "   <li><a href='#" + id + "-table-dependencies-grid'>Dependencies</a></li>" +
+                            "   <li><a href='#" + id + "-table-partitions-grid'>Partitions</a></li>" +
+                            "   <li><a href='#" + id + "-table-indexes-grid'>Indexes</a></li>" +
+                            "   <li><a href='#" + id + "-table-sql-grid'>SQL</a></li>" +
+                            " </ul>" +
+                            " <div id='" + id + "-table-columns-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + id + "-table-data-grid' tabname='data' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + id + "-table-constraints-grid' tabname='constraints' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + id + "-table-grants-grid' tabname='grants' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + id + "-table-statistics-grid' tabname='statistics' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + id + "-table-triggers-grid' tabname='triggers' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + id + "-table-dependencies-grid' tabname='dependencies' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + id + "-table-partitions-grid' tabname='partitions' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + id + "-table-indexes-grid' tabname='indexes' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + id + "-table-sql-grid' tabname='sql' style='width: 100%; height: 93%;'></div>" +
+                            "</div>";
+              a.addTab(id + '-table-tab', label, content, 'table_icon');
+              $j('#' + id + '-table-info-tabs').tabs();
+
+              propertySheets[id + '-table-tab-columns'] = $j('#' + id + '-table-columns-grid').w2grid({
+                                                              name: id + '-table-columns-properties',
+                                                              header: label,
+                                                              show: { header: true,
+                                                                      toolbar: true,
+                                                                      lineNumbers: true,
+                                                                      footer: true
+                                                                    },
+                                                              multiSearch: true,
+                                                              searches: [
+                                                                { field: 'columnName', caption: 'Column Name', type: 'text'},
+                                                                { field: 'dataType', caption: 'Data Type', type: 'text'}
+                                                              ],
+                                                              columns: [
+                                                                {field: 'columnName', caption: 'Column Name', size: '150px'},
+                                                                {field: 'dataType', caption: 'Data Type', size: '150px'},
+                                                                {field: 'nullable', caption: 'Nullable', size: '70px'},
+                                                                {field: 'dataDefault', caption: 'Data Default', size: '100px'},
+                                                                {field: 'columnId', caption: 'Column ID', size: '80px'},
+                                                                {field: 'comments', caption: 'Comments', size: '100%'}
+                                                              ]
+                                                            });
+              $j('#' + id + '-table-info-tabs').on('tabsbeforeactivate', function(event, ui){
+                var panel = ui.newPanel;
+                var name = panel.attr('tabname');
+                if(name === 'data') {
+                  if(propertySheets[id + '-table-tab-data'] === undefined){
+                    propertySheets[id + '-table-tab-data'] = $j('#' + id + '-table-data-grid').w2grid({
+                                                                name: id + '-table-data-properties',
+                                                                header: label,
+                                                                show: { header: true,
+                                                                        toolbar: true,
+                                                                        lineNumbers: true,
+                                                                        footer: true
+                                                                      },
+                                                                multiSearch: true
+                                                              });
+                    socket.emit('get_column_headers', label);
+                  }
+                } else if(name === 'constraints') {
+                  if(propertySheets[id + '-table-tab-constraints'] === undefined){
+                    propertySheets[id + '-table-tab-constraints'] = $j('#' + id + '-table-constraints-grid').w2grid({
+                                                                name: id + '-table-constraints-properties',
+                                                                header: label,
+                                                                show: { header: true,
+                                                                        toolbar: true,
+                                                                        lineNumbers: true,
+                                                                        footer: true
+                                                                      },
+                                                                multiSearch: true,
+                                                                columns: [
+                                                                  {field: 'constraintName', caption: 'Constraint Name', size: '150px'},
+                                                                  {field: 'constraintType', caption: 'Constraint Type', size: '100px'},
+                                                                  {field: 'searchCondition', caption: 'Search Condition', size: '150px'},
+                                                                  {field: 'rOwner', caption: 'Ref Owner', size: '100px'},
+                                                                  {field: 'rTablename', caption: 'Ref Tablename', size: '100px'},
+                                                                  {field: 'rConstraintName', caption: 'Ref Constraint Name', size: '100px'},
+                                                                  {field: 'deleteRule', caption: 'Delete Rule', size: '100px'},
+                                                                  {field: 'status', caption: 'Status', size: '80px'},
+                                                                  {field: 'deferrable', caption: 'Deferrable', size: '80px'},
+                                                                  {field: 'validated', caption: 'Validated', size: '80px'},
+                                                                  {field: 'generated', caption: 'Generated', size: '80px'},
+                                                                  {field: 'bad', caption: 'Bad', size: '80px'},
+                                                                  {field: 'rely', caption: 'Rely', size: '80px'},
+                                                                  {field: 'lastChange', caption: 'Last Change', size: '100px'},
+                                                                  {field: 'indexOwner', caption: 'Index Owner', size: '100px'},
+                                                                  {field: 'indexName', caption: 'Index Name', size: '100px'},
+                                                                  {field: 'invalid', caption: 'Invalid', size: '80px'},
+                                                                  {field: 'viewRelated', caption: 'View Related', size: '80px'}
+                                                                ]
+                                                              });
+                    socket.emit('get_constraints', label);
+                  }
+                } else if(name === 'grants') {
+                  if(propertySheets[id + '-table-tab-grants'] === undefined){
+                    propertySheets[id + '-table-tab-grants'] = $j('#' + id + '-table-grants-grid').w2grid({
+                                                                name: id + '-table-grants-properties',
+                                                                header: label,
+                                                                show: { header: true,
+                                                                        toolbar: true,
+                                                                        lineNumbers: true,
+                                                                        footer: true
+                                                                      },
+                                                                multiSearch: true,
+                                                                columns: [
+                                                                  {field: 'privilege', caption: 'Privilege', size: '150px'},
+                                                                  {field: 'grantee', caption: 'Grantee', size: '100px'},
+                                                                  {field: 'grantable', caption: 'Grantable', size: '100px'},
+                                                                  {field: 'grantor', caption: 'Grantor', size: '100px'},
+                                                                  {field: 'objectName', caption: 'Object Name', size: '100px'},
+                                                                ]
+                                                              });
+                    socket.emit('get_grants', label);
+                  }
+                }
+              });
+              
+              socket.on('columns_result', function(result){
+                w2ui[id + '-table-columns-properties'].records = result;
+                w2ui[id + '-table-columns-properties'].refresh();
+              });
+              socket.emit('get_columns', label);
+
+              socket.on('column_headers_result', function(result){
+                w2ui[id + '-table-data-properties'].columns = result;
+                w2ui[id + '-table-data-properties'].refresh();
+                socket.emit('get_data', label);
+              });
+
+              socket.on('data_result', function(result){
+                w2ui[id + '-table-data-properties'].records = result;
+                w2ui[id + '-table-data-properties'].refresh();
+              });
+
+              socket.on('constraints_result', function(result){
+                w2ui[id + '-table-constraints-properties'].records = result;
+                w2ui[id + '-table-constraints-properties'].refresh();
+              });
+
+              socket.on('grants_result', function(result){
+                w2ui[id + '-table-grants-properties'].records = result;
+                w2ui[id + '-table-grants-properties'].refresh();
+              });

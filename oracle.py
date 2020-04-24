@@ -323,7 +323,7 @@ class DatabaseTableServer(Namespace):
                 SELECT ROWNUM, a.column_name,
                     CASE
                         WHEN a.data_type IN ('VARCHAR2', 'CHAR', 'VARCHAR')
-                            THEN a.data_type || '(' || a.data_length || ' ' || decode(a.char_used, 'B', 'BYTE', 'C', 'CHAR') || ')'
+                            THEN a.data_type || '(' || a.data_length || ' ' || decode(a.char_used, 'B', 'BYTE', 'C', 'CHAR', a.char_used) || ')'
                         ELSE a.data_type
                     END AS data_type,
                     a.nullable,
@@ -348,3 +348,176 @@ class DatabaseTableServer(Namespace):
                                  'columnId': result[5],
                                  'comments': result[6]})
         emit('columns_result', result_array, namespace=self._namespace_url)
+
+    def on_get_column_headers(self, table_name):
+        """For internal use only: will be called when 'get_column_headers' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT a.column_name
+                FROM SYS.user_tab_columns a
+                WHERE
+                    a.table_name='%s'
+                ORDER BY
+                    a.column_id
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'field': result[0],
+                                 'caption': result[0],
+                                 'size': '100px'})
+        emit('column_headers_result', result_array, namespace=self._namespace_url)
+
+    def on_get_data(self, table_name):
+        """For internal use only: will be called when 'get_data' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT a.column_name
+                FROM SYS.user_tab_columns a
+                WHERE
+                    a.table_name='%s'
+                ORDER BY
+                    a.column_id
+                """ % table_name
+        cursor.execute(query)
+        column_headers = []
+        for result in cursor:
+            column_headers.append(result[0])
+        header_string = 'ROWNUM'
+        for header in column_headers:
+            header_string += ', ' + header
+        query = """
+                SELECT %s
+                FROM %s
+                """ % (header_string, table_name)
+        cursor = db_conn.cursor()
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            row = {}
+            for i in range(0, column_headers.__len__() + 1):
+                if i == 0:
+                    row['recid'] = result[i]
+                else:
+                    row[column_headers[i - 1]] = str(result[i])
+            result_array.append(row)
+        emit('data_result', result_array, namespace=self._namespace_url)
+
+    def on_get_constraints(self, table_name):
+        """For internal use only: will be called when 'get_constraints' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    a.constraint_name,
+                    decode(a.constraint_type, 'P', 'Primary_Key', 'R', 'Foreign_Key', 'C', 'Check', 'U', 'Unique', a.constraint_type) AS constraint_type,
+                    a.search_condition,
+                    a.r_owner,
+                    b.table_name AS r_table_name,
+                    a.r_constraint_name,
+                    a.delete_rule,
+                    a.status,
+                    a.deferrable,
+                    a.validated,
+                    a.generated,
+                    a.bad,
+                    a.rely,
+                    to_char(a.last_change, 'MM/DD/YYYY') AS last_change,
+                    a.index_owner,
+                    a.index_name,
+                    a.invalid,
+                    a.view_related
+                FROM 
+                    SYS.user_constraints a, 
+                    SYS.user_constraints b
+                WHERE 
+                    a.r_constraint_name = b.constraint_name(+)
+                    AND a.table_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'constraintName': result[1],
+                                 'constraintType': result[2],
+                                 'searchCondition': result[3],
+                                 'rOwner': result[4],
+                                 'rTablename': result[5],
+                                 'rConstraintName': result[6],
+                                 'deleteRule': result[7],
+                                 'status': result[8],
+                                 'deferrable': result[9],
+                                 'validated': result[10],
+                                 'generated': result[11],
+                                 'bad': result[12],
+                                 'rely': result[13],
+                                 'lastChange': result[14],
+                                 'indexOwner': result[15],
+                                 'indexName': result[16],
+                                 'invalid': result[17],
+                                 'viewRelated': result[18]
+                                 })
+        emit('constraints_result', result_array, namespace=self._namespace_url)
+
+    def on_get_constraint_details(self, props):
+        """For internal use only: will be called when 'get_constraint_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        table_name = props['tableName']
+        constraint_name = props['constraintName']
+        query = """
+                SELECT
+                    ROWNUM,
+                    column_name,
+                    position
+                FROM
+                    SYS.user_cons_columns
+                WHERE
+                    table_name='%s'
+                    AND constraint_name='%s'
+                """ % (table_name, constraint_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'columnName': result[1],
+                                 'columnPosition': result[2]
+                                 })
+        emit('constraint_details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_grants(self, table_name):
+        """For internal use only: will be called when 'get_grants' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    privilege,
+                    grantee,
+                    grantable,
+                    grantor,
+                    table_name
+                FROM
+                    SYS.user_tab_privs
+                WHERE
+                    table_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'privilege': result[1],
+                                 'grantee': result[2],
+                                 'grantable': result[3],
+                                 'grantor': result[4],
+                                 'objectName': result[5]
+                                 })
+        emit('grants_result', result_array, namespace=self._namespace_url)

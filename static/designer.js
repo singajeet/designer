@@ -644,9 +644,9 @@ var Application = Class.create({
       that.projectNavigator.fireItemRemovedEvent(item);
     }
   },
-  addTab: function(id, label, content) {
-    var li = "<li><a href='#" + id + "'>" + label + "</a><span class='ui-icon ui-icon-close' role='presentation'>Remove Tab</span></li>";
-    this.tabs.find(".ui-tabs-nav").append(li);
+  addTab: function(id, label, content, icon_name) {
+    var li = "<li><span class='" + icon_name + " tab_header_icon'></span><a href='#" + id + "'>" + label + "</a><span class='ui-icon ui-icon-close' role='presentation'>Remove Tab</span></li>";
+    var tabstrip = this.tabs.find(".ui-tabs-nav").first().append(li);
     this.tabs.append("<div id='" + id + "'>" + content + "</div>");
     this.tabs.tabs("refresh");
     this.tabCounter++;
@@ -14285,3 +14285,325 @@ var DatabaseTableNode = Class.create({
   }
 });
 
+/**
+ * DatabaseTable: This class represents an table in database and interacts with
+ *  websocket calls to get table details
+ * @constructor
+ * @param {string} tableName - Name of the table in database
+ */
+var DatabaseTable = Class.create({
+  tableName: null,
+  socket: null,
+  tabId: null,
+  columnsAvailableEventListeners: [],
+  columnHeadersAvailableEventListeners: [],
+  dataAvailableEventListeners: [],
+  constraintsAvailableEventListeners: [],
+  constraintDetailsAvailableEventListeners: [],
+  grantsAvailableEventListeners: [],
+  statisticsAvailableEventListeners: [],
+  triggersAvailableEventListeners: [],
+  dependenciesAvailableEventListeners: [],
+  detailsAvailableEventListeners: [],
+  partitionsAvailableEventListeners: [],
+  indexesAvailableEventListeners: [],
+  sqlAvailableEventListeners: [],
+  clustersAvailableEventListeners: [],
+  initialize: function(tableName, tabId) {
+    this.tableName = tableName;
+    this.tabId = tabId;
+    this.socket = io('/oracle_db_table');
+    this.columnsAvailableEventListeners = [];
+    this.columnHeadersAvailableEventListeners = [];
+    this.dataAvailableEventListeners = [];
+    this.constraintsAvailableEventListeners = [];
+    this.constraintDetailsAvailableEventListeners = [];
+    this.grantsAvailableEventListeners = [];
+    this.statisticsAvailableEventListeners = [];
+    this.triggersAvailableEventListeners = [];
+    this.dependenciesAvailableEventListeners = [];
+    this.detailsAvailableEventListeners = [];
+    this.partitionsAvailableEventListeners = [];
+    this.indexesAvailableEventListeners = [];
+    this.sqlAvailableEventListeners = [];
+    this.clustersAvailableEventListeners = [];
+  },
+  addColumnsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.columnsAvailableEventListeners.push(listener);
+    }
+  },
+  addColumnHeadersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.columnHeadersAvailableEventListeners.push(listener);
+    }
+  },
+  addDataAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dataAvailableEventListeners.push(listener);
+    }
+  },
+  addConstraintsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.constraintsAvailableEventListeners.push(listener);
+    }
+  },
+  addConstraintDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.constraintDetailsAvailableEventListeners.push(listener);
+    }
+  },
+  addGrantsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.grantsAvailableEventListeners.push(listener);
+    }
+  },
+  addStatisticsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.statisticsAvailableEventListeners.push(listener);
+    }
+  },
+  addTriggersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.triggersAvailableEventListeners.push(listener);
+    }
+  },
+  addDependenciesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesAvailableEventListeners.push(listener);
+    }
+  },
+  addDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsAvailableEventListeners.push(listener);
+    }
+  },
+  addPartitionsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.partitionsAvailableEventListeners.push(listener);
+    }
+  },
+  addIndexesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.indexesAvailableEventListeners.push(listener);
+    }
+  },
+  addSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlAvailableEventListeners.push(listener);
+    }
+  },
+  addClustersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.clustersAvailableEventListeners.push(listener);
+    }
+  },
+  removeColumnsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.columnsAvailableEventListeners.indexOf(listener);
+      this.columnsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeColumnHeadersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.columnHeadersAvailableEventListeners.indexOf(listener);
+      this.columnHeadersAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDataAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dataAvailableEventListeners.indexOf(listener);
+      this.dataAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeConstraintsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.constraintsAvailableEventListeners.indexOf(listener);
+      this.constraintsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeConstraintDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.constraintDetailsAvailableEventListeners.indexOf(listener);
+      this.constraintDetailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeGrantsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.grantsAvailableEventListeners.indexOf(listener);
+      this.grantsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeStatisticsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.statisticsAvailableEventListeners.indexOf(listener);
+      this.statisticsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeTriggersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.triggersAvailableEventListeners.indexOf(listener);
+      this.triggersAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDependenciesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesAvailableEventListeners.indexOf(listener);
+      this.dependenciesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsAvailableEventListeners.indexOf(listener);
+      this.detailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removePartitionsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.partitionsAvailableEventListeners.indexOf(listener);
+      this.partitionsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeIndexesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.indexesAvailableEventListeners.indexOf(listener);
+      this.indexesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlAvailableEventListeners.indexOf(listener);
+      this.sqlAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeClustersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.clustersAvailableEventListeners.indexOf(listener);
+      this.clustersAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireColumnsAvailableEvent: function(result) {
+    var that = this;
+    this.columnsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireColumnHeadersAvailableEvent: function(result) {
+    var that = this;
+    this.columnHeadersAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+    this.socket.emit('get_data', this.tableName);
+  },
+  fireDataAvailableEvent: function(result) {
+    var that = this;
+    this.dataAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireConstraintsAvailableEvent: function(result) {
+    var that = this;
+    this.constraintsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireConstraintDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.constraintDetailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireGrantsAvailableEvent: function(result) {
+    var that = this;
+    this.grantsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireStatisticsAvailableEvent: function(result) {
+    var that = this;
+    this.statisticsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireTriggersAvailableEvent: function(result) {
+    var that = this;
+    this.triggersAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDependenciesAvailableEvent: function(result) {
+    var that = this;
+    this.dependenciesAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.detailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  firePartitionsAvailableEvent: function(result) {
+    var that = this;
+    this.partitionsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireIndexesAvailableEvent: function(result) {
+    var that = this;
+    this.indexesAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireSQLAvailableEvent: function(result) {
+    var that = this;
+    this.sqlAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireClustersAvailableEvent: function(result) {
+    var that = this;
+    this.clustersAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  getColumns: function() {
+    var that = this;
+    this.socket.on('columns_result', function(result){
+      that.fireColumnsAvailableEvent(result);
+    });
+    this.socket.emit('get_columns', this.tableName);
+  },
+  getData: function() {
+    var that = this;
+    this.socket.on('column_headers_result', function(result){
+      that.fireColumnHeadersAvailableEvent(result);
+    });
+    this.socket.on('data_result', function(result){
+      that.fireDataAvailableEvent(result);
+    });
+    this.socket.emit('get_column_headers', this.tableName);
+  },
+  getConstraints: function() {
+    var that = this;
+    this.socket.on('constraints_result', function(result){
+      that.fireConstraintsAvailableEvent(result);
+    });
+    this.socket.emit('get_constraints', this.tableName);
+  },
+  getConstraintDetails: function(constraintName) {
+    var that = this;
+    this.socket.on('constraint_details_result', function(result){
+      that.fireConstraintDetailsAvailableEvent(result);
+    });
+    var props = {'tableName': this.tableName, 'constraintName': constraintName};
+    this.socket.emit('get_constraint_details', props);
+  },
+  getGrants: function() {
+    var that = this;
+    this.socket.on('grants_result', function(result){
+      that.fireGrantsAvailableEvent(result);
+    });
+    this.socket.emit('get_grants', this.tableName);
+  }
+});
