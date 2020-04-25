@@ -15,7 +15,16 @@ var TableTabUI = Class.create({
   constraintsGrid: null,
   constraintDetailsGrid: null,
   grantsGrid: null,
+  statisticsGrid: null,
+  statisticsDetailsGrid: null,
+  triggersGrid: null,
+  triggersEditor: null,
+  dependenciesGrid: null,
+  dependenciesDetailsGrid: null,
   constraintsGridClickedEventListeners: [],
+  statisticsGridClickedEventListeners: [],
+  triggersGridClickedEventListeners: [],
+  dependenciesGridClickedEventListeners: [],
 	initialize: function(id, label) {
 		this.id = id;
 		this.label = label;
@@ -25,7 +34,16 @@ var TableTabUI = Class.create({
     this.constraintsGrid = null;
     this.constraintDetailsGrid = null;
     this.grantsGrid = null;
+    this.statisticsGrid = null;
+    this.statisticsDetailsGrid = null;
+    this.triggersGrid = null;
+    this.triggersEditor = null;
+    this.dependenciesGrid = null;
+    this.dependenciesDetailsGrid = null;
     this.constraintsGridClickedEventListeners = [];
+    this.statisticsGridClickedEventListeners = [];
+    this.triggersGridClickedEventListeners = [];
+    this.dependenciesGridClickedEventListeners = [];
 	},
   getId: function() {
     return this.id;
@@ -54,9 +72,18 @@ var TableTabUI = Class.create({
                             "   <div id='" + this.id + "-table-constraints-grid-details' style='width: 100%; height: 50%;'></div>" +
                             " </div>" +
                             " <div id='" + this.id + "-table-grants-grid' tabname='grants' style='width: 100%; height: 93%;'></div>" +
-                            " <div id='" + this.id + "-table-statistics-grid' tabname='statistics' style='width: 100%; height: 93%;'></div>" +
-                            " <div id='" + this.id + "-table-triggers-grid' tabname='triggers' style='width: 100%; height: 93%;'></div>" +
-                            " <div id='" + this.id + "-table-dependencies-grid' tabname='dependencies' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-table-statistics-grid' tabname='statistics' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-table-statistics-grid-master' style='width: 100%; height: 50%;'></div>" +
+                            "   <div id='" + this.id + "-table-statistics-grid-details' style='width: 100%; height: 50%;'></div>" +
+                            " </div>" +
+                            " <div id='" + this.id + "-table-triggers-grid' tabname='triggers' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-table-triggers-grid-master' style='width: 100%; height: 50%;'></div>" +
+                            "   <div id='" + this.id + "-table-triggers-grid-editor' style='width: 100%; height: 50%;'></div>" +
+                            " </div>" +
+                            " <div id='" + this.id + "-table-dependencies-grid' tabname='dependencies' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-table-dependencies-grid-master' style='width: 100%; height: 50%;'></div>" +
+                            "   <div id='" + this.id + "-table-dependencies-grid-details' style='width: 100%; height: 50%;'></div>" +
+                            " </div>" +
                             " <div id='" + this.id + "-table-partitions-grid' tabname='partitions' style='width: 100%; height: 93%;'></div>" +
                             " <div id='" + this.id + "-table-indexes-grid' tabname='indexes' style='width: 100%; height: 93%;'></div>" +
                             " <div id='" + this.id + "-table-sql-grid' tabname='sql' style='width: 100%; height: 93%;'></div>" +
@@ -235,6 +262,201 @@ var TableTabUI = Class.create({
   getGrantsGrid: function() {
     return this.grantsGrid;
   },
+  createStatisticsGrid: function() {
+    var that = this;
+    if(this.statisticsGrid == null) {
+      this.statisticsGrid = $j('#' + this.id + '-table-statistics-grid-master')
+                              .w2grid({
+                                      name: this.id + '-table-statistics-properties-master',
+                                      header: this.label + ' - Statistics',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'name', caption: 'Name', size: '150px'},
+                                        {field: 'value', caption: 'Value', size: '150px'}
+                                      ],
+                                      onClick: function(event) {
+                                        var record = this.get(event.recid);
+                                        that.fireStatisticsGridClickedEvent(record);
+                                      }
+                                    });
+      this.statisticsDetailsGrid = $j('#' + this.id + '-table-statistics-grid-details')
+                                    .w2grid({
+                                            name: this.id + '-table-statistics-properties-details',
+                                            header: this.label + ' - Statistics Details',
+                                            show: { header: true,
+                                                    toolbar: true,
+                                                    lineNumbers: true,
+                                                    footer: true
+                                                  },
+                                            multiSearch: true,
+                                            columns: [
+                                              {field: 'tableName', caption: 'Table Name', size: '150px'},
+                                              {field: 'columnName', caption: 'Column Name', size: '150px'},
+                                              {field: 'numDistinct', caption: 'Num Distinct', size: '150px'},
+                                              {field: 'lowValue', caption: 'Low Value', size: '150px'},
+                                              {field: 'highValue', caption: 'High Value', size: '150px'},
+                                              {field: 'density', caption: 'Density', size: '150px'},
+                                              {field: 'numNulls', caption: 'Num NULLs', size: '150px'},
+                                              {field: 'numBuckets', caption: 'Num Buckets', size: '150px'},
+                                              {field: 'lastAnalyzed', caption: 'Last Analyzed', size: '150px'},
+                                              {field: 'sampleSize', caption: 'Sample Size', size: '150px'},
+                                              {field: 'globalStats', caption: 'Global Stats', size: '150px'},
+                                              {field: 'userStats', caption: 'User Stats', size: '150px'},
+                                              {field: 'avgColLen', caption: 'Avg Column Length', size: '150px'},
+                                              {field: 'histogram', caption: 'Histogram', size: '150px'}
+                                            ]
+                                          });
+    }
+  },
+  isStatisticsGridCreated: function() {
+    if(this.statisticsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getStatisticsGrid: function() {
+    return this.statisticsGrid;
+  },
+  isStatisticsDetailsGridCreated: function() {
+    if(this.statisticsDetailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getStatisticsDetailsGrid: function() {
+    return this.statisticsDetailsGrid;
+  },
+  createTriggersGrid: function() {
+    var that = this;
+    if(this.triggersGrid === null) {
+      this.triggersGrid = $j('#' + this.id + '-table-triggers-grid-master')
+                              .w2grid({
+                                      name: this.id + '-table-triggers-properties-master',
+                                      header: this.label + ' - Triggers',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'triggerName', caption: 'Trigger Name', size: '150px'},
+                                        {field: 'triggerType', caption: 'Trigger Type', size: '150px'},
+                                        {field: 'triggerOwner', caption: 'Trigger Owner', size: '150px'},
+                                        {field: 'triggeringEvent', caption: 'Triggering Event', size: '150px'},
+                                        {field: 'status', caption: 'Status', size: '150px'},
+                                        {field: 'tableName', caption: 'Table Name', size: '150px'}
+                                      ],
+                                      onClick: function(event) {
+                                        var record = this.get(event.recid);
+                                        that.fireTriggersGridClickedEvent(record);
+                                      }
+                                    });
+      // ace.require("ace/ext/language_tools");
+      this.triggersEditor = ace.edit(this.id + '-table-triggers-grid-editor');
+      this.triggersEditor.setTheme('ace/theme/sqlserver');
+      this.triggersEditor.session.setMode('ace/mode/sqlserver');
+      this.triggersEditor.setReadOnly(true);
+      // enable autocompletion and snippets
+      // this.triggersEditor.setOptions({
+      //     enableBasicAutocompletion: true,
+      //     enableSnippets: true,
+      //     enableLiveAutocompletion: true
+      // });
+    }
+  },
+  isTriggersGridCreated: function() {
+    if(this.triggersGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getTriggersGrid: function() {
+    return this.triggersGrid;
+  },
+  isTriggersEditorcreated: function() {
+    if(this.triggersEditor === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getTriggersEditor: function() {
+    return this.triggersEditor;
+  },
+  createDependenciesGrid: function() {
+    var that = this;
+    if(this.dependenciesGrid === null) {
+      this.dependenciesGrid = $j('#' + this.id + '-table-dependencies-grid-master')
+                              .w2grid({
+                                      name: this.id + '-table-dependencies-properties-master',
+                                      header: this.label + ' - Dependencies',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'name', caption: 'Name', size: '150px'},
+                                        {field: 'type', caption: 'Type', size: '150px'},
+                                        {field: 'referencedOwner', caption: 'Referenced Owner', size: '150px'},
+                                        {field: 'referencedName', caption: 'Referenced Name', size: '150px'},
+                                        {field: 'referencedType', caption: 'Referenced Type', size: '150px'}
+                                      ],
+                                      onClick: function(event) {
+                                        var record = this.get(event.recid);
+                                        that.fireDependenciesGridClickedEvent(record);
+                                      }
+                                    });
+      this.dependenciesDetailsGrid = $j('#' + this.id + '-table-dependencies-grid-details')
+                                      .w2grid({
+                                              name: this.id + '-table-dependencies-properties-details',
+                                              header: this.label + ' - References',
+                                              show: { header: true,
+                                                      toolbar: true,
+                                                      lineNumbers: true,
+                                                      footer: true
+                                                    },
+                                              multiSearch: true,
+                                              columns: [
+                                                {field: 'name', caption: 'Name', size: '150px'},
+                                                {field: 'type', caption: 'Type', size: '150px'},
+                                                {field: 'referencedOwner', caption: 'Referenced Owner', size: '150px'},
+                                                {field: 'referencedName', caption: 'Referenced Name', size: '150px'},
+                                                {field: 'referencedType', caption: 'Referenced Type', size: '150px'}
+                                              ]
+                                            });
+    }
+  },
+  isDependenciesGridCreated: function() {
+    if(this.dependenciesGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDependenciesGrid: function() {
+    return this.dependenciesGrid;
+  },
+  isDependenciesDetailsGridCreated: function() {
+    if(this.dependenciesDetailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDependenciesDetailsGrid: function() {
+    return this.dependenciesDetailsGrid;
+  },
   addTabsBeforeActivateEventListener: function(listener) {
     $j('#' + this.id + '-table-info-tabs').on('tabsbeforeactivate', listener);
   },
@@ -254,6 +476,24 @@ var TableTabUI = Class.create({
     if(this.grantsGrid !== null) {
       this.grantsGrid.destroy();
     }
+    if(this.statisticsGrid !== null) {
+      this.statisticsGrid.destroy();
+    }
+    if(this.statisticsDetailsGrid !== null) {
+      this.statisticsDetailsGrid.destroy();
+    }
+    if(this.triggersGrid !== null) {
+      this.triggersGrid.destroy();
+    }
+    if(this.triggersEditor !== null) {
+      this.triggersEditor.destroy();
+    }
+    if(this.dependenciesGrid !== null) {
+      this.dependenciesGrid.destroy();
+    }
+    if(this.dependenciesDetailsGrid !== null) {
+      this.dependenciesDetailsGrid.destroy();
+    }
   },
   addConstraintsGridClickedEventListener: function(listener) {
     if(listener !== null && listener !== undefined) {
@@ -271,6 +511,63 @@ var TableTabUI = Class.create({
   fireConstraintsGridClickedEvent: function(record) {
     var that = this;
     this.constraintsGridClickedEventListeners.forEach(function(listener){
+      listener(record, that);
+    });
+  },
+  addStatisticsGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.statisticsGridClickedEventListeners.push(listener);
+    }
+  },
+  removeStatisticsGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.statisticsGridClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.statisticsGridClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireStatisticsGridClickedEvent: function(record) {
+    var that = this;
+    this.statisticsGridClickedEventListeners.forEach(function(listener){
+      listener(record, that);
+    });
+  },
+  addTriggersGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.triggersGridClickedEventListeners.push(listener);
+    }
+  },
+  removeTriggersGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.triggersGridClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.triggersGridClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireTriggersGridClickedEvent: function(record) {
+    var that = this;
+    this.triggersGridClickedEventListeners.forEach(function(listener){
+      listener(record, that);
+    });
+  },
+  addDependenciesGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesGridClickedEventListeners.push(listener);
+    }
+  },
+  removeDependenciesGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesGridClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.dependenciesGridClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDependenciesGridClickedEvent: function(record) {
+    var that = this;
+    this.dependenciesGridClickedEventListeners.forEach(function(listener){
       listener(record, that);
     });
   }

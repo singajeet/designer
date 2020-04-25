@@ -15,6 +15,8 @@
     <script src="/static/js/prototype.js"></script>
     <script src="/static/js/d3.min.js"></script>
     <script src="/static/js/socket.io.slim.js"></script>
+    <script src="/static/js/ace/src-min/ace.js"></script>
+    <script src="/static/js/ace/src-min/ext-language_tools.js"></script>
     <script src="/static/designer.js" ></script>
     <script src="/static/ui.js" ></script>
   	<script>
@@ -224,8 +226,14 @@
               tables[tabId].addColumnHeadersAvailableEventListener(onColumnHeadersAvailable);
               tables[tabId].addDataAvailableEventListener(onDataAvailable);
               tables[tabId].addConstraintsAvailableEventListener(onConstraintsAvailable);
-              tables[tabId].addGrantsAvailableEventListener(onGrantsAvailable);
               tables[tabId].addConstraintDetailsAvailableEventListener(onConstraintDetailsAvailable);
+              tables[tabId].addGrantsAvailableEventListener(onGrantsAvailable);
+              tables[tabId].addStatisticsAvailableEventListener(onStatisticsAvailable);
+              tables[tabId].addStatisticsDetailsAvailableEventListener(onStatisticsDetailsAvailable);
+              tables[tabId].addTriggersAvailableEventListener(onTriggersAvailable);
+              tables[tabId].addTriggerBodyAvailableEventListener(onTriggerBodyAvailable);
+              tables[tabId].addDependenciesAvailableEventListener(onDependenciesAvailable);
+              tables[tabId].addDependenciesDetailsAvailableEventListener(onDependenciesDetailsAvailable);
 
               var content = tabs[tabId].getTabContent();
               a.addTab(tabId, label, content, 'table_icon');
@@ -251,11 +259,40 @@
                     tabs[tabId].createGrantsGrid();
                     tables[tabId].getGrants();
                   }
+                } else if(name === 'statistics') {
+                  if(!tabs[tabId].isStatisticsGridCreated()) {
+                    tabs[tabId].createStatisticsGrid();
+                    tables[tabId].getStatistics();
+                    tables[tabId].getStatisticsDetails();
+                  }
+                } else if(name === 'triggers') {
+                  if(!tabs[tabId].isTriggersGridCreated()) {
+                    tabs[tabId].createTriggersGrid();
+                    tables[tabId].getTriggers();
+                  }
+                } else if(name === 'dependencies') {
+                  if(!tabs[tabId].isDependenciesGridCreated()) {
+                    tabs[tabId].createDependenciesGrid();
+                    tables[tabId].getDependencies();
+                    tables[tabId].getDependenciesDetails();
+                  }
                 }
               });
 
               tabs[tabId].addConstraintsGridClickedEventListener(function(record, tab){
                 tables[tabId].getConstraintDetails(record.constraintName);
+              });
+
+              tabs[tabId].addStatisticsGridClickedEventListener(function(record, tab){
+                tables[tabId].getStatisticsDetails();
+              });
+
+              tabs[tabId].addTriggersGridClickedEventListener(function(record, tab){
+                tables[tabId].getTriggerBody(record.triggerName);
+              });
+
+              tabs[tabId].addDependenciesGridClickedEventListener(function(record, tab){
+                tables[tabId].getDependenciesDetails();
               });
               
               function onColumnsAvailable(result, tabId){
@@ -287,6 +324,35 @@
               function onGrantsAvailable(result, tabId){
                 tabs[tabId].getGrantsGrid().records = result;
                 tabs[tabId].getGrantsGrid().refresh();
+              }
+
+              function onStatisticsAvailable(result, tabId){
+                tabs[tabId].getStatisticsGrid().records = result;
+                tabs[tabId].getStatisticsGrid().refresh();
+              }
+
+              function onStatisticsDetailsAvailable(result, tabId){
+                tabs[tabId].getStatisticsDetailsGrid().records = result;
+                tabs[tabId].getStatisticsDetailsGrid().refresh();
+              }
+
+              function onTriggersAvailable(result, tabId){
+                tabs[tabId].getTriggersGrid().records = result;
+                tabs[tabId].getTriggersGrid().refresh();
+              }
+
+              function onTriggerBodyAvailable(result, tabId){
+                tabs[tabId].getTriggersEditor().setValue(result);
+              }
+
+              function onDependenciesAvailable(result, tabId){
+                tabs[tabId].getDependenciesGrid().records = result;
+                tabs[tabId].getDependenciesGrid().refresh();
+              }
+
+              function onDependenciesDetailsAvailable(result, tabId){
+                tabs[tabId].getDependenciesDetailsGrid().records = result;
+                tabs[tabId].getDependenciesDetailsGrid().refresh();
               }
           }
 

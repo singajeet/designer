@@ -521,3 +521,191 @@ class DatabaseTableServer(Namespace):
                                  'objectName': result[5]
                                  })
         emit('grants_result', result_array, namespace=self._namespace_url)
+
+    def on_get_statistics(self, table_name):
+        """For internal use only: will be called when 'get_statistics' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT ROWNUM, a.* FROM (
+                SELECT 'NUM_ROWS' AS Name, to_char(num_rows) AS Value FROM SYS.user_tab_statistics WHERE table_name='%s'
+                UNION
+                SELECT 'BLOCKS' AS Name, to_char(blocks) AS Value FROM SYS.user_tab_statistics WHERE table_name='%s'
+                UNION
+                SELECT 'AVG_ROW_LEN' AS Name, to_char(avg_row_len) AS Value FROM SYS.user_tab_statistics WHERE table_name='%s'
+                UNION
+                SELECT 'SAMPLE_SIZE' AS Name, to_char(sample_size) AS Value FROM SYS.user_tab_statistics WHERE table_name='%s'
+                UNION
+                SELECT 'LAST_ANALYZED' AS Name, to_char(last_analyzed) AS Value FROM SYS.user_tab_statistics WHERE table_name='%s'
+                ) a ORDER BY Name
+                """ % (table_name, table_name, table_name, table_name, table_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'value': result[2]
+                                 })
+        emit('statistics_result', result_array, namespace=self._namespace_url)
+
+    def on_get_statistics_details(self, table_name):
+        """For internal use only: will be called when 'get_statistics_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    table_name,
+                    column_name,
+                    num_distinct,
+                    substr(low_value, 1) AS low_value,
+                    substr(high_value, 1) AS high_value,
+                    density,
+                    num_nulls,
+                    num_buckets,
+                    to_char(last_analyzed) AS last_analyzed,
+                    sample_size,
+                    global_stats,
+                    user_stats,
+                    avg_col_len,
+                    histogram
+                FROM
+                    SYS.user_tab_columns
+                WHERE
+                    table_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'tableName': result[1],
+                                 'columnName': result[2],
+                                 'numDistinct': result[3],
+                                 'lowValue': result[4],
+                                 'highValue': result[5],
+                                 'density': result[6],
+                                 'numNulls': result[7],
+                                 'numBuckets': result[8],
+                                 'lastAnalyzed': result[9],
+                                 'sampleSize': result[10],
+                                 'globalStats': result[11],
+                                 'userStats': result[12],
+                                 'avgColLen': result[13],
+                                 'histogram': result[14],
+                                 })
+        emit('statistics_details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_triggers(self, table_name):
+        """For internal use only: will be called when 'get_triggers' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    trigger_name,
+                    trigger_type,
+                    table_owner as trigger_owner,
+                    triggering_event,
+                    status,
+                    table_name
+                FROM
+                    SYS.user_triggers
+                WHERE
+                    table_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'triggerName': result[1],
+                                 'triggerType': result[2],
+                                 'triggerOwner': result[3],
+                                 'triggeringEvent': result[4],
+                                 'status': result[5],
+                                 'tableName': result[6]
+                                 })
+        emit('triggers_result', result_array, namespace=self._namespace_url)
+
+    def on_get_trigger_body(self, trigger_name):
+        """For internal use only: will be called when 'get_trigger_body' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    text
+                FROM
+                    SYS.user_source
+                WHERE
+                    name='%s'
+                    AND type='TRIGGER'
+                ORDER BY line
+                """ % trigger_name
+        cursor.execute(query)
+        result_string = ""
+        for result in cursor:
+            result_string += result[0]
+        emit('trigger_body_result', result_string, namespace=self._namespace_url)
+
+    def on_get_dependencies(self, table_name):
+        """For internal use only: will be called when 'get_dependencies' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    name,
+                    type,
+                    referenced_owner,
+                    referenced_name,
+                    referenced_type
+                FROM
+                    SYS.user_dependencies
+                WHERE
+                    referenced_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'type': result[2],
+                                 'referencedOwner': result[3],
+                                 'referencedName': result[4],
+                                 'referencedType': result[5]
+                                 })
+        emit('dependencies_result', result_array, namespace=self._namespace_url)
+
+    def on_get_dependencies_details(self, table_name):
+        """For internal use only: will be called when 'get_dependencies_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    name,
+                    type,
+                    referenced_owner,
+                    referenced_name,
+                    referenced_type
+                FROM
+                    SYS.user_dependencies
+                WHERE
+                    name='%s'
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'type': result[2],
+                                 'referencedOwner': result[3],
+                                 'referencedName': result[4],
+                                 'referencedType': result[5]
+                                 })
+        emit('dependencies_details_result', result_array, namespace=self._namespace_url)

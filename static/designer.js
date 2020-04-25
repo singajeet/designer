@@ -14302,8 +14302,11 @@ var DatabaseTable = Class.create({
   constraintDetailsAvailableEventListeners: [],
   grantsAvailableEventListeners: [],
   statisticsAvailableEventListeners: [],
+  statisticsDetailsAvailableEventListeners: [],
   triggersAvailableEventListeners: [],
+  triggerBodyAvailableEventListeners: [],
   dependenciesAvailableEventListeners: [],
+  dependenciesDetailsAvailableEventListeners: [],
   detailsAvailableEventListeners: [],
   partitionsAvailableEventListeners: [],
   indexesAvailableEventListeners: [],
@@ -14320,8 +14323,11 @@ var DatabaseTable = Class.create({
     this.constraintDetailsAvailableEventListeners = [];
     this.grantsAvailableEventListeners = [];
     this.statisticsAvailableEventListeners = [];
+    this.statisticsDetailsAvailableEventListeners = [];
     this.triggersAvailableEventListeners = [];
+    this.triggerBodyAvailableEventListeners = [];
     this.dependenciesAvailableEventListeners = [];
+    this.dependenciesDetailsAvailableEventListeners = [];
     this.detailsAvailableEventListeners = [];
     this.partitionsAvailableEventListeners = [];
     this.indexesAvailableEventListeners = [];
@@ -14363,14 +14369,29 @@ var DatabaseTable = Class.create({
       this.statisticsAvailableEventListeners.push(listener);
     }
   },
+  addStatisticsDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.statisticsDetailsAvailableEventListeners.push(listener);
+    }
+  },
   addTriggersAvailableEventListener: function(listener) {
     if(listener !== null && listener !== undefined) {
       this.triggersAvailableEventListeners.push(listener);
     }
   },
+  addTriggerBodyAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.triggerBodyAvailableEventListeners.push(listener);
+    }
+  },
   addDependenciesAvailableEventListener: function(listener) {
     if(listener !== null && listener !== undefined) {
       this.dependenciesAvailableEventListeners.push(listener);
+    }
+  },
+  addDependenciesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesDetailsAvailableEventListeners.push(listener);
     }
   },
   addDetailsAvailableEventListener: function(listener) {
@@ -14440,16 +14461,34 @@ var DatabaseTable = Class.create({
       this.statisticsAvailableEventListeners.splice(index, 1);
     }
   },
+  removeStatisticsDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.statisticsDetailsAvailableEventListeners.indexOf(listener);
+      this.statisticsDetailsAvailableEventListeners.splice(index, 1);
+    }
+  },
   removeTriggersAvailableEventListener: function(listener) {
     if(listener !== null && listener !== undefined) {
       var index = this.triggersAvailableEventListeners.indexOf(listener);
       this.triggersAvailableEventListeners.splice(index, 1);
     }
   },
+  removeTriggerBodyAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.triggerBodyAvailableEventListeners.indexOf(listener);
+      this.triggerBodyAvailableEventListeners.splice(index, 1);
+    }
+  },
   removeDependenciesAvailableEventListener: function(listener) {
     if(listener !== null && listener !== undefined) {
       var index = this.dependenciesAvailableEventListeners.indexOf(listener);
       this.dependenciesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDependenciesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesDetailsAvailableEventListeners.indexOf(listener);
+      this.dependenciesDetailsAvailableEventListeners.splice(index, 1);
     }
   },
   removeDetailsAvailableEventListener: function(listener) {
@@ -14525,15 +14564,33 @@ var DatabaseTable = Class.create({
       listener(result, that.tabId);
     });
   },
+  fireStatisticsDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.statisticsDetailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
   fireTriggersAvailableEvent: function(result) {
     var that = this;
     this.triggersAvailableEventListeners.forEach(function(listener){
       listener(result, that.tabId);
     });
   },
+  fireTriggerBodyAvailableEvent: function(result) {
+    var that = this;
+    this.triggerBodyAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
   fireDependenciesAvailableEvent: function(result) {
     var that = this;
     this.dependenciesAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDependenciesDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.dependenciesDetailsAvailableEventListeners.forEach(function(listener){
       listener(result, that.tabId);
     });
   },
@@ -14605,5 +14662,47 @@ var DatabaseTable = Class.create({
       that.fireGrantsAvailableEvent(result);
     });
     this.socket.emit('get_grants', this.tableName);
+  },
+  getStatistics: function() {
+    var that = this;
+    this.socket.on('statistics_result', function(result){
+      that.fireStatisticsAvailableEvent(result);
+    });
+    this.socket.emit('get_statistics', this.tableName);
+  },
+  getStatisticsDetails: function() {
+    var that = this;
+    this.socket.on('statistics_details_result', function(result){
+      that.fireStatisticsDetailsAvailableEvent(result);
+    });
+    this.socket.emit('get_statistics_details', this.tableName);
+  },
+  getTriggers: function() {
+    var that = this;
+    this.socket.on('triggers_result', function(result){
+      that.fireTriggersAvailableEvent(result);
+    });
+    this.socket.emit('get_triggers', this.tableName);
+  },
+  getTriggerBody: function(triggerName) {
+    var that = this;
+    this.socket.on('trigger_body_result', function(result){
+      that.fireTriggerBodyAvailableEvent(result);
+    });
+    this.socket.emit('get_trigger_body', triggerName);
+  },
+  getDependencies: function() {
+    var that = this;
+    this.socket.on('dependencies_result', function(result){
+      that.fireDependenciesAvailableEvent(result);
+    });
+    this.socket.emit('get_dependencies', this.tableName);
+  },
+  getDependenciesDetails: function() {
+    var that = this;
+    this.socket.on('dependencies_details_result', function(result){
+      that.fireDependenciesDetailsAvailableEvent(result);
+    });
+    this.socket.emit('get_dependencies_details', this.tableName);
   }
 });
