@@ -21,10 +21,14 @@ var TableTabUI = Class.create({
   triggersEditor: null,
   dependenciesGrid: null,
   dependenciesDetailsGrid: null,
+  indexesGrid: null,
+  indexesDetailsGrid: null,
+  sqlEditor: null,
   constraintsGridClickedEventListeners: [],
   statisticsGridClickedEventListeners: [],
   triggersGridClickedEventListeners: [],
   dependenciesGridClickedEventListeners: [],
+  indexesGridClickedEventListeners: [],
 	initialize: function(id, label) {
 		this.id = id;
 		this.label = label;
@@ -40,10 +44,15 @@ var TableTabUI = Class.create({
     this.triggersEditor = null;
     this.dependenciesGrid = null;
     this.dependenciesDetailsGrid = null;
+    this.indexesGrid = null;
+    this.indexesDetailsGrid = null;
+    this.sqlEditor = null;
+
     this.constraintsGridClickedEventListeners = [];
     this.statisticsGridClickedEventListeners = [];
     this.triggersGridClickedEventListeners = [];
     this.dependenciesGridClickedEventListeners = [];
+    this.indexesGridClickedEventListeners = [];
 	},
   getId: function() {
     return this.id;
@@ -63,7 +72,7 @@ var TableTabUI = Class.create({
                             "   <li><a href='#" + this.id + "-table-dependencies-grid'>Dependencies</a></li>" +
                             "   <li><a href='#" + this.id + "-table-partitions-grid'>Partitions</a></li>" +
                             "   <li><a href='#" + this.id + "-table-indexes-grid'>Indexes</a></li>" +
-                            "   <li><a href='#" + this.id + "-table-sql-grid'>SQL</a></li>" +
+                            "   <li><a href='#" + this.id + "-table-sql-editor'>SQL</a></li>" +
                             " </ul>" +
                             " <div id='" + this.id + "-table-columns-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
                             " <div id='" + this.id + "-table-data-grid' tabname='data' style='width: 100%; height: 93%;'></div>" +
@@ -84,9 +93,16 @@ var TableTabUI = Class.create({
                             "   <div id='" + this.id + "-table-dependencies-grid-master' style='width: 100%; height: 50%;'></div>" +
                             "   <div id='" + this.id + "-table-dependencies-grid-details' style='width: 100%; height: 50%;'></div>" +
                             " </div>" +
-                            " <div id='" + this.id + "-table-partitions-grid' tabname='partitions' style='width: 100%; height: 93%;'></div>" +
-                            " <div id='" + this.id + "-table-indexes-grid' tabname='indexes' style='width: 100%; height: 93%;'></div>" +
-                            " <div id='" + this.id + "-table-sql-grid' tabname='sql' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-table-partitions-grid' tabname='partitions' style='width: 100%; height: 93%;'>" +
+                            "   <div style='height: 100%; width: 100%; border: 1px solid lightgrey; padding: 5px; text-align: center'>" +
+                            "     <h1 style='margin-top: 20%'>This feature is not available yet!</h1>" +
+                            "   </div>" +
+                            " </div>" +
+                            " <div id='" + this.id + "-table-indexes-grid' tabname='indexes' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-table-indexes-grid-master' style='width: 100%; height: 50%;'></div>" +
+                            "   <div id='" + this.id + "-table-indexes-grid-details' style='width: 100%; height: 50%;'></div>" +
+                            " </div>" +
+                            " <div id='" + this.id + "-table-sql-editor' tabname='sql' style='width: 100%; height: 93%;'></div>" +
                             "</div>";
         return this.mainContent;
 	},
@@ -457,6 +473,104 @@ var TableTabUI = Class.create({
   getDependenciesDetailsGrid: function() {
     return this.dependenciesDetailsGrid;
   },
+  createIndexesGrid: function() {
+    var that = this;
+    if(this.indexesGrid === null) {
+      this.indexesGrid = $j('#' + this.id + '-table-indexes-grid-master')
+                              .w2grid({
+                                      name: this.id + '-table-indexes-properties-master',
+                                      header: this.label + ' - Indexes',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'indexName', caption: 'Index Name', size: '150px'},
+                                        {field: 'uniqueness', caption: 'Uniqueness', size: '150px'},
+                                        {field: 'status', caption: 'Status', size: '150px'},
+                                        {field: 'indexType', caption: 'Index Type', size: '150px'},
+                                        {field: 'temporary', caption: 'Temporary', size: '150px'},
+                                        {field: 'partitioned', caption: 'Partitioned', size: '150px'},
+                                        {field: 'funcIdxStatus', caption: 'Function Index Status', size: '150px'},
+                                        {field: 'joinIndex', caption: 'Join Index', size: '150px'},
+                                        {field: 'columns', caption: 'Columns', size: '150px'},
+                                      ],
+                                      onClick: function(event) {
+                                        var record = this.get(event.recid);
+                                        that.fireIndexesGridClickedEvent(record);
+                                      }
+                                    });
+      this.indexesDetailsGrid = $j('#' + this.id + '-table-indexes-grid-details')
+                                      .w2grid({
+                                              name: this.id + '-table-indexes-properties-details',
+                                              header: this.label + ' - Index Details',
+                                              show: { header: true,
+                                                      toolbar: true,
+                                                      lineNumbers: true,
+                                                      footer: true
+                                                    },
+                                              multiSearch: true,
+                                              columns: [
+                                                {field: 'indexName', caption: 'Index Name', size: '150px'},
+                                                {field: 'tableOwner', caption: 'Table Owner', size: '150px'},
+                                                {field: 'tableName', caption: 'Table Name', size: '150px'},
+                                                {field: 'columnName', caption: 'Column Name', size: '150px'},
+                                                {field: 'columnPosition', caption: 'Column Position', size: '150px'},
+                                                {field: 'columnLength', caption: 'Column Length', size: '150px'},
+                                                {field: 'charLength', caption: 'Char Length', size: '150px'},
+                                                {field: 'descend', caption: 'Descend', size: '150px'},
+                                                {field: 'columnExpression', caption: 'Column Expression', size: '150px'},
+                                              ]
+                                            });
+    }
+  },
+  isIndexesGridCreated: function() {
+    if(this.indexesGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getIndexesGrid: function() {
+    return this.indexesGrid;
+  },
+  isIndexesDetailsGridCreated: function() {
+    if(this.indexesDetailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getIndexesDetailsGrid: function() {
+    return this.indexesDetailsGrid;
+  },
+  createSQLEditor: function() {
+    if(this.sqlEditor === null) {
+      // ace.require("ace/ext/language_tools");
+      this.sqlEditor = ace.edit(this.id + '-table-sql-editor');
+      this.sqlEditor.setTheme('ace/theme/sqlserver');
+      this.sqlEditor.session.setMode('ace/mode/sqlserver');
+      this.sqlEditor.setReadOnly(true);
+      // enable autocompletion and snippets
+      // this.triggersEditor.setOptions({
+      //     enableBasicAutocompletion: true,
+      //     enableSnippets: true,
+      //     enableLiveAutocompletion: true
+      // });
+    }
+  },
+  isSQLEditorCreated: function() {
+    if(this.sqlEditor === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getSQLEditor: function() {
+    return this.sqlEditor;
+  },
   addTabsBeforeActivateEventListener: function(listener) {
     $j('#' + this.id + '-table-info-tabs').on('tabsbeforeactivate', listener);
   },
@@ -493,6 +607,15 @@ var TableTabUI = Class.create({
     }
     if(this.dependenciesDetailsGrid !== null) {
       this.dependenciesDetailsGrid.destroy();
+    }
+    if(this.indexesGrid !== null) {
+      this.indexesGrid.destroy();
+    }
+    if(this.indexesDetailsGrid !== null) {
+      this.indexesDetailsGrid.destroy();
+    }
+    if(this.sqlEditor !== null) {
+      this.sqlEditor.destroy();
     }
   },
   addConstraintsGridClickedEventListener: function(listener) {
@@ -568,6 +691,25 @@ var TableTabUI = Class.create({
   fireDependenciesGridClickedEvent: function(record) {
     var that = this;
     this.dependenciesGridClickedEventListeners.forEach(function(listener){
+      listener(record, that);
+    });
+  },
+  addIndexesGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.indexesGridClickedEventListeners.push(listener);
+    }
+  },
+  removeIndexesGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.indexesGridClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.indexesGridClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireIndexesGridClickedEvent: function(record) {
+    var that = this;
+    this.indexesGridClickedEventListeners.forEach(function(listener){
       listener(record, that);
     });
   }

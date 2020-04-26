@@ -709,3 +709,132 @@ class DatabaseTableServer(Namespace):
                                  'referencedType': result[5]
                                  })
         emit('dependencies_details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_indexes(self, table_name):
+        """For internal use only: will be called when 'get_indexes' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    a.index_name,
+                    a.uniqueness,
+                    a.status,
+                    a.index_type,
+                    a.temporary,
+                    a.partitioned,
+                    a.funcidx_status,
+                    a.join_index,
+                    b.columns
+                FROM 
+                    SYS.user_indexes a,
+                    (SELECT
+                        index_name,
+                        LISTAGG(column_name,', ') 
+                            WITHIN GROUP 
+                            (ORDER BY index_name) 
+                        AS columns 
+                    FROM 
+                        SYS.user_ind_columns
+                    GROUP BY index_name) b
+                WHERE
+                    a.index_name = b.index_name
+                    AND a.table_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'indexName': result[1],
+                                 'uniqueness': result[2],
+                                 'status': result[3],
+                                 'indexType': result[4],
+                                 'temporary': result[5],
+                                 'partitioned': result[6],
+                                 'funcIdxStatus': result[7],
+                                 'joinIndex': result[8],
+                                 'columns': result[9]
+                                 })
+        emit('indexes_result', result_array, namespace=self._namespace_url)
+
+    def on_get_indexes_details(self, props):
+        """For internal use only: will be called when 'get_indexes_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        table_name = props['tableName']
+        index_name = props['indexName']
+        query = """
+                SELECT
+                    ROWNUM,
+                    a.index_name,
+                    a.table_owner,
+                    a.table_name,
+                    b.column_name,
+                    b.column_position,
+                    b.column_length,
+                    b.char_length,
+                    b.descend,
+                    c.column_expression
+                FROM
+                    SYS.user_indexes a,
+                    SYS.user_ind_columns b,
+                    sys.user_ind_expressions c
+                WHERE
+                    a.index_name = b.index_name (+)
+                    AND a.table_name = b.table_name (+)
+                    AND a.index_name = c.index_name (+)
+                    AND a.table_name = c.table_name (+)
+                    AND a.table_name='%s'
+                    AND a.index_name='%s'
+                """ % (table_name, index_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'indexName': result[1],
+                                 'tableOwner': result[2],
+                                 'tableName': result[3],
+                                 'columnName': result[4],
+                                 'columnPosition': result[5],
+                                 'columnLength': result[6],
+                                 'charLength': result[7],
+                                 'descend': result[8],
+                                 'columnExpression': result[9]
+                                 })
+        emit('indexes_details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_sql(self, table_name):
+        """For internal use only: will be called when 'get_sql' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        sql = ""
+        # ########### Get DDL of table ###############
+        cursor = db_conn.cursor()
+        query = """
+                SELECT to_char(dbms_metadata.get_ddl('TABLE', '%s')) FROM dual
+                """ % table_name
+        cursor.execute(query)
+        for result in cursor:
+            sql = result[0]
+        sql += ';\n\n'
+        # ########## Get comments on columns if available ##########
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    'COMMENT ON COLUMN ' ||
+                    '"' || sys_context( 'userenv', 'current_schema' ) ||
+                    '"."' || table_name ||
+                    '"."' || column_name ||
+                    '" IS ''' || comments || ''';'
+                FROM
+                    SYS.user_col_comments
+                WHERE
+                    table_name='%s'
+                    AND comments is not null
+                """ % table_name
+        cursor.execute(query)
+        for result in cursor:
+            sql += '  ' + result[0] + '\n'
+        emit('sql_result', sql, namespace=self._namespace_url)

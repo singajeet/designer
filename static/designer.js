@@ -14310,6 +14310,7 @@ var DatabaseTable = Class.create({
   detailsAvailableEventListeners: [],
   partitionsAvailableEventListeners: [],
   indexesAvailableEventListeners: [],
+  indexesDetailsAvailableEventListeners: [],
   sqlAvailableEventListeners: [],
   clustersAvailableEventListeners: [],
   initialize: function(tableName, tabId) {
@@ -14331,6 +14332,7 @@ var DatabaseTable = Class.create({
     this.detailsAvailableEventListeners = [];
     this.partitionsAvailableEventListeners = [];
     this.indexesAvailableEventListeners = [];
+    this.indexesDetailsAvailableEventListeners = [];
     this.sqlAvailableEventListeners = [];
     this.clustersAvailableEventListeners = [];
   },
@@ -14407,6 +14409,11 @@ var DatabaseTable = Class.create({
   addIndexesAvailableEventListener: function(listener) {
     if(listener !== null && listener !== undefined) {
       this.indexesAvailableEventListeners.push(listener);
+    }
+  },
+  addIndexesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.indexesDetailsAvailableEventListeners.push(listener);
     }
   },
   addSQLAvailableEventListener: function(listener) {
@@ -14507,6 +14514,12 @@ var DatabaseTable = Class.create({
     if(listener !== null && listener !== undefined) {
       var index = this.indexesAvailableEventListeners.indexOf(listener);
       this.indexesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeIndexesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.indexesDetailsAvailableEventListeners.indexOf(listener);
+      this.indexesDetailsAvailableEventListeners.splice(index, 1);
     }
   },
   removeSQLAvailableEventListener: function(listener) {
@@ -14612,6 +14625,12 @@ var DatabaseTable = Class.create({
       listener(result, that.tabId);
     });
   },
+  fireIndexesDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.indexesDetailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
   fireSQLAvailableEvent: function(result) {
     var that = this;
     this.sqlAvailableEventListeners.forEach(function(listener){
@@ -14704,5 +14723,27 @@ var DatabaseTable = Class.create({
       that.fireDependenciesDetailsAvailableEvent(result);
     });
     this.socket.emit('get_dependencies_details', this.tableName);
+  },
+  getIndexes: function() {
+    var that = this;
+    this.socket.on('indexes_result', function(result){
+      that.fireIndexesAvailableEvent(result);
+    });
+    this.socket.emit('get_indexes', this.tableName);
+  },
+  getIndexesDetails: function(indexName) {
+    var that = this;
+    this.socket.on('indexes_details_result', function(result){
+      that.fireIndexesDetailsAvailableEvent(result);
+    });
+    var props = {'tableName': this.tableName, 'indexName': indexName};
+    this.socket.emit('get_indexes_details', props);
+  },
+  getSQL: function() {
+    var that = this;
+    this.socket.on('sql_result', function(result){
+      that.fireSQLAvailableEvent(result);
+    });
+    this.socket.emit('get_sql', this.tableName);
   }
 });

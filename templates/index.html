@@ -234,6 +234,9 @@
               tables[tabId].addTriggerBodyAvailableEventListener(onTriggerBodyAvailable);
               tables[tabId].addDependenciesAvailableEventListener(onDependenciesAvailable);
               tables[tabId].addDependenciesDetailsAvailableEventListener(onDependenciesDetailsAvailable);
+              tables[tabId].addIndexesAvailableEventListener(onIndexesAvailable);
+              tables[tabId].addIndexesDetailsAvailableEventListener(onIndexesDetailsAvailable);
+              tables[tabId].addSQLAvailableEventListener(onSQLAvailable);
 
               var content = tabs[tabId].getTabContent();
               a.addTab(tabId, label, content, 'table_icon');
@@ -276,6 +279,16 @@
                     tables[tabId].getDependencies();
                     tables[tabId].getDependenciesDetails();
                   }
+                } else if(name === 'indexes') {
+                  if(!tabs[tabId].isIndexesGridCreated()) {
+                    tabs[tabId].createIndexesGrid();
+                    tables[tabId].getIndexes();
+                  }
+                } else if(name === 'sql') {
+                  if(!tabs[tabId].isSQLEditorCreated()) {
+                    tabs[tabId].createSQLEditor();
+                    tables[tabId].getSQL();
+                  }
                 }
               });
 
@@ -293,6 +306,10 @@
 
               tabs[tabId].addDependenciesGridClickedEventListener(function(record, tab){
                 tables[tabId].getDependenciesDetails();
+              });
+
+              tabs[tabId].addIndexesGridClickedEventListener(function(record, tab){
+                tables[tabId].getIndexesDetails(record.indexName);
               });
               
               function onColumnsAvailable(result, tabId){
@@ -353,6 +370,20 @@
               function onDependenciesDetailsAvailable(result, tabId){
                 tabs[tabId].getDependenciesDetailsGrid().records = result;
                 tabs[tabId].getDependenciesDetailsGrid().refresh();
+              }
+
+              function onIndexesAvailable(result, tabId){
+                tabs[tabId].getIndexesGrid().records = result;
+                tabs[tabId].getIndexesGrid().refresh();
+              }
+
+              function onIndexesDetailsAvailable(result, tabId){
+                tabs[tabId].getIndexesDetailsGrid().records = result;
+                tabs[tabId].getIndexesDetailsGrid().refresh();
+              }
+
+              function onSQLAvailable(result, tabId){
+                tabs[tabId].getSQLEditor().setValue(result);
               }
           }
 
