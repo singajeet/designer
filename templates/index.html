@@ -42,7 +42,9 @@
           // var connectionId = '';
           var tabs = {};
           var openedTabs = [];
+          var openedViews = [];
           var tables = {};
+          var views = {};
 
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback,
             contextMenuCallback);
@@ -159,6 +161,9 @@
             var index = openedTabs.indexOf(tabId);
             openedTabs.splice(index, 1);
 
+            index = openedViews.indexOf(tabId);
+            openedViews.splice(index, 1);
+
             delete tables[tabId];
             delete tabs[tabId];
           }
@@ -214,7 +219,56 @@
                 createTableTab(item.node.id, item.node.text);
                 openedTabs.push(item.node.id + '-table-tab');
               }
+            } else if(item.node.nodeType === DatabaseNavNodeType.VIEW) {
+              var index = openedViews.indexOf(item.node.id + '-view-tab');
+              if(index === -1){
+                createViewTab(item.node.id, item.node.text);
+                openedViews.push(item.node.id + '-view-tab');
+              }
             }
+          }
+
+          function createViewTab(id, label) {
+            var tabId = id + '-view-tab';
+            tabs[tabId] = new ViewTabUI(id, label);
+
+            var content = tabs[tabId].getTabContent();
+            a.addTab(tabId, label, content, 'view_icon');
+            tabs[tabId].initTab();
+
+            tabs[tabId].createColumnsGrid();
+
+            tabs[tabId].addTabsBeforeActivateEventListener(function(event, ui){
+                var panel = ui.newPanel;
+                var name = panel.attr('tabname');
+                if(name === 'data') {
+                  if(!tabs[tabId].isDataGridCreated()) {
+                    tabs[tabId].createDataGrid();
+                    //tables[tabId].getData();
+                  }
+                } else if(name === 'grants') {
+                  if(!tabs[tabId].isGrantsGridCreated()) {
+                    tabs[tabId].createGrantsGrid();
+                    //tables[tabId].getGrants();
+                  }
+                } else if(name === 'triggers') {
+                  if(!tabs[tabId].isTriggersGridCreated()) {
+                    tabs[tabId].createTriggersGrid();
+                    //tables[tabId].getTriggers();
+                  }
+                } else if(name === 'dependencies') {
+                  if(!tabs[tabId].isDependenciesGridCreated()) {
+                    tabs[tabId].createDependenciesGrid();
+                    //tables[tabId].getDependencies();
+                    //tables[tabId].getDependenciesDetails();
+                  }
+                } else if(name === 'sql') {
+                  if(!tabs[tabId].isSQLEditorCreated()) {
+                    tabs[tabId].createSQLEditor();
+                    //tables[tabId].getSQL();
+                  }
+                }
+              });
           }
 
           function createTableTab(id, label) {
@@ -312,6 +366,44 @@
                 tables[tabId].getIndexesDetails(record.indexName);
               });
               
+              tabs[tabId].addColumnsReloadButtonClickedEventListener(function(tab){
+                tables[tabId].getColumns();
+              });
+
+              tabs[tabId].addDataReloadButtonClickedEventListener(function(tab){
+                tables[tabId].getData();
+              });
+
+              tabs[tabId].addConstraintsReloadButtonClickedEventListener(function(tab){
+                tables[tabId].getConstraints();
+              });
+
+              tabs[tabId].addGrantsReloadButtonClickedEventListener(function(tab){
+                tables[tabId].getGrants();
+              });
+
+              tabs[tabId].addStatisticsReloadButtonClickedEventListener(function(tab){
+                tables[tabId].getStatistics();
+                tables[tabId].getStatisticsDetails();
+              });
+
+              tabs[tabId].addTriggersReloadButtonClickedEventListener(function(tab){
+                tables[tabId].getTriggers();
+              });
+
+              tabs[tabId].addDependenciesReloadButtonClickedEventListener(function(tab){
+                tables[tabId].getDependencies();
+                tables[tabId].getDependenciesDetails();
+              });
+
+              tabs[tabId].addIndexesReloadButtonClickedEventListener(function(tab){
+                tables[tabId].getIndexes();
+              });
+
+              tabs[tabId].addSQLReloadButtonClickedEventListener(function(tab){
+                tables[tabId].getSQL();
+              });
+
               function onColumnsAvailable(result, tabId){
                 tabs[tabId].getColumnsGrid().records = result;
                 tabs[tabId].getColumnsGrid().refresh();
@@ -470,8 +562,8 @@
                 schema.addPublicDatabaseLinksAvailableEventListener(onPublicDatabaseLinksAvailable);
                 schema.addDirectoriesAvailableEventListener(onDirectoriesAvailable);
                 navigationTree.insert(connectionId, null, [
-                                            {id: connectionId + '-tables', text: 'Tables', icon: 'tables_icon', nodeType: DatabaseNavNodeType.TABLES_FOLDER},
-                                            {id: connectionId + '-views', text: 'Views', icon: 'view_icon', nodeType: DatabaseNavNodeType.VIEWS_FOLDER},
+                                            {id: connectionId + '-tables', text: 'Tables', icon: 'tables_folder_icon', nodeType: DatabaseNavNodeType.TABLES_FOLDER},
+                                            {id: connectionId + '-views', text: 'Views', icon: 'views_folder_icon', nodeType: DatabaseNavNodeType.VIEWS_FOLDER},
                                             {id: connectionId + '-indexes', text: 'Indexes', icon: 'index_icon', nodeType: DatabaseNavNodeType.INDEXES_FOLDER},
                                             {id: connectionId + '-mviews', text: 'Materialized Views', icon: 'mview_icon', nodeType: DatabaseNavNodeType.MVIEWS_FOLDER},
                                             {id: connectionId + '-procedures', text: 'Procedures', icon: 'procedure_icon', nodeType: DatabaseNavNodeType.PROCEDURES_FOLDER},

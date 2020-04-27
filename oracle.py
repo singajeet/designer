@@ -832,9 +832,52 @@ class DatabaseTableServer(Namespace):
                     SYS.user_col_comments
                 WHERE
                     table_name='%s'
-                    AND comments is not null
+                    AND comments IS NOT NULL
                 """ % table_name
         cursor.execute(query)
         for result in cursor:
             sql += '  ' + result[0] + '\n'
+        # ########## Get comments on table if available ##########
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    'COMMENT ON TABLE ' ||
+                    '"' || sys_context( 'userenv', 'current_schema' ) ||
+                                    '"."' || table_name ||
+                                    '" IS ''' || comments || ''';'
+                FROM
+                    SYS.user_tab_comments
+                WHERE
+                    table_name='%s'
+                    AND comments IS NOT NULL
+                """ % table_name
+        cursor.execute(query)
+        for result in cursor:
+            sql += '  ' + result[0] + '\n'
+        # ########## Get indexes if available #################
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    to_char(dbms_metadata.get_ddl('INDEX', index_name))
+                FROM
+                    SYS.user_indexes
+                WHERE
+                    table_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        for result in cursor:
+            sql += result[0] + '\n'
+        # ########## Get Triggers if available ##############
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    to_char(dbms_metadata.get_ddl('TRIGGER', trigger_name))
+                FROM
+                    SYS.user_triggers
+                WHERE
+                    table_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        for result in cursor:
+            sql += result[0] + '\n'
         emit('sql_result', sql, namespace=self._namespace_url)

@@ -325,12 +325,32 @@
     content:url('/static/icons/association1MD.png');
 }
 
-.tables_icon {
-    content: url('/static/icons/table_and_list.png')
+.tables_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.tables_folder_icon::after {
+    content: url('/static/icons/table.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
 }
 
 .table_icon {
     content: url('/static/icons/table.png')
+}
+
+.views_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.views_folder_icon::after {
+    content: url('/static/icons/view.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
 }
 
 .view_icon {
@@ -467,6 +487,14 @@
 
 .disconnect_icon {
     content: url('/static/icons/noaccess.png');
+}
+
+.refresh_icon {
+    content: url('/static/icons/refresh.png');
+}
+
+.edit_icon {
+    content: url('/static/icons/edit.png');
 }
 
 div.menu {
