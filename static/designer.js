@@ -14747,3 +14747,296 @@ var DatabaseTable = Class.create({
     this.socket.emit('get_sql', this.tableName);
   }
 });
+
+/**
+ * DatabaseView: This class represents an view in database and interacts with
+ *  websocket calls to get view details
+ * @constructor
+ * @param {string} viewName - Name of the view in database
+ */
+var DatabaseView = Class.create({
+  viewName: null,
+  socket: null,
+  tabId: null,
+  columnsAvailableEventListeners: [],
+  columnHeadersAvailableEventListeners: [],
+  dataAvailableEventListeners: [],
+  grantsAvailableEventListeners: [],
+  triggersAvailableEventListeners: [],
+  triggerBodyAvailableEventListeners: [],
+  dependenciesAvailableEventListeners: [],
+  dependenciesDetailsAvailableEventListeners: [],
+  detailsAvailableEventListeners: [],
+  sqlAvailableEventListeners: [],
+  errorsAvailableEventListeners: [],
+  initialize: function(viewName, tabId) {
+    this.viewName = viewName;
+    this.tabId = tabId;
+    this.socket = io('/oracle_db_view');
+    this.columnsAvailableEventListeners = [];
+    this.columnHeadersAvailableEventListeners = [];
+    this.dataAvailableEventListeners = [];
+    this.grantsAvailableEventListeners = [];
+    this.triggersAvailableEventListeners = [];
+    this.triggerBodyAvailableEventListeners = [];
+    this.dependenciesAvailableEventListeners = [];
+    this.dependenciesDetailsAvailableEventListeners = [];
+    this.detailsAvailableEventListeners = [];
+    this.sqlAvailableEventListeners = [];
+    this.errorsAvailableEventListeners = [];
+  },
+  addColumnsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.columnsAvailableEventListeners.push(listener);
+    }
+  },
+  addColumnHeadersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.columnHeadersAvailableEventListeners.push(listener);
+    }
+  },
+  addDataAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dataAvailableEventListeners.push(listener);
+    }
+  },
+  addGrantsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.grantsAvailableEventListeners.push(listener);
+    }
+  },
+  addTriggersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.triggersAvailableEventListeners.push(listener);
+    }
+  },
+  addTriggerBodyAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.triggerBodyAvailableEventListeners.push(listener);
+    }
+  },
+  addDependenciesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesAvailableEventListeners.push(listener);
+    }
+  },
+  addDependenciesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesDetailsAvailableEventListeners.push(listener);
+    }
+  },
+  addDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsAvailableEventListeners.push(listener);
+    }
+  },
+  addSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlAvailableEventListeners.push(listener);
+    }
+  },
+  addErrorsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.errorsAvailableEventListeners.push(listener);
+    }
+  },
+  removeColumnsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.columnsAvailableEventListeners.indexOf(listener);
+      this.columnsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeColumnHeadersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.columnHeadersAvailableEventListeners.indexOf(listener);
+      this.columnHeadersAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDataAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dataAvailableEventListeners.indexOf(listener);
+      this.dataAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeGrantsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.grantsAvailableEventListeners.indexOf(listener);
+      this.grantsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeTriggersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.triggersAvailableEventListeners.indexOf(listener);
+      this.triggersAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeTriggerBodyAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.triggerBodyAvailableEventListeners.indexOf(listener);
+      this.triggerBodyAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDependenciesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesAvailableEventListeners.indexOf(listener);
+      this.dependenciesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDependenciesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesDetailsAvailableEventListeners.indexOf(listener);
+      this.dependenciesDetailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsAvailableEventListeners.indexOf(listener);
+      this.detailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlAvailableEventListeners.indexOf(listener);
+      this.sqlAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeErrorsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.errorsAvailableEventListeners.indexOf(listener);
+      this.errorsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireColumnsAvailableEvent: function(result) {
+    var that = this;
+    this.columnsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireColumnHeadersAvailableEvent: function(result) {
+    var that = this;
+    this.columnHeadersAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+    this.socket.emit('get_data', this.viewName);
+  },
+  fireDataAvailableEvent: function(result) {
+    var that = this;
+    this.dataAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireGrantsAvailableEvent: function(result) {
+    var that = this;
+    this.grantsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireTriggersAvailableEvent: function(result) {
+    var that = this;
+    this.triggersAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireTriggerBodyAvailableEvent: function(result) {
+    var that = this;
+    this.triggerBodyAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDependenciesAvailableEvent: function(result) {
+    var that = this;
+    this.dependenciesAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDependenciesDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.dependenciesDetailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.detailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireSQLAvailableEvent: function(result) {
+    var that = this;
+    this.sqlAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireErrorsAvailableEvent: function(result) {
+    var that = this;
+    this.errorsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  getColumns: function() {
+    var that = this;
+    this.socket.on('columns_result', function(result){
+      that.fireColumnsAvailableEvent(result);
+    });
+    this.socket.emit('get_columns', this.viewName);
+  },
+  getData: function() {
+    var that = this;
+    this.socket.on('column_headers_result', function(result){
+      that.fireColumnHeadersAvailableEvent(result);
+    });
+    this.socket.on('data_result', function(result){
+      that.fireDataAvailableEvent(result);
+    });
+    this.socket.emit('get_column_headers', this.viewName);
+  },
+  getGrants: function() {
+    var that = this;
+    this.socket.on('grants_result', function(result){
+      that.fireGrantsAvailableEvent(result);
+    });
+    this.socket.emit('get_grants', this.viewName);
+  },
+  getTriggers: function() {
+    var that = this;
+    this.socket.on('triggers_result', function(result){
+      that.fireTriggersAvailableEvent(result);
+    });
+    this.socket.emit('get_triggers', this.viewName);
+  },
+  getTriggerBody: function(triggerName) {
+    var that = this;
+    this.socket.on('trigger_body_result', function(result){
+      that.fireTriggerBodyAvailableEvent(result);
+    });
+    this.socket.emit('get_trigger_body', triggerName);
+  },
+  getDependencies: function() {
+    var that = this;
+    this.socket.on('dependencies_result', function(result){
+      that.fireDependenciesAvailableEvent(result);
+    });
+    this.socket.emit('get_dependencies', this.viewName);
+  },
+  getDependenciesDetails: function() {
+    var that = this;
+    this.socket.on('dependencies_details_result', function(result){
+      that.fireDependenciesDetailsAvailableEvent(result);
+    });
+    this.socket.emit('get_dependencies_details', this.viewName);
+  },
+  getSQL: function() {
+    var that = this;
+    this.socket.on('sql_result', function(result){
+      that.fireSQLAvailableEvent(result);
+    });
+    this.socket.emit('get_sql', this.viewName);
+  },
+  getErrors: function() {
+    var that = this;
+    this.socket.on('errors_result', function(result){
+      that.fireErrorsAvailableEvent(result);
+    });
+    this.socket.emit('get_errors', this.viewName);
+  }
+});

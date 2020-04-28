@@ -127,7 +127,7 @@ var TableTabUI = Class.create({
                             "   <div id='" + this.id + "-table-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
                             "   <div style='width: 100%; height: 2px'></div>" +
                             "   <div id='" + this.id + "-table-sql-editor' style='width: 100%; height: 96%;'></div>" + 
-                            " </div>"
+                            " </div>" +
                             "</div>";
         return this.mainContent;
 	},
@@ -966,6 +966,7 @@ var ViewTabUI = Class.create({
   dependenciesDetailsGrid: null,
   sqlEditor: null,
   sqlEditorToolbar: null,
+  errorsGrid: null,
   triggersGridClickedEventListeners: [],
   dependenciesGridClickedEventListeners: [],
   columnsReloadButtonClickedEventListeners: [],
@@ -974,6 +975,7 @@ var ViewTabUI = Class.create({
   triggersReloadButtonClickedEventListeners: [],
   dependenciesReloadButtonClickedEventListeners: [],
   sqlReloadButtonClickedEventListeners: [],
+  errorsReloadButtonClickedEventListeners: [],
   initialize: function(id, label) {
     this.id = id;
     this.label = label;
@@ -987,6 +989,7 @@ var ViewTabUI = Class.create({
     this.dependenciesDetailsGrid = null;
     this.sqlEditor = null;
     this.sqlEditorToolbar = null;
+    this.errorsGrid = null;
     this.triggersGridClickedEventListeners = [];
     this.dependenciesGridClickedEventListeners = [];
     this.columnsReloadButtonClickedEventListeners = [];
@@ -995,6 +998,7 @@ var ViewTabUI = Class.create({
     this.triggersReloadButtonClickedEventListeners = [];
     this.dependenciesReloadButtonClickedEventListeners = [];
     this.sqlReloadButtonClickedEventListeners = [];
+    this.errorsReloadButtonClickedEventListeners = [];
   },
   getId: function() {
     return this.id;
@@ -1011,6 +1015,7 @@ var ViewTabUI = Class.create({
                             "   <li><a href='#" + this.id + "-view-triggers-grid'>Triggers</a></li>" +
                             "   <li><a href='#" + this.id + "-view-dependencies-grid'>Dependencies</a></li>" +
                             "   <li><a href='#" + this.id + "-view-sql-editor-layout'>SQL</a></li>" +
+                            "   <li><a href='#" + this.id + "-view-errors-grid'>Errors</a></li>" +
                             " </ul>" +
                             " <div id='" + this.id + "-view-columns-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
                             " <div id='" + this.id + "-view-data-grid' tabname='data' style='width: 100%; height: 93%;'></div>" +
@@ -1027,7 +1032,8 @@ var ViewTabUI = Class.create({
                             "   <div id='" + this.id + "-view-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
                             "   <div style='width: 100%; height: 2px'></div>" +
                             "   <div id='" + this.id + "-view-sql-editor' style='width: 100%; height: 96%;'></div>" + 
-                            " </div>"
+                            " </div>" +
+                            " <div id='" + this.id + "-view-errors-grid' tabname='errors' style='width: 100%; height: 93%;'></div>" +
                             "</div>";
         return this.mainContent;
   },
@@ -1057,7 +1063,10 @@ var ViewTabUI = Class.create({
                                     {field: 'nullable', caption: 'Nullable', size: '70px'},
                                     {field: 'dataDefault', caption: 'Data Default', size: '100px'},
                                     {field: 'columnId', caption: 'Column ID', size: '80px'},
-                                    {field: 'comments', caption: 'Comments', size: '100%'}
+                                    {field: 'comments', caption: 'Comments', size: '100%'},
+                                    {field: 'insertable', caption: 'Insertable', size: '100%'},
+                                    {field: 'updatable', caption: 'Updatable', size: '100%'},
+                                    {field: 'deletable', caption: 'Deletable', size: '100%'}
                                   ],
                                   onReload: function(event) {
                                     that.fireColumnsReloadButtonClickedEvent();
@@ -1159,7 +1168,7 @@ var ViewTabUI = Class.create({
                                         {field: 'triggerOwner', caption: 'Trigger Owner', size: '150px'},
                                         {field: 'triggeringEvent', caption: 'Triggering Event', size: '150px'},
                                         {field: 'status', caption: 'Status', size: '150px'},
-                                        {field: 'tableName', caption: 'Table Name', size: '150px'}
+                                        {field: 'viewName', caption: 'View Name', size: '150px'}
                                       ],
                                       onClick: function(event) {
                                         var record = this.get(event.recid);
@@ -1297,6 +1306,40 @@ var ViewTabUI = Class.create({
   getSQLEditor: function() {
     return this.sqlEditor;
   },
+  createErrorsGrid: function() {
+    var that = this;
+    if(this.errorsGrid === null) {
+      this.errorsGrid = $j('#' + this.id + '-view-errors-grid')
+                              .w2grid({
+                                      name: this.id + '-view-errors-properties',
+                                      header: this.label + ' - Errors',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'attribute', caption: 'Attribute', size: '150px'},
+                                        {field: 'linePosition', caption: 'Line : Position', size: '150px'},
+                                        {field: 'text', caption: 'Text', size: '150px'}
+                                      ],
+                                      onReload: function(event) {
+                                        that.fireErrorsReloadButtonClickedEvent();
+                                      }
+                                    });
+    }
+  },
+  isErrorsGridCreated: function() {
+    if(this.errorsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getErrorsGrid: function() {
+    return this.errorsGrid;
+  },
   addTabsBeforeActivateEventListener: function(listener) {
     $j('#' + this.id + '-view-info-tabs').on('tabsbeforeactivate', listener);
   },
@@ -1325,5 +1368,179 @@ var ViewTabUI = Class.create({
     if(this.sqlEditor !== null) {
       this.sqlEditor.destroy();
     }
+    if(this.errorsGrid !== null) {
+      this.errorsGrid.destroy();
+    }
   },
+  addTriggersGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.triggersGridClickedEventListeners.push(listener);
+    }
+  },
+  removeTriggersGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.triggersGridClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.triggersGridClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireTriggersGridClickedEvent: function(record) {
+    var that = this;
+    this.triggersGridClickedEventListeners.forEach(function(listener){
+      listener(record, that);
+    });
+  },
+  addDependenciesGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesGridClickedEventListeners.push(listener);
+    }
+  },
+  removeDependenciesGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesGridClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.dependenciesGridClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDependenciesGridClickedEvent: function(record) {
+    var that = this;
+    this.dependenciesGridClickedEventListeners.forEach(function(listener){
+      listener(record, that);
+    });
+  },
+  addColumnsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.columnsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeColumnsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.columnsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.columnsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireColumnsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.columnsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addDataReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dataReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDataReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dataReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.dataReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDataReloadButtonClickedEvent: function() {
+    var that = this;
+    this.dataReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addGrantsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.grantsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeGrantsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.grantsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.grantsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireGrantsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.grantsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addTriggersReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.triggersReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeTriggersReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.triggersReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.triggersReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireTriggersReloadButtonClickedEvent: function() {
+    var that = this;
+    this.triggersReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addDependenciesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDependenciesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.dependenciesReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDependenciesReloadButtonClickedEvent: function() {
+    var that = this;
+    this.dependenciesReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.sqlReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireSQLReloadButtonClickedEvent: function() {
+    var that = this;
+    this.sqlReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addErrorsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.errorsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeErrorsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.errorsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.errorsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireErrorsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.errorsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  }
 });

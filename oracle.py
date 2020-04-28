@@ -881,3 +881,370 @@ class DatabaseTableServer(Namespace):
         for result in cursor:
             sql += result[0] + '\n'
         emit('sql_result', sql, namespace=self._namespace_url)
+
+
+class DatabaseViewServer(Namespace):
+    """Class to interact with the database view available under schema
+        provided as parameter to the class
+    """
+
+    _socket_io = None
+    _schema_name = None
+    _schema = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabaseTableServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db_view')
+        self._namespace_url = '/oracle_db_view'
+        self._socket_io = socket_io
+        self._schema = schema
+        self._db_connection = self._schema.get_connection()
+        self._schema_name = self._schema.get_schema_name()
+        socket_io.on_namespace(self)
+
+    def on_get_columns(self, view_name):
+        """For internal use only: will be called when 'get_columns' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    a.column_name,
+                    CASE
+                        WHEN a.data_type IN ('VARCHAR2', 'CHAR', 'VARCHAR')
+                            THEN a.data_type || '(' || a.data_length || ' ' || decode(a.char_used, 'B', 'BYTE', 'C', 'CHAR', a.char_used) || ')'
+                        ELSE a.data_type
+                    END AS data_type,
+                    a.nullable,
+                    a.data_default,
+                    a.column_id,
+                    c.comments,
+                    b.insertable,
+                    b.updatable,
+                    b.deletable
+                FROM
+                    SYS.all_tab_cols a,
+                    SYS.user_updatable_columns b,
+                    SYS.user_col_comments c
+                WHERE
+                    a.table_name = b.table_name (+)
+                    AND a.column_name = b.column_name (+)
+                    AND a.table_name = c.table_name (+)
+                    AND a.column_name = c.column_name (+)
+                    AND a.table_name='%s'
+                ORDER BY a.column_id
+                """ % view_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'columnName': result[1],
+                                 'dataType': result[2],
+                                 'nullable': result[3],
+                                 'dataDefault': result[4],
+                                 'columnId': result[5],
+                                 'comments': result[6],
+                                 'insertable': result[7],
+                                 'updatable': result[8],
+                                 'deletable': result[9]})
+        emit('columns_result', result_array, namespace=self._namespace_url)
+
+    def on_get_column_headers(self, view_name):
+        """For internal use only: will be called when 'get_column_headers' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT a.column_name
+                FROM SYS.user_tab_columns a
+                WHERE
+                    a.table_name='%s'
+                ORDER BY
+                    a.column_id
+                """ % view_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'field': result[0],
+                                 'caption': result[0],
+                                 'size': '100px'})
+        emit('column_headers_result', result_array, namespace=self._namespace_url)
+
+    def on_get_data(self, view_name):
+        """For internal use only: will be called when 'get_data' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT a.column_name
+                FROM SYS.user_tab_columns a
+                WHERE
+                    a.table_name='%s'
+                ORDER BY
+                    a.column_id
+                """ % view_name
+        cursor.execute(query)
+        column_headers = []
+        for result in cursor:
+            column_headers.append(result[0])
+        header_string = 'ROWNUM'
+        for header in column_headers:
+            header_string += ', ' + header
+        query = """
+                SELECT %s
+                FROM %s
+                """ % (header_string, view_name)
+        cursor = db_conn.cursor()
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            row = {}
+            for i in range(0, column_headers.__len__() + 1):
+                if i == 0:
+                    row['recid'] = result[i]
+                else:
+                    row[column_headers[i - 1]] = str(result[i])
+            result_array.append(row)
+        emit('data_result', result_array, namespace=self._namespace_url)
+
+    def on_get_grants(self, view_name):
+        """For internal use only: will be called when 'get_grants' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    privilege,
+                    grantee,
+                    grantable,
+                    grantor,
+                    table_name
+                FROM
+                    SYS.user_tab_privs
+                WHERE
+                    table_name='%s'
+                """ % view_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'privilege': result[1],
+                                 'grantee': result[2],
+                                 'grantable': result[3],
+                                 'grantor': result[4],
+                                 'objectName': result[5]
+                                 })
+        emit('grants_result', result_array, namespace=self._namespace_url)
+
+    def on_get_triggers(self, view_name):
+        """For internal use only: will be called when 'get_triggers' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    trigger_name,
+                    trigger_type,
+                    table_owner as trigger_owner,
+                    triggering_event,
+                    status,
+                    table_name
+                FROM
+                    SYS.user_triggers
+                WHERE
+                    table_name='%s'
+                """ % view_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'triggerName': result[1],
+                                 'triggerType': result[2],
+                                 'triggerOwner': result[3],
+                                 'triggeringEvent': result[4],
+                                 'status': result[5],
+                                 'viewName': result[6]
+                                 })
+        emit('triggers_result', result_array, namespace=self._namespace_url)
+
+    def on_get_trigger_body(self, trigger_name):
+        """For internal use only: will be called when 'get_trigger_body' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    text
+                FROM
+                    SYS.user_source
+                WHERE
+                    name='%s'
+                    AND type='TRIGGER'
+                ORDER BY line
+                """ % trigger_name
+        cursor.execute(query)
+        result_string = ""
+        for result in cursor:
+            result_string += result[0]
+        emit('trigger_body_result', result_string, namespace=self._namespace_url)
+
+    def on_get_dependencies(self, view_name):
+        """For internal use only: will be called when 'get_dependencies' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    name,
+                    type,
+                    referenced_owner,
+                    referenced_name,
+                    referenced_type
+                FROM
+                    SYS.user_dependencies
+                WHERE
+                    referenced_name='%s'
+                """ % view_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'type': result[2],
+                                 'referencedOwner': result[3],
+                                 'referencedName': result[4],
+                                 'referencedType': result[5]
+                                 })
+        emit('dependencies_result', result_array, namespace=self._namespace_url)
+
+    def on_get_dependencies_details(self, view_name):
+        """For internal use only: will be called when 'get_dependencies_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    name,
+                    type,
+                    referenced_owner,
+                    referenced_name,
+                    referenced_type
+                FROM
+                    SYS.user_dependencies
+                WHERE
+                    name='%s'
+                """ % view_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'type': result[2],
+                                 'referencedOwner': result[3],
+                                 'referencedName': result[4],
+                                 'referencedType': result[5]
+                                 })
+        emit('dependencies_details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_sql(self, table_name):
+        """For internal use only: will be called when 'get_sql' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        sql = ""
+        # ########### Get DDL of view ###############
+        cursor = db_conn.cursor()
+        query = """
+                SELECT to_char(dbms_metadata.get_ddl('VIEW', '%s')) FROM dual
+                """ % table_name
+        cursor.execute(query)
+        for result in cursor:
+            sql = result[0]
+        sql += ';\n\n'
+        # ########## Get comments on columns if available ##########
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    'COMMENT ON COLUMN ' ||
+                    '"' || sys_context( 'userenv', 'current_schema' ) ||
+                    '"."' || table_name ||
+                    '"."' || column_name ||
+                    '" IS ''' || comments || ''';'
+                FROM
+                    SYS.user_col_comments
+                WHERE
+                    table_name='%s'
+                    AND comments IS NOT NULL
+                """ % table_name
+        cursor.execute(query)
+        for result in cursor:
+            sql += '  ' + result[0] + '\n'
+        # ########## Get comments on view if available ##########
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    'COMMENT ON TABLE ' ||
+                    '"' || sys_context( 'userenv', 'current_schema' ) ||
+                                    '"."' || table_name ||
+                                    '" IS ''' || comments || ''';'
+                FROM
+                    SYS.user_tab_comments
+                WHERE
+                    table_name='%s'
+                    AND comments IS NOT NULL
+                """ % table_name
+        cursor.execute(query)
+        for result in cursor:
+            sql += '  ' + result[0] + '\n'
+        # ########## Get Triggers if available ##############
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    to_char(dbms_metadata.get_ddl('TRIGGER', trigger_name))
+                FROM
+                    SYS.user_triggers
+                WHERE
+                    table_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        for result in cursor:
+            sql += result[0] + '\n'
+        emit('sql_result', sql, namespace=self._namespace_url)
+
+    def on_get_errors(self, view_name):
+        """For internal use only: will be called when 'get_errors' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    attribute,
+                    line || ':' || position,
+                    text
+                FROM
+                    SYS.user_errors
+                WHERE
+                    name='%s'
+                """ % view_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'attribute': result[1],
+                                 'linePosition': result[2],
+                                 'text': result[3]
+                                 })
+        emit('errors_result', result_array, namespace=self._namespace_url)
