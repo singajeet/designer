@@ -159,7 +159,37 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT object_name FROM SYS.user_procedures WHERE object_type='PROCEDURE'")
+        # ########## Get Oracle Version ################
+        version_str = ""
+        query = "SELECT version FROM PRODUCT_COMPONENT_VERSION WHERE product LIKE '%Oracle%'"
+        cursor.execute(query)
+        for result in cursor:
+            version_str = result[0]
+        version_array = version_str.split('.')
+        version = int(version_array[0])
+        # ######### Get Procedures ######################
+        if version <= 10:
+            query = """
+                    SELECT
+                        a.object_name
+                    FROM
+                        SYS.user_procedures a,
+                        SYS.user_objects b
+                    WHERE
+                        a.object_name = b.object_name
+                        AND b.object_type='PROCEDURE'
+                    """
+        else:
+            query = """
+                    SELECT
+                        object_name
+                    FROM
+                        SYS.user_procedures
+                    WHERE
+                        object_type='PROCEDURE'
+                    """
+        cursor = db_conn.cursor()
+        cursor.execute(query)
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -170,7 +200,37 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT object_name FROM SYS.user_procedures WHERE object_type='FUNCTION'")
+        # ########## Get Oracle Version ################
+        version_str = ""
+        query = "SELECT version FROM PRODUCT_COMPONENT_VERSION WHERE product LIKE '%Oracle%'"
+        cursor.execute(query)
+        for result in cursor:
+            version_str = result[0]
+        version_array = version_str.split('.')
+        version = int(version_array[0])
+        # ######### Get Functions ######################
+        if version <= 10:
+            query = """
+                    SELECT
+                        a.object_name
+                    FROM
+                        SYS.user_procedures a,
+                        SYS.user_objects b
+                    WHERE
+                        a.object_name = b.object_name
+                        AND b.object_type='FUNCTION'
+                    """
+        else:
+            query = """
+                    SELECT
+                        object_name
+                    FROM
+                        SYS.user_procedures
+                    WHERE
+                        object_type='FUNCTION'
+                    """
+        cursor = db_conn.cursor()
+        cursor.execute(query)
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -181,7 +241,37 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT object_name FROM SYS.user_procedures WHERE object_type='PACKAGE'")
+        # ########## Get Oracle Version ################
+        version_str = ""
+        query = "SELECT version FROM PRODUCT_COMPONENT_VERSION WHERE product LIKE '%Oracle%'"
+        cursor.execute(query)
+        for result in cursor:
+            version_str = result[0]
+        version_array = version_str.split('.')
+        version = int(version_array[0])
+        # ######### Get Functions ######################
+        if version <= 10:
+            query = """
+                    SELECT
+                        a.object_name
+                    FROM
+                        SYS.user_procedures a,
+                        SYS.user_objects b
+                    WHERE
+                        a.object_name = b.object_name
+                        AND b.object_type='PACKAGE'
+                    """
+        else:
+            query = """
+                    SELECT
+                        object_name
+                    FROM
+                        SYS.user_procedures
+                    WHERE
+                        object_type='PACKAGE'
+                    """
+        cursor = db_conn.cursor()
+        cursor.execute(query)
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -433,10 +523,10 @@ class DatabaseTableServer(Namespace):
                     a.index_name,
                     a.invalid,
                     a.view_related
-                FROM 
-                    SYS.user_constraints a, 
+                FROM
+                    SYS.user_constraints a,
                     SYS.user_constraints b
-                WHERE 
+                WHERE
                     a.r_constraint_name = b.constraint_name(+)
                     AND a.table_name='%s'
                 """ % table_name
@@ -715,7 +805,18 @@ class DatabaseTableServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        query = """
+        # ########## Get Oracle Version ################
+        version_str = ""
+        query = "SELECT version FROM PRODUCT_COMPONENT_VERSION WHERE product LIKE '%Oracle%'"
+        cursor.execute(query)
+        for result in cursor:
+            version_str = result[0]
+        version_array = version_str.split('.')
+        version = int(version_array[0])
+        # ######### Get Indexes based on version #####################
+        cursor = db_conn.cursor()
+        if version <= 10:
+            query = """
                 SELECT
                     ROWNUM,
                     a.index_name,
@@ -727,21 +828,46 @@ class DatabaseTableServer(Namespace):
                     a.funcidx_status,
                     a.join_index,
                     b.columns
-                FROM 
+                FROM
                     SYS.user_indexes a,
                     (SELECT
                         index_name,
-                        LISTAGG(column_name,', ') 
-                            WITHIN GROUP 
-                            (ORDER BY index_name) 
-                        AS columns 
-                    FROM 
+                        rtrim(xmlagg(xmlelement(e, column_name ||', ')).extract('//text()'), ', ') AS columns
+                    FROM
                         SYS.user_ind_columns
                     GROUP BY index_name) b
                 WHERE
                     a.index_name = b.index_name
                     AND a.table_name='%s'
                 """ % table_name
+        else:
+            query = """
+                    SELECT
+                        ROWNUM,
+                        a.index_name,
+                        a.uniqueness,
+                        a.status,
+                        a.index_type,
+                        a.temporary,
+                        a.partitioned,
+                        a.funcidx_status,
+                        a.join_index,
+                        b.columns
+                    FROM
+                        SYS.user_indexes a,
+                        (SELECT
+                            index_name,
+                            LISTAGG(column_name,', ')
+                                WITHIN GROUP
+                                (ORDER BY index_name)
+                            AS columns
+                        FROM
+                            SYS.user_ind_columns
+                        GROUP BY index_name) b
+                    WHERE
+                        a.index_name = b.index_name
+                        AND a.table_name='%s'
+                    """ % table_name
         cursor.execute(query)
         result_array = []
         for result in cursor:
@@ -1317,7 +1443,7 @@ class DatabaseIndexServer(Namespace):
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
         query = """
-                SELECT ROWNUM, a.* 
+                SELECT ROWNUM, a.*
                 FROM
                 (
                     SELECT 'INDEX_NAME', INDEX_NAME FROM SYS.user_ind_statistics WHERE index_name='{0}'

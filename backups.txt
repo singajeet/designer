@@ -122,7 +122,7 @@ var socket = io('/oracle_db_table');
                   }
                 }
               });
-              
+
               socket.on('columns_result', function(result){
                 w2ui[id + '-table-columns-properties'].records = result;
                 w2ui[id + '-table-columns-properties'].refresh();
@@ -149,3 +149,10 @@ var socket = io('/oracle_db_table');
                 w2ui[id + '-table-grants-properties'].records = result;
                 w2ui[id + '-table-grants-properties'].refresh();
               });
+
+              SELECT
+                        index_name,
+                        rtrim(xmlagg(xmlelement(e, column_name ||', ')).extract('//text()'), ', ') AS columns
+                   FROM
+                        SYS.all_ind_columns WHERE table_name='EMPLOYEES'
+                    GROUP BY index_name
