@@ -15040,3 +15040,98 @@ var DatabaseView = Class.create({
     this.socket.emit('get_errors', this.viewName);
   }
 });
+
+/**
+ * DatabaseIndex: This class represents an index in database and interacts with
+ *  websocket calls to get index details
+ * @constructor
+ * @param {string} indexName - Name of the index in database
+ */
+var DatabaseIndex = Class.create({
+  indexName: null,
+  socket: null,
+  tabId: null,
+  columnsAvailableEventListeners: [],
+  statisticsAvailableEventListeners: [],
+  sqlAvailableEventListeners: [],
+  initialize: function(indexName, tabId) {
+    this.indexName = indexName;
+    this.tabId = tabId;
+    this.socket = io('/oracle_db_index');
+    this.columnsAvailableEventListeners = [];
+    this.statisticsAvailableEventListeners = [];
+    this.sqlAvailableEventListeners = [];
+  },
+  addColumnsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.columnsAvailableEventListeners.push(listener);
+    }
+  },
+  addStatisticsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.statisticsAvailableEventListeners.push(listener);
+    }
+  },
+  addSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlAvailableEventListeners.push(listener);
+    }
+  },
+  removeColumnsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.columnsAvailableEventListeners.indexOf(listener);
+      this.columnsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeStatisticsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.statisticsAvailableEventListeners.indexOf(listener);
+      this.statisticsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlAvailableEventListeners.indexOf(listener);
+      this.sqlAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireColumnsAvailableEvent: function(result) {
+    var that = this;
+    this.columnsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireStatisticsAvailableEvent: function(result) {
+    var that = this;
+    this.statisticsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireSQLAvailableEvent: function(result) {
+    var that = this;
+    this.sqlAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  getColumns: function() {
+    var that = this;
+    this.socket.on('columns_result', function(result){
+      that.fireColumnsAvailableEvent(result);
+    });
+    this.socket.emit('get_columns', this.indexName);
+  },
+  getStatistics: function() {
+    var that = this;
+    this.socket.on('statistics_result', function(result){
+      that.fireStatisticsAvailableEvent(result);
+    });
+    this.socket.emit('get_statistics', this.indexName);
+  },
+  getSQL: function() {
+    var that = this;
+    this.socket.on('sql_result', function(result){
+      that.fireSQLAvailableEvent(result);
+    });
+    this.socket.emit('get_sql', this.indexName);
+  }
+});

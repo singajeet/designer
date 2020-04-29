@@ -1248,3 +1248,144 @@ class DatabaseViewServer(Namespace):
                                  'text': result[3]
                                  })
         emit('errors_result', result_array, namespace=self._namespace_url)
+
+
+class DatabaseIndexServer(Namespace):
+    """Class to interact with the database index available under schema
+        provided as parameter to the class
+    """
+
+    _socket_io = None
+    _schema_name = None
+    _schema = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabaseIndexServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db_index')
+        self._namespace_url = '/oracle_db_index'
+        self._socket_io = socket_io
+        self._schema = schema
+        self._db_connection = self._schema.get_connection()
+        self._schema_name = self._schema.get_schema_name()
+        socket_io.on_namespace(self)
+
+    def on_get_columns(self, index_name):
+        """For internal use only: will be called when 'get_columns' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    a.index_name,
+                    a.table_owner,
+                    a.table_name,
+                    b.column_name,
+                    b.column_position,
+                    b.descend
+                FROM
+                    SYS.user_indexes a,
+                    SYS.user_ind_columns b
+                WHERE
+                    a.index_name = b.index_name (+)
+                    AND a.table_name = b.table_name (+)
+                    AND a.index_name='%s'
+                """ % index_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'indexName': result[1],
+                                 'tableOwner': result[2],
+                                 'tableName': result[3],
+                                 'columnName': result[4],
+                                 'columnPosition': result[5],
+                                 'descend': result[6]})
+        emit('columns_result', result_array, namespace=self._namespace_url)
+
+    def on_get_statistics(self, index_name):
+        """For internal use only: will be called when 'get_statistics' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT ROWNUM, a.* 
+                FROM
+                (
+                    SELECT 'INDEX_NAME', INDEX_NAME FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'TABLE_OWNER', TABLE_OWNER FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'TABLE_NAME', TABLE_NAME FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'PARTITION_NAME', PARTITION_NAME FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'PARTITION_POSITION', to_char(PARTITION_POSITION) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'SUBPARTITION_NAME', SUBPARTITION_NAME FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'SUBPARTITION_POSITION', to_char(SUBPARTITION_POSITION) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'OBJECT_TYPE', OBJECT_TYPE FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'BLEVEL', to_char(BLEVEL)  FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'LEAF_BLOCKS', to_char(LEAF_BLOCKS) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'DISTINCT_KEYS', to_char(DISTINCT_KEYS) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'AVG_LEAF_BLOCKS_PER_KEY', to_char(AVG_LEAF_BLOCKS_PER_KEY) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'AVG_DATA_BLOCKS_PER_KEY', to_char(AVG_DATA_BLOCKS_PER_KEY) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'CLUSTERING_FACTOR', to_char(CLUSTERING_FACTOR) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'NUM_ROWS', to_char(NUM_ROWS) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'AVG_CACHED_BLOCKS', to_char(AVG_CACHED_BLOCKS) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'AVG_CACHE_HIT_RATIO', to_char(AVG_CACHE_HIT_RATIO) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'SAMPLE_SIZE', to_char(SAMPLE_SIZE) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'LAST_ANALYZED', to_char(LAST_ANALYZED) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'GLOBAL_STATS', to_char(GLOBAL_STATS) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'USER_STATS', to_char(USER_STATS) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'STATTYPE_LOCKED', to_char(STATTYPE_LOCKED) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                    UNION
+                    SELECT 'STALE_STATS', to_char(STALE_STATS) FROM SYS.user_ind_statistics WHERE index_name='{0}'
+                ) a
+                """.format(index_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'value': result[2]})
+        emit('statistics_result', result_array, namespace=self._namespace_url)
+
+    def on_get_sql(self, index_name):
+        """For internal use only: will be called when 'get_sql' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        sql = ""
+        # ########### Get DDL of table ###############
+        cursor = db_conn.cursor()
+        query = """
+                SELECT to_char(dbms_metadata.get_ddl('INDEX', '%s')) FROM dual
+                """ % index_name
+        cursor.execute(query)
+        for result in cursor:
+            sql = result[0]
+        emit('sql_result', sql, namespace=self._namespace_url)

@@ -43,8 +43,10 @@
           var tabs = {};
           var openedTabs = [];
           var openedViews = [];
+          var openedIndexes = [];
           var tables = {};
           var views = {};
+          var indexes = {};
 
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback,
             contextMenuCallback);
@@ -164,9 +166,13 @@
             index = openedViews.indexOf(tabId);
             openedViews.splice(index, 1);
 
+            index = openedIndexes.indexOf(tabId);
+            openedIndexes.splice(index, 1);
+
             delete tables[tabId];
             delete tabs[tabId];
             delete views[tabId];
+            delete indexes[tabId];
           }
 
           function createConnection(navigationTree, project) {
@@ -213,7 +219,7 @@
           }
 
           function removeSpecialChars(value) {
-            return value.replace('$', '');
+            return value.replace(/\$/g, '');
           }
 
           function itemSelectedCallback(navigationTree, item) {
@@ -230,6 +236,71 @@
                 createViewTab(id, item.node.text);
                 openedViews.push(id + '-view-tab');
               }
+            } else if(item.node.nodeType === DatabaseNavNodeType.INDEX) {
+              var index = openedIndexes.indexOf(id + '-index-tab');
+              if(index === -1){
+                createIndexTab(id, item.node.text);
+                openedIndexes.push(id + '-index-tab');
+              }
+            }
+          }
+
+          function createIndexTab(id, label) {
+            var tabId = id + '-index-tab';
+            indexes[tabId] = new DatabaseIndex(label, tabId);
+            tabs[tabId] = new IndexTabUI(id, label);
+
+            indexes[tabId].addColumnsAvailableEventListener(onColumnsAvailable);
+            indexes[tabId].addStatisticsAvailableEventListener(onStatisticsAvailable);
+            indexes[tabId].addSQLAvailableEventListener(onSQLAvailable);
+            
+            var content = tabs[tabId].getTabContent();
+            a.addTab(tabId, label, content, 'index_icon');
+            tabs[tabId].initTab();
+
+            tabs[tabId].createColumnsGrid();
+
+            tabs[tabId].addTabsBeforeActivateEventListener(function(event, ui){
+                var panel = ui.newPanel;
+                var name = panel.attr('tabname');
+                if(name === 'statistics') {
+                  if(!tabs[tabId].isStatisticsGridCreated()) {
+                    tabs[tabId].createStatisticsGrid();
+                    indexes[tabId].getStatistics();
+                  }
+                } else if(name === 'sql') {
+                  if(!tabs[tabId].isSQLEditorCreated()) {
+                    tabs[tabId].createSQLEditor();
+                    indexes[tabId].getSQL();
+                  }
+                }
+              });
+
+            tabs[tabId].addColumnsReloadButtonClickedEventListener(function(tab){
+              indexes[tabId].getColumns();
+            });
+
+            tabs[tabId].addStatisticsReloadButtonClickedEventListener(function(tab){
+              indexes[tabId].getStatistics();
+            });
+
+            tabs[tabId].addSQLReloadButtonClickedEventListener(function(tab){
+              indexes[tabId].getSQL();
+            });
+
+            function onColumnsAvailable(result, tabId){
+              tabs[tabId].getColumnsGrid().records = result;
+              tabs[tabId].getColumnsGrid().refresh();
+            }
+            indexes[tabId].getColumns();
+
+            function onStatisticsAvailable(result, tabId){
+              tabs[tabId].getStatisticsGrid().records = result;
+              tabs[tabId].getStatisticsGrid().refresh();
+            }
+
+            function onSQLAvailable(result, tabId){
+              tabs[tabId].getSQLEditor().setValue(result);
             }
           }
 
@@ -672,7 +743,7 @@
                 navigationTree.insert(connectionId, null, [
                                             {id: connectionId + '-tables', text: 'Tables', icon: 'tables_folder_icon', nodeType: DatabaseNavNodeType.TABLES_FOLDER},
                                             {id: connectionId + '-views', text: 'Views', icon: 'views_folder_icon', nodeType: DatabaseNavNodeType.VIEWS_FOLDER},
-                                            {id: connectionId + '-indexes', text: 'Indexes', icon: 'index_icon', nodeType: DatabaseNavNodeType.INDEXES_FOLDER},
+                                            {id: connectionId + '-indexes', text: 'Indexes', icon: 'indexes_folder_icon', nodeType: DatabaseNavNodeType.INDEXES_FOLDER},
                                             {id: connectionId + '-mviews', text: 'Materialized Views', icon: 'mview_icon', nodeType: DatabaseNavNodeType.MVIEWS_FOLDER},
                                             {id: connectionId + '-procedures', text: 'Procedures', icon: 'procedure_icon', nodeType: DatabaseNavNodeType.PROCEDURES_FOLDER},
                                             {id: connectionId + '-functions', text: 'Functions', icon: 'function_icon', nodeType: DatabaseNavNodeType.FUNCTIONS_FOLDER},

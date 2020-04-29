@@ -357,6 +357,18 @@
     content: url('/static/icons/view.png')
 }
 
+.indexes_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.indexes_folder_icon::after {
+    content: url('/static/icons/index.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
+}
+
 .index_icon {
     content: url('/static/icons/index.png')
 }
