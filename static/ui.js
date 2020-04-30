@@ -2340,3 +2340,409 @@ var MaterializedViewTabUI = Class.create({
     });
   }
 });
+
+/**
+ * PLSQLTabUI: Provides the user interface components to display details of an provided database procedures, functions, packages and package body
+ * @constructor
+ * @param {string} id - A unique id to create HTML content
+ * @param {string} label - Name of the procedures, functions, packages or package body to be shown as label in UI components
+ */
+var PLSQLTabUI = Class.create({
+  id: null,
+  label: null,
+  mainContent: null,
+  sqlEditor: null,
+  sqlEditorToolbar: null,
+  errorsGrid: null,
+  dependenciesGrid: null,
+  profilesGrid: null,
+  grantsGrid: null,
+  referencesGrid: null,
+  sqlReloadButtonClickedEventListeners: [],
+  errorsReloadButtonClickedEventListeners: [],
+  dependenciesReloadButtonClickedEventListeners: [],
+  profilesReloadButtonClickedEventListeners: [],
+  grantsReloadButtonClickedEventListeners: [],
+  referencesReloadButtonClickedEventListeners: [],
+  initialize: function(id, label) {
+    this.id = id;
+    this.label = label;
+    this.mainContent = "";
+    this.sqlEditor = null;
+    this.sqlEditorToolbar = null;
+    this.errorsGrid = null;
+    this.dependenciesGrid = null;
+    this.profilesGrid = null;
+    this.grantsGrid = null;
+    this.referencesGrid = null;
+    this.sqlReloadButtonClickedEventListeners = [];
+    this.errorsReloadButtonClickedEventListeners = [];
+    this.dependenciesReloadButtonClickedEventListeners = [];
+    this.profilesReloadButtonClickedEventListeners = [];
+    this.grantsReloadButtonClickedEventListeners = [];
+    this.referencesReloadButtonClickedEventListeners = [];
+  },
+  getId: function() {
+    return this.id;
+  },
+  getTabName: function() {
+    return this.label;
+  },
+  getTabContent: function() {
+    this.mainContent = "<div id='" + this.id + "-plsql-info-tabs' style='width: 100%; height: 100%;'>" +
+                            " <ul>" +
+                            "   <li><a href='#" + this.id + "-plsql-sql-editor-layout'>Code</a></li>" +
+                            "   <li><a href='#" + this.id + "-plsql-errors-grid'>Errors</a></li>" +
+                            "   <li><a href='#" + this.id + "-plsql-dependencies-grid'>Dependencies</a></li>" +
+                            "   <li><a href='#" + this.id + "-plsql-profiles-grid'>Profiles</a></li>" +
+                            "   <li><a href='#" + this.id + "-plsql-grants-grid'>Grants</a></li>" +
+                            "   <li><a href='#" + this.id + "-plsql-references-grid'>References</a></li>" +
+                            " </ul>" +
+                            " <div id='" + this.id + "-plsql-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-plsql-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
+                            "   <div style='width: 100%; height: 2px'></div>" +
+                            "   <div id='" + this.id + "-plsql-sql-editor' style='width: 100%; height: 96%;'></div>" +
+                            " </div>" +
+                            " <div id='" + this.id + "-plsql-errors-grid' tabname='errors' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-plsql-dependencies-grid' tabname='dependencies' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-plsql-profiles-grid' tabname='profiles' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-plsql-grants-grid' tabname='grants' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-plsql-references-grid' tabname='references' style='width: 100%; height: 93%;'></div>" +
+                            "</div>";
+        return this.mainContent;
+  },
+  initTab: function() {
+    $j('#' + this.id + '-plsql-info-tabs').tabs();
+  },
+  createSQLEditor: function() {
+    var that = this;
+    if(this.sqlEditor === null) {
+      this.sqlEditorToolbar = $j('#' + this.id + '-plsql-sql-editor-toolbar')
+                                .w2toolbar({
+                                            name: this.id + '-plsql-sql-editor-toolbar',
+                                            items: [
+                                              { type: 'button', id: this.id + '-plsql-sql-editor-toolbar-refresh-sql-btn',
+                                                caption: 'Refresh', icon: 'refresh_icon', hint: 'Refresh SQL'},
+                                              ],
+                                            onClick: function(event) {
+                                              var target = event.target;
+                                              if(target === that.id + '-plsql-sql-editor-toolbar-refresh-sql-btn') {
+                                                that.fireSQLReloadButtonClickedEvent();
+                                              }
+                                            }
+                                          });
+      this.sqlEditor = ace.edit(this.id + '-plsql-sql-editor');
+      this.sqlEditor.setTheme('ace/theme/sqlserver');
+      this.sqlEditor.session.setMode('ace/mode/sqlserver');
+      this.sqlEditor.setReadOnly(true);
+    }
+  },
+  isSQLEditorCreated: function() {
+    if(this.sqlEditor === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getSQLEditor: function() {
+    return this.sqlEditor;
+  },
+  createErrorsGrid: function() {
+    var that = this;
+    if(this.errorsGrid === null) {
+      this.errorsGrid = $j('#' + this.id + '-plsql-errors-grid')
+                              .w2grid({
+                                      name: this.id + '-plsql-errors-properties',
+                                      header: this.label + ' - Errors',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'attribute', caption: 'Attribute', size: '150px'},
+                                        {field: 'linePosition', caption: 'Line : Position', size: '150px'},
+                                        {field: 'text', caption: 'Text', size: '150px'}
+                                      ],
+                                      onReload: function(event) {
+                                        that.fireErrorsReloadButtonClickedEvent();
+                                      }
+                                    });
+    }
+  },
+  isErrorsGridCreated: function() {
+    if(this.errorsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getErrorsGrid: function() {
+    return this.errorsGrid;
+  },
+  createDependenciesGrid: function() {
+    var that = this;
+    if(this.dependenciesGrid === null) {
+      this.dependenciesGrid = $j('#' + this.id + '-plsql-dependencies-grid')
+                              .w2grid({
+                                      name: this.id + '-plsql-dependencies-properties',
+                                      header: this.label + ' - Dependencies',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'name', caption: 'Name', size: '150px'},
+                                        {field: 'type', caption: 'Type', size: '150px'},
+                                        {field: 'referencedOwner', caption: 'Referenced Owner', size: '150px'},
+                                        {field: 'referencedName', caption: 'Referenced Name', size: '150px'},
+                                        {field: 'referencedType', caption: 'Referenced Type', size: '150px'}
+                                      ],
+                                      onReload: function(event) {
+                                        that.fireDependenciesReloadButtonClickedEvent();
+                                      }
+                                    });
+    }
+  },
+  isDependenciesGridCreated: function() {
+    if(this.dependenciesGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDependenciesGrid: function() {
+    return this.dependenciesGrid;
+  },
+  createProfilesGrid: function() {
+    var that = this;
+    if(this.profilesGrid === null) {
+
+    }
+  },
+  isProfilesGridCreated: function() {
+    if(this.profilesGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getProfilesGrid: function() {
+    return this.profilesGrid;
+  },
+  createGrantsGrid: function() {
+    var that = this;
+    if(this.grantsGrid === null){
+      this.grantsGrid = $j('#' + this.id + '-plsql-grants-grid')
+                          .w2grid({
+                                  name: this.id + '-plsql-grants-properties',
+                                  header: this.label + ' - Grants',
+                                  show: { header: true,
+                                          toolbar: true,
+                                          lineNumbers: true,
+                                          footer: true
+                                        },
+                                  multiSearch: true,
+                                  columns: [
+                                    {field: 'privilege', caption: 'Privilege', size: '150px'},
+                                    {field: 'grantee', caption: 'Grantee', size: '100px'},
+                                    {field: 'grantable', caption: 'Grantable', size: '100px'},
+                                    {field: 'grantor', caption: 'Grantor', size: '100px'},
+                                    {field: 'objectName', caption: 'Object Name', size: '100px'},
+                                  ],
+                                  onReload: function(event) {
+                                    that.fireGrantsReloadButtonClickedEvent();
+                                  }
+                                });
+    }
+  },
+  isGrantsGridCreated: function() {
+    if(this.grantsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getGrantsGrid: function() {
+    return this.grantsGrid;
+  },
+  createReferencesGrid: function() {
+    var that = this;
+    if(this.referencesGrid === null) {
+      this.referencesGrid = $j('#' + this.id + '-plsql-references-grid')
+                              .w2grid({
+                                      name: this.id + '-plsql-references-properties',
+                                      header: this.label + ' - References',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'name', caption: 'Name', size: '150px'},
+                                        {field: 'type', caption: 'Type', size: '150px'},
+                                        {field: 'referencedOwner', caption: 'Referenced Owner', size: '150px'},
+                                        {field: 'referencedName', caption: 'Referenced Name', size: '150px'},
+                                        {field: 'referencedType', caption: 'Referenced Type', size: '150px'}
+                                      ],
+                                      onReload: function(event) {
+                                        that.fireReferencesReloadButtonClickedEvent();
+                                      }
+                                    });
+    }
+  },
+  isReferencesGridCreated: function() {
+    if(this.referencesGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getReferencesGrid: function() {
+    return this.referencesGrid;
+  },
+  addTabsBeforeActivateEventListener: function(listener) {
+    $j('#' + this.id + '-plsql-info-tabs').on('tabsbeforeactivate', listener);
+  },
+  destroy: function() {
+    if(this.sqlEditor !== null) {
+      this.sqlEditor.destroy();
+    }
+    if(this.sqlEditorToolbar !== null) {
+      this.sqlEditorToolbar.destroy();
+    }
+    if(this.errorsGrid !== null) {
+      this.errorsGrid.destroy();
+    }
+    if(this.dependenciesGrid !== null) {
+      this.dependenciesGrid.destroy();
+    }
+    if(this.profilesGrid !== null) {
+      this.profilesGrid.destroy();
+    }
+    if(this.grantsGrid !== null) {
+      this.grantsGrid.destroy();
+    }
+    if(this.referencesGrid !== null) {
+      this.referencesGrid.destroy();
+    }
+  },
+  addSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.sqlReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireSQLReloadButtonClickedEvent: function() {
+    var that = this;
+    this.sqlReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addErrorsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.errorsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeErrorsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.errorsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.errorsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireErrorsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.errorsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addDependenciesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDependenciesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.dependenciesReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDependenciesReloadButtonClickedEvent: function() {
+    var that = this;
+    this.dependenciesReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addProfilesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.profilesReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeProfilesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.profilesReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.profilesReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireProfilesReloadButtonClickedEvent: function() {
+    var that = this;
+    this.profilesReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addGrantsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.grantsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeGrantsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.grantsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.grantsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireGrantsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.grantsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addReferencesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.referencesReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeReferencesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.referencesReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.referencesReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireReferencesReloadButtonClickedEvent: function() {
+    var that = this;
+    this.referencesReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  }
+});
