@@ -1515,3 +1515,407 @@ class DatabaseIndexServer(Namespace):
         for result in cursor:
             sql = result[0]
         emit('sql_result', sql, namespace=self._namespace_url)
+
+class DatabaseMaterializedViewServer(Namespace):
+    """Class to interact with the database mviews available under schema
+        provided as parameter to the class
+    """
+
+    _socket_io = None
+    _schema_name = None
+    _schema = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabaseTableServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db_mview')
+        self._namespace_url = '/oracle_db_mview'
+        self._socket_io = socket_io
+        self._schema = schema
+        self._db_connection = self._schema.get_connection()
+        self._schema_name = self._schema.get_schema_name()
+        socket_io.on_namespace(self)
+
+    def on_get_columns(self, mview_name):
+        """For internal use only: will be called when 'get_columns' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT ROWNUM, a.column_name,
+                    CASE
+                        WHEN a.data_type IN ('VARCHAR2', 'CHAR', 'VARCHAR')
+                            THEN a.data_type || '(' || a.data_length || ' ' || decode(a.char_used, 'B', 'BYTE', 'C', 'CHAR', a.char_used) || ')'
+                        ELSE a.data_type
+                    END AS data_type,
+                    a.nullable,
+                    a.data_default,
+                    a.column_id,
+                    b.comments
+                FROM SYS.user_tab_columns a,
+                    SYS.user_col_comments b
+                WHERE
+                    a.table_name = b.table_name (+)
+                    AND a.column_name = b.column_name (+)
+                    AND a.table_name='%s'
+                """ % mview_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'columnName': result[1],
+                                 'dataType': result[2],
+                                 'nullable': result[3],
+                                 'dataDefault': result[4],
+                                 'columnId': result[5],
+                                 'comments': result[6]})
+        emit('columns_result', result_array, namespace=self._namespace_url)
+
+    def on_get_column_headers(self, mview_name):
+        """For internal use only: will be called when 'get_column_headers' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT a.column_name
+                FROM SYS.user_tab_columns a
+                WHERE
+                    a.table_name='%s'
+                ORDER BY
+                    a.column_id
+                """ % mview_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'field': result[0],
+                                 'caption': result[0],
+                                 'size': '100px'})
+        emit('column_headers_result', result_array, namespace=self._namespace_url)
+
+    def on_get_data(self, mview_name):
+        """For internal use only: will be called when 'get_data' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT a.column_name
+                FROM SYS.user_tab_columns a
+                WHERE
+                    a.table_name='%s'
+                ORDER BY
+                    a.column_id
+                """ % mview_name
+        cursor.execute(query)
+        column_headers = []
+        for result in cursor:
+            column_headers.append(result[0])
+        header_string = 'ROWNUM'
+        for header in column_headers:
+            header_string += ', ' + header
+        query = """
+                SELECT %s
+                FROM %s
+                """ % (header_string, mview_name)
+        cursor = db_conn.cursor()
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            row = {}
+            for i in range(0, column_headers.__len__() + 1):
+                if i == 0:
+                    row['recid'] = result[i]
+                else:
+                    row[column_headers[i - 1]] = str(result[i])
+            result_array.append(row)
+        emit('data_result', result_array, namespace=self._namespace_url)
+
+    def on_get_grants(self, mview_name):
+        """For internal use only: will be called when 'get_grants' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    privilege,
+                    grantee,
+                    grantable,
+                    grantor,
+                    table_name
+                FROM
+                    SYS.user_tab_privs
+                WHERE
+                    table_name='%s'
+                """ % mview_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'privilege': result[1],
+                                 'grantee': result[2],
+                                 'grantable': result[3],
+                                 'grantor': result[4],
+                                 'objectName': result[5]
+                                 })
+        emit('grants_result', result_array, namespace=self._namespace_url)
+
+    def on_get_dependencies(self, mview_name):
+        """For internal use only: will be called when 'get_dependencies' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    name,
+                    type,
+                    referenced_owner,
+                    referenced_name,
+                    referenced_type
+                FROM
+                    SYS.user_dependencies
+                WHERE
+                    referenced_name='%s'
+                """ % mview_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'type': result[2],
+                                 'referencedOwner': result[3],
+                                 'referencedName': result[4],
+                                 'referencedType': result[5]
+                                 })
+        emit('dependencies_result', result_array, namespace=self._namespace_url)
+
+    def on_get_dependencies_details(self, mview_name):
+        """For internal use only: will be called when 'get_dependencies_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    name,
+                    type,
+                    referenced_owner,
+                    referenced_name,
+                    referenced_type
+                FROM
+                    SYS.user_dependencies
+                WHERE
+                    name='%s'
+                """ % mview_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'type': result[2],
+                                 'referencedOwner': result[3],
+                                 'referencedName': result[4],
+                                 'referencedType': result[5]
+                                 })
+        emit('dependencies_details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_indexes(self, mview_name):
+        """For internal use only: will be called when 'get_indexes' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        # ########## Get Oracle Version ################
+        version_str = ""
+        query = "SELECT version FROM PRODUCT_COMPONENT_VERSION WHERE product LIKE '%Oracle%'"
+        cursor.execute(query)
+        for result in cursor:
+            version_str = result[0]
+        version_array = version_str.split('.')
+        version = int(version_array[0])
+        # ######### Get Indexes based on version #####################
+        cursor = db_conn.cursor()
+        if version <= 10:
+            query = """
+                SELECT
+                    ROWNUM,
+                    a.index_name,
+                    a.uniqueness,
+                    a.status,
+                    a.index_type,
+                    a.temporary,
+                    a.partitioned,
+                    a.funcidx_status,
+                    a.join_index,
+                    b.columns
+                FROM
+                    SYS.user_indexes a,
+                    (SELECT
+                        index_name,
+                        rtrim(xmlagg(xmlelement(e, column_name ||', ')).extract('//text()'), ', ') AS columns
+                    FROM
+                        SYS.user_ind_columns
+                    GROUP BY index_name) b
+                WHERE
+                    a.index_name = b.index_name
+                    AND a.table_name='%s'
+                """ % mview_name
+        else:
+            query = """
+                    SELECT
+                        ROWNUM,
+                        a.index_name,
+                        a.uniqueness,
+                        a.status,
+                        a.index_type,
+                        a.temporary,
+                        a.partitioned,
+                        a.funcidx_status,
+                        a.join_index,
+                        b.columns
+                    FROM
+                        SYS.user_indexes a,
+                        (SELECT
+                            index_name,
+                            LISTAGG(column_name,', ')
+                                WITHIN GROUP
+                                (ORDER BY index_name)
+                            AS columns
+                        FROM
+                            SYS.user_ind_columns
+                        GROUP BY index_name) b
+                    WHERE
+                        a.index_name = b.index_name
+                        AND a.table_name='%s'
+                    """ % mview_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'indexName': result[1],
+                                 'uniqueness': result[2],
+                                 'status': result[3],
+                                 'indexType': result[4],
+                                 'temporary': result[5],
+                                 'partitioned': result[6],
+                                 'funcIdxStatus': result[7],
+                                 'joinIndex': result[8],
+                                 'columns': result[9]
+                                 })
+        emit('indexes_result', result_array, namespace=self._namespace_url)
+
+    def on_get_indexes_details(self, props):
+        """For internal use only: will be called when 'get_indexes_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        mview_name = props['mviewName']
+        index_name = props['indexName']
+        query = """
+                SELECT
+                    ROWNUM,
+                    a.index_name,
+                    a.table_owner,
+                    a.table_name,
+                    b.column_name,
+                    b.column_position,
+                    b.column_length,
+                    b.char_length,
+                    b.descend,
+                    c.column_expression
+                FROM
+                    SYS.user_indexes a,
+                    SYS.user_ind_columns b,
+                    sys.user_ind_expressions c
+                WHERE
+                    a.index_name = b.index_name (+)
+                    AND a.table_name = b.table_name (+)
+                    AND a.index_name = c.index_name (+)
+                    AND a.table_name = c.table_name (+)
+                    AND a.table_name='%s'
+                    AND a.index_name='%s'
+                """ % (mview_name, index_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'indexName': result[1],
+                                 'tableOwner': result[2],
+                                 'tableName': result[3],
+                                 'columnName': result[4],
+                                 'columnPosition': result[5],
+                                 'columnLength': result[6],
+                                 'charLength': result[7],
+                                 'descend': result[8],
+                                 'columnExpression': result[9]
+                                 })
+        emit('indexes_details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_sql(self, mview_name):
+        """For internal use only: will be called when 'get_sql' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        sql = ""
+        # ########### Get DDL of table ###############
+        cursor = db_conn.cursor()
+        query = """
+                SELECT to_char(dbms_metadata.get_ddl('TABLE', '%s')) FROM dual
+                """ % mview_name
+        cursor.execute(query)
+        for result in cursor:
+            sql = result[0]
+        sql += ';\n\n'
+        # ########## Get comments on columns if available ##########
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    'COMMENT ON COLUMN ' ||
+                    '"' || sys_context( 'userenv', 'current_schema' ) ||
+                    '"."' || table_name ||
+                    '"."' || column_name ||
+                    '" IS ''' || comments || ''';'
+                FROM
+                    SYS.user_col_comments
+                WHERE
+                    table_name='%s'
+                    AND comments IS NOT NULL
+                """ % mview_name
+        cursor.execute(query)
+        for result in cursor:
+            sql += '  ' + result[0] + '\n'
+        # ########## Get comments on table if available ##########
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    'COMMENT ON TABLE ' ||
+                    '"' || sys_context( 'userenv', 'current_schema' ) ||
+                                    '"."' || table_name ||
+                                    '" IS ''' || comments || ''';'
+                FROM
+                    SYS.user_tab_comments
+                WHERE
+                    table_name='%s'
+                    AND comments IS NOT NULL
+                """ % mview_name
+        cursor.execute(query)
+        for result in cursor:
+            sql += '  ' + result[0] + '\n'
+        # ########## Get indexes if available #################
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    to_char(dbms_metadata.get_ddl('INDEX', index_name))
+                FROM
+                    SYS.user_indexes
+                WHERE
+                    table_name='%s'
+                """ % mview_name
+        cursor.execute(query)
+        for result in cursor:
+            sql += result[0] + '\n'

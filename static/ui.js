@@ -538,7 +538,7 @@ var TableTabUI = Class.create({
                                         {field: 'partitioned', caption: 'Partitioned', size: '150px'},
                                         {field: 'funcIdxStatus', caption: 'Function Index Status', size: '150px'},
                                         {field: 'joinIndex', caption: 'Join Index', size: '150px'},
-                                        {field: 'columns', caption: 'Columns', size: '150px'},
+                                        {field: 'columns', caption: 'Columns', size: '150px'}
                                       ],
                                       onClick: function(event) {
                                         var record = this.get(event.recid);
@@ -567,7 +567,7 @@ var TableTabUI = Class.create({
                                                 {field: 'columnLength', caption: 'Column Length', size: '150px'},
                                                 {field: 'charLength', caption: 'Char Length', size: '150px'},
                                                 {field: 'descend', caption: 'Descend', size: '150px'},
-                                                {field: 'columnExpression', caption: 'Column Expression', size: '150px'},
+                                                {field: 'columnExpression', caption: 'Column Expression', size: '150px'}
                                               ]
                                             });
     }
@@ -1992,12 +1992,15 @@ var MaterializedViewTabUI = Class.create({
                                             },
                                       multiSearch: true,
                                       columns: [
-                                        {field: 'triggerName', caption: 'Trigger Name', size: '150px'},
-                                        {field: 'triggerType', caption: 'Trigger Type', size: '150px'},
-                                        {field: 'triggerOwner', caption: 'Trigger Owner', size: '150px'},
-                                        {field: 'triggeringEvent', caption: 'Triggering Event', size: '150px'},
+                                        {field: 'indexName', caption: 'Index Name', size: '150px'},
+                                        {field: 'uniqueness', caption: 'Uniqueness', size: '150px'},
                                         {field: 'status', caption: 'Status', size: '150px'},
-                                        {field: 'viewName', caption: 'View Name', size: '150px'}
+                                        {field: 'indexType', caption: 'Index Type', size: '150px'},
+                                        {field: 'temporary', caption: 'Temporary', size: '150px'},
+                                        {field: 'partitioned', caption: 'Partitioned', size: '150px'},
+                                        {field: 'funcIdxStatus', caption: 'Function Index Status', size: '150px'},
+                                        {field: 'joinIndex', caption: 'Join Index', size: '150px'},
+                                        {field: 'columns', caption: 'Columns', size: '150px'}
                                       ],
                                       onClick: function(event) {
                                         var record = this.get(event.recid);
@@ -2018,12 +2021,15 @@ var MaterializedViewTabUI = Class.create({
                                                 },
                                           multiSearch: true,
                                           columns: [
-                                            {field: 'triggerName', caption: 'Trigger Name', size: '150px'},
-                                            {field: 'triggerType', caption: 'Trigger Type', size: '150px'},
-                                            {field: 'triggerOwner', caption: 'Trigger Owner', size: '150px'},
-                                            {field: 'triggeringEvent', caption: 'Triggering Event', size: '150px'},
-                                            {field: 'status', caption: 'Status', size: '150px'},
-                                            {field: 'viewName', caption: 'View Name', size: '150px'}
+                                            {field: 'indexName', caption: 'Index Name', size: '150px'},
+                                            {field: 'tableOwner', caption: 'Table Owner', size: '150px'},
+                                            {field: 'tableName', caption: 'Table Name', size: '150px'},
+                                            {field: 'columnName', caption: 'Column Name', size: '150px'},
+                                            {field: 'columnPosition', caption: 'Column Position', size: '150px'},
+                                            {field: 'columnLength', caption: 'Column Length', size: '150px'},
+                                            {field: 'charLength', caption: 'Char Length', size: '150px'},
+                                            {field: 'descend', caption: 'Descend', size: '150px'},
+                                            {field: 'columnExpression', caption: 'Column Expression', size: '150px'}
                                           ]
                                         });
     }

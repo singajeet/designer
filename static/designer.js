@@ -15347,7 +15347,7 @@ var DatabaseMaterializedView = Class.create({
     this.socket.on('columns_result', function(result){
       that.fireColumnsAvailableEvent(result);
     });
-    this.socket.emit('get_columns', this.tableName);
+    this.socket.emit('get_columns', this.mviewName);
   },
   getData: function() {
     var that = this;
@@ -15357,42 +15357,42 @@ var DatabaseMaterializedView = Class.create({
     this.socket.on('data_result', function(result){
       that.fireDataAvailableEvent(result);
     });
-    this.socket.emit('get_column_headers', this.tableName);
+    this.socket.emit('get_column_headers', this.mviewName);
   },
   getGrants: function() {
     var that = this;
     this.socket.on('grants_result', function(result){
       that.fireGrantsAvailableEvent(result);
     });
-    this.socket.emit('get_grants', this.tableName);
+    this.socket.emit('get_grants', this.mviewName);
   },
   getDependencies: function() {
     var that = this;
     this.socket.on('dependencies_result', function(result){
       that.fireDependenciesAvailableEvent(result);
     });
-    this.socket.emit('get_dependencies', this.tableName);
+    this.socket.emit('get_dependencies', this.mviewName);
   },
   getDependenciesDetails: function() {
     var that = this;
     this.socket.on('dependencies_details_result', function(result){
       that.fireDependenciesDetailsAvailableEvent(result);
     });
-    this.socket.emit('get_dependencies_details', this.tableName);
+    this.socket.emit('get_dependencies_details', this.mviewName);
   },
   getIndexes: function() {
     var that = this;
     this.socket.on('indexes_result', function(result){
       that.fireIndexesAvailableEvent(result);
     });
-    this.socket.emit('get_indexes', this.tableName);
+    this.socket.emit('get_indexes', this.mviewName);
   },
   getIndexesDetails: function(indexName) {
     var that = this;
     this.socket.on('indexes_details_result', function(result){
       that.fireIndexesDetailsAvailableEvent(result);
     });
-    var props = {'tableName': this.tableName, 'indexName': indexName};
+    var props = {'mviewName': this.mviewName, 'indexName': indexName};
     this.socket.emit('get_indexes_details', props);
   },
   getSQL: function() {
@@ -15400,6 +15400,6 @@ var DatabaseMaterializedView = Class.create({
     this.socket.on('sql_result', function(result){
       that.fireSQLAvailableEvent(result);
     });
-    this.socket.emit('get_sql', this.tableName);
+    this.socket.emit('get_sql', this.mviewName);
   }
 });
