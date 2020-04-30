@@ -15292,7 +15292,7 @@ var DatabaseMaterializedView = Class.create({
     this.columnHeadersAvailableEventListeners.forEach(function(listener){
       listener(result, that.tabId);
     });
-    this.socket.emit('get_data', this.tableName);
+    this.socket.emit('get_data', this.mviewName);
   },
   fireDataAvailableEvent: function(result) {
     var that = this;

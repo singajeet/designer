@@ -255,18 +255,18 @@
 
           function createMViewTab(id, label) {
             var tabId = id + '-mview-tab';
-            //mviews[tabId] = new DatabaseMaterializedView(label, tabId);
+            mviews[tabId] = new DatabaseMaterializedView(label, tabId);
             tabs[tabId] = new MaterializedViewTabUI(id, label);
 
-            // mviews[tabId].addColumnsAvailableEventListener(onColumnsAvailable);
-            // mviews[tabId].addColumnHeadersAvailableEventListener(onColumnHeadersAvailable);
-            // mviews[tabId].addDataAvailableEventListener(onDataAvailable);
-            // mviews[tabId].addGrantsAvailableEventListener(onGrantsAvailable);
-            // mviews[tabId].addDependenciesAvailableEventListener(onDependenciesAvailable);
-            // mviews[tabId].addDependenciesDetailsAvailableEventListener(onDependenciesDetailsAvailable);
-            // mviews[tabId].addIndexesAvailableEventListener(onIndexesAvailable);
-            // mviews[tabId].addIndexesDetailsAvailableEventListener(onIndexesDetailsAvailable);
-            // mviews[tabId].addSQLAvailableEventListener(onSQLAvailable);
+            mviews[tabId].addColumnsAvailableEventListener(onColumnsAvailable);
+            mviews[tabId].addColumnHeadersAvailableEventListener(onColumnHeadersAvailable);
+            mviews[tabId].addDataAvailableEventListener(onDataAvailable);
+            mviews[tabId].addGrantsAvailableEventListener(onGrantsAvailable);
+            mviews[tabId].addDependenciesAvailableEventListener(onDependenciesAvailable);
+            mviews[tabId].addDependenciesDetailsAvailableEventListener(onDependenciesDetailsAvailable);
+            mviews[tabId].addIndexesAvailableEventListener(onIndexesAvailable);
+            mviews[tabId].addIndexesDetailsAvailableEventListener(onIndexesDetailsAvailable);
+            mviews[tabId].addSQLAvailableEventListener(onSQLAvailable);
 
             var content = tabs[tabId].getTabContent();
             a.addTab(tabId, label, content, 'mview_icon');
@@ -280,28 +280,28 @@
               if(name === 'data') {
                 if(!tabs[tabId].isDataGridCreated()) {
                   tabs[tabId].createDataGrid();
-                  // mviews[tabId].getData();
+                  mviews[tabId].getData();
                 }
               } else if(name === 'grants') {
                 if(!tabs[tabId].isGrantsGridCreated()) {
                   tabs[tabId].createGrantsGrid();
-                  // mviews[tabId].getGrants();
+                  mviews[tabId].getGrants();
                 }
               } else if(name === 'dependencies') {
                 if(!tabs[tabId].isDependenciesGridCreated()) {
                   tabs[tabId].createDependenciesGrid();
-                  // mviews[tabId].getDependencies();
-                  // mviews[tabId].getDependenciesDetails();
+                  mviews[tabId].getDependencies();
+                  mviews[tabId].getDependenciesDetails();
                 }
               } else if(name === 'indexes') {
                 if(!tabs[tabId].isIndexesGridCreated()) {
                   tabs[tabId].createIndexesGrid();
-                  // mviews[tabId].getIndexes();
+                  mviews[tabId].getIndexes();
                 }
               } else if(name === 'sql') {
                 if(!tabs[tabId].isSQLEditorCreated()) {
                   tabs[tabId].createSQLEditor();
-                  // mviews[tabId].getSQL();
+                  mviews[tabId].getSQL();
                 }
               }
             });
@@ -343,7 +343,7 @@
               tabs[tabId].getColumnsGrid().records = result;
               tabs[tabId].getColumnsGrid().refresh();
             }
-            // mviews[tabId].getColumns();
+            mviews[tabId].getColumns();
 
             function onColumnHeadersAvailable(result, tabId){
               tabs[tabId].getDataGrid().columns = result;

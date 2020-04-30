@@ -1516,6 +1516,7 @@ class DatabaseIndexServer(Namespace):
             sql = result[0]
         emit('sql_result', sql, namespace=self._namespace_url)
 
+
 class DatabaseMaterializedViewServer(Namespace):
     """Class to interact with the database mviews available under schema
         provided as parameter to the class
@@ -1865,7 +1866,7 @@ class DatabaseMaterializedViewServer(Namespace):
         # ########### Get DDL of table ###############
         cursor = db_conn.cursor()
         query = """
-                SELECT to_char(dbms_metadata.get_ddl('TABLE', '%s')) FROM dual
+                SELECT to_char(dbms_metadata.get_ddl('MATERIALIZED_VIEW', '%s')) FROM dual
                 """ % mview_name
         cursor.execute(query)
         for result in cursor:
@@ -1893,14 +1894,14 @@ class DatabaseMaterializedViewServer(Namespace):
         cursor = db_conn.cursor()
         query = """
                 SELECT
-                    'COMMENT ON TABLE ' ||
+                    'COMMENT ON MATERIALIZED VIEW ' ||
                     '"' || sys_context( 'userenv', 'current_schema' ) ||
-                                    '"."' || table_name ||
+                                    '"."' || mview_name ||
                                     '" IS ''' || comments || ''';'
                 FROM
-                    SYS.user_tab_comments
+                    SYS.user_mview_comments
                 WHERE
-                    table_name='%s'
+                    mview_name='%s'
                     AND comments IS NOT NULL
                 """ % mview_name
         cursor.execute(query)
@@ -1919,3 +1920,5 @@ class DatabaseMaterializedViewServer(Namespace):
         cursor.execute(query)
         for result in cursor:
             sql += result[0] + '\n'
+        emit('sql_result', sql, namespace=self._namespace_url)
+
