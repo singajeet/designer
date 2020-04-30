@@ -1895,10 +1895,7 @@ var MaterializedViewTabUI = Class.create({
                                     {field: 'nullable', caption: 'Nullable', size: '70px'},
                                     {field: 'dataDefault', caption: 'Data Default', size: '100px'},
                                     {field: 'columnId', caption: 'Column ID', size: '80px'},
-                                    {field: 'comments', caption: 'Comments', size: '100%'},
-                                    {field: 'insertable', caption: 'Insertable', size: '100%'},
-                                    {field: 'updatable', caption: 'Updatable', size: '100%'},
-                                    {field: 'deletable', caption: 'Deletable', size: '100%'}
+                                    {field: 'comments', caption: 'Comments', size: '100%'}
                                   ],
                                   onReload: function(event) {
                                     that.fireColumnsReloadButtonClickedEvent();

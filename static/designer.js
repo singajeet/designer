@@ -12905,7 +12905,7 @@ var DatabaseSchema = Class.create({
   initialize: function(connection) {
     this.connection = connection;
     this.schemaName = this.connection.getUsername().toUpperCase();
-    
+
     tablesAvailableEventListeners = [];
     viewsAvailableEventListeners = [];
     indexesAvailableEventListeners = [];
@@ -15133,5 +15133,273 @@ var DatabaseIndex = Class.create({
       that.fireSQLAvailableEvent(result);
     });
     this.socket.emit('get_sql', this.indexName);
+  }
+});
+
+/**
+ * DatabaseMaterializedView: This class represents an table in database and interacts with
+ *  websocket calls to get mview details
+ * @constructor
+ * @param {string} mviewName - Name of the mview in database
+ */
+var DatabaseMaterializedView = Class.create({
+  mviewName: null,
+  socket: null,
+  tabId: null,
+  columnsAvailableEventListeners: [],
+  columnHeadersAvailableEventListeners: [],
+  dataAvailableEventListeners: [],
+  grantsAvailableEventListeners: [],
+  dependenciesAvailableEventListeners: [],
+  dependenciesDetailsAvailableEventListeners: [],
+  detailsAvailableEventListeners: [],
+  indexesAvailableEventListeners: [],
+  indexesDetailsAvailableEventListeners: [],
+  sqlAvailableEventListeners: [],
+  initialize: function(mviewName, tabId) {
+    this.mviewName = mviewName;
+    this.tabId = tabId;
+    this.socket = io('/oracle_db_mview');
+    this.columnsAvailableEventListeners = [];
+    this.columnHeadersAvailableEventListeners = [];
+    this.dataAvailableEventListeners = [];
+    this.grantsAvailableEventListeners = [];
+    this.dependenciesAvailableEventListeners = [];
+    this.dependenciesDetailsAvailableEventListeners = [];
+    this.detailsAvailableEventListeners = [];
+    this.indexesAvailableEventListeners = [];
+    this.indexesDetailsAvailableEventListeners = [];
+    this.sqlAvailableEventListeners = [];
+  },
+  addColumnsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.columnsAvailableEventListeners.push(listener);
+    }
+  },
+  addColumnHeadersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.columnHeadersAvailableEventListeners.push(listener);
+    }
+  },
+  addDataAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dataAvailableEventListeners.push(listener);
+    }
+  },
+  addGrantsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.grantsAvailableEventListeners.push(listener);
+    }
+  },
+  addDependenciesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesAvailableEventListeners.push(listener);
+    }
+  },
+  addDependenciesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesDetailsAvailableEventListeners.push(listener);
+    }
+  },
+  addDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsAvailableEventListeners.push(listener);
+    }
+  },
+  addIndexesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.indexesAvailableEventListeners.push(listener);
+    }
+  },
+  addIndexesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.indexesDetailsAvailableEventListeners.push(listener);
+    }
+  },
+  addSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlAvailableEventListeners.push(listener);
+    }
+  },
+  removeColumnsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.columnsAvailableEventListeners.indexOf(listener);
+      this.columnsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeColumnHeadersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.columnHeadersAvailableEventListeners.indexOf(listener);
+      this.columnHeadersAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDataAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dataAvailableEventListeners.indexOf(listener);
+      this.dataAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeGrantsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.grantsAvailableEventListeners.indexOf(listener);
+      this.grantsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDependenciesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesAvailableEventListeners.indexOf(listener);
+      this.dependenciesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDependenciesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesDetailsAvailableEventListeners.indexOf(listener);
+      this.dependenciesDetailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsAvailableEventListeners.indexOf(listener);
+      this.detailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeIndexesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.indexesAvailableEventListeners.indexOf(listener);
+      this.indexesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeIndexesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.indexesDetailsAvailableEventListeners.indexOf(listener);
+      this.indexesDetailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlAvailableEventListeners.indexOf(listener);
+      this.sqlAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireColumnsAvailableEvent: function(result) {
+    var that = this;
+    this.columnsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireColumnHeadersAvailableEvent: function(result) {
+    var that = this;
+    this.columnHeadersAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+    this.socket.emit('get_data', this.tableName);
+  },
+  fireDataAvailableEvent: function(result) {
+    var that = this;
+    this.dataAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireGrantsAvailableEvent: function(result) {
+    var that = this;
+    this.grantsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDependenciesAvailableEvent: function(result) {
+    var that = this;
+    this.dependenciesAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDependenciesDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.dependenciesDetailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.detailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireIndexesAvailableEvent: function(result) {
+    var that = this;
+    this.indexesAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireIndexesDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.indexesDetailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireSQLAvailableEvent: function(result) {
+    var that = this;
+    this.sqlAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  getColumns: function() {
+    var that = this;
+    this.socket.on('columns_result', function(result){
+      that.fireColumnsAvailableEvent(result);
+    });
+    this.socket.emit('get_columns', this.tableName);
+  },
+  getData: function() {
+    var that = this;
+    this.socket.on('column_headers_result', function(result){
+      that.fireColumnHeadersAvailableEvent(result);
+    });
+    this.socket.on('data_result', function(result){
+      that.fireDataAvailableEvent(result);
+    });
+    this.socket.emit('get_column_headers', this.tableName);
+  },
+  getGrants: function() {
+    var that = this;
+    this.socket.on('grants_result', function(result){
+      that.fireGrantsAvailableEvent(result);
+    });
+    this.socket.emit('get_grants', this.tableName);
+  },
+  getDependencies: function() {
+    var that = this;
+    this.socket.on('dependencies_result', function(result){
+      that.fireDependenciesAvailableEvent(result);
+    });
+    this.socket.emit('get_dependencies', this.tableName);
+  },
+  getDependenciesDetails: function() {
+    var that = this;
+    this.socket.on('dependencies_details_result', function(result){
+      that.fireDependenciesDetailsAvailableEvent(result);
+    });
+    this.socket.emit('get_dependencies_details', this.tableName);
+  },
+  getIndexes: function() {
+    var that = this;
+    this.socket.on('indexes_result', function(result){
+      that.fireIndexesAvailableEvent(result);
+    });
+    this.socket.emit('get_indexes', this.tableName);
+  },
+  getIndexesDetails: function(indexName) {
+    var that = this;
+    this.socket.on('indexes_details_result', function(result){
+      that.fireIndexesDetailsAvailableEvent(result);
+    });
+    var props = {'tableName': this.tableName, 'indexName': indexName};
+    this.socket.emit('get_indexes_details', props);
+  },
+  getSQL: function() {
+    var that = this;
+    this.socket.on('sql_result', function(result){
+      that.fireSQLAvailableEvent(result);
+    });
+    this.socket.emit('get_sql', this.tableName);
   }
 });

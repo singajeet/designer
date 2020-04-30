@@ -44,9 +44,11 @@
           var openedTabs = [];
           var openedViews = [];
           var openedIndexes = [];
+          var openedMViews = [];
           var tables = {};
           var views = {};
           var indexes = {};
+          var mviews = {};
 
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback,
             contextMenuCallback);
@@ -159,7 +161,7 @@
 
           function onTabClosed(tabId) {
             tabs[tabId].destroy();
-            
+
             var index = openedTabs.indexOf(tabId);
             openedTabs.splice(index, 1);
 
@@ -242,6 +244,144 @@
                 createIndexTab(id, item.node.text);
                 openedIndexes.push(id + '-index-tab');
               }
+            } else if(item.node.nodeType === DatabaseNavNodeType.MVIEW) {
+              var index = openedMViews.indexOf(id + '-mview-tab');
+              if(index === -1){
+                createMViewTab(id, item.node.text);
+                openedMViews.push(id + '-mview-tab');
+              }
+            }
+          }
+
+          function createMViewTab(id, label) {
+            var tabId = id + '-mview-tab';
+            //mviews[tabId] = new DatabaseMaterializedView(label, tabId);
+            tabs[tabId] = new MaterializedViewTabUI(id, label);
+
+            // mviews[tabId].addColumnsAvailableEventListener(onColumnsAvailable);
+            // mviews[tabId].addColumnHeadersAvailableEventListener(onColumnHeadersAvailable);
+            // mviews[tabId].addDataAvailableEventListener(onDataAvailable);
+            // mviews[tabId].addGrantsAvailableEventListener(onGrantsAvailable);
+            // mviews[tabId].addDependenciesAvailableEventListener(onDependenciesAvailable);
+            // mviews[tabId].addDependenciesDetailsAvailableEventListener(onDependenciesDetailsAvailable);
+            // mviews[tabId].addIndexesAvailableEventListener(onIndexesAvailable);
+            // mviews[tabId].addIndexesDetailsAvailableEventListener(onIndexesDetailsAvailable);
+            // mviews[tabId].addSQLAvailableEventListener(onSQLAvailable);
+
+            var content = tabs[tabId].getTabContent();
+            a.addTab(tabId, label, content, 'mview_icon');
+            tabs[tabId].initTab();
+
+            tabs[tabId].createColumnsGrid();
+
+            tabs[tabId].addTabsBeforeActivateEventListener(function(event, ui){
+              var panel = ui.newPanel;
+              var name = panel.attr('tabname');
+              if(name === 'data') {
+                if(!tabs[tabId].isDataGridCreated()) {
+                  tabs[tabId].createDataGrid();
+                  // mviews[tabId].getData();
+                }
+              } else if(name === 'grants') {
+                if(!tabs[tabId].isGrantsGridCreated()) {
+                  tabs[tabId].createGrantsGrid();
+                  // mviews[tabId].getGrants();
+                }
+              } else if(name === 'dependencies') {
+                if(!tabs[tabId].isDependenciesGridCreated()) {
+                  tabs[tabId].createDependenciesGrid();
+                  // mviews[tabId].getDependencies();
+                  // mviews[tabId].getDependenciesDetails();
+                }
+              } else if(name === 'indexes') {
+                if(!tabs[tabId].isIndexesGridCreated()) {
+                  tabs[tabId].createIndexesGrid();
+                  // mviews[tabId].getIndexes();
+                }
+              } else if(name === 'sql') {
+                if(!tabs[tabId].isSQLEditorCreated()) {
+                  tabs[tabId].createSQLEditor();
+                  // mviews[tabId].getSQL();
+                }
+              }
+            });
+
+            tabs[tabId].addDependenciesGridClickedEventListener(function(record, tab){
+              mviews[tabId].getDependenciesDetails();
+            });
+
+            tabs[tabId].addIndexesGridClickedEventListener(function(record, tab){
+              mviews[tabId].getIndexesDetails(record.indexName);
+            });
+
+            tabs[tabId].addColumnsReloadButtonClickedEventListener(function(tab){
+              mviews[tabId].getColumns();
+            });
+
+            tabs[tabId].addDataReloadButtonClickedEventListener(function(tab){
+              mviews[tabId].getData();
+            });
+
+            tabs[tabId].addGrantsReloadButtonClickedEventListener(function(tab){
+              mviews[tabId].getGrants();
+            });
+
+            tabs[tabId].addDependenciesReloadButtonClickedEventListener(function(tab){
+              mviews[tabId].getDependencies();
+              mviews[tabId].getDependenciesDetails();
+            });
+
+            tabs[tabId].addIndexesReloadButtonClickedEventListener(function(tab){
+              mviews[tabId].getIndexes();
+            });
+
+            tabs[tabId].addSQLReloadButtonClickedEventListener(function(tab){
+              mviews[tabId].getSQL();
+            });
+
+            function onColumnsAvailable(result, tabId){
+              tabs[tabId].getColumnsGrid().records = result;
+              tabs[tabId].getColumnsGrid().refresh();
+            }
+            // mviews[tabId].getColumns();
+
+            function onColumnHeadersAvailable(result, tabId){
+              tabs[tabId].getDataGrid().columns = result;
+              tabs[tabId].getDataGrid().refresh();
+            }
+
+            function onDataAvailable(result, tabId){
+              tabs[tabId].getDataGrid().records = result;
+              tabs[tabId].getDataGrid().refresh();
+            }
+
+            function onGrantsAvailable(result, tabId){
+              tabs[tabId].getGrantsGrid().records = result;
+              tabs[tabId].getGrantsGrid().refresh();
+            }
+
+            function onDependenciesAvailable(result, tabId){
+              tabs[tabId].getDependenciesGrid().records = result;
+              tabs[tabId].getDependenciesGrid().refresh();
+            }
+
+            function onDependenciesDetailsAvailable(result, tabId){
+              tabs[tabId].getDependenciesDetailsGrid().records = result;
+              tabs[tabId].getDependenciesDetailsGrid().refresh();
+            }
+
+            function onIndexesAvailable(result, tabId){
+              tabs[tabId].getIndexesGrid().records = result;
+              tabs[tabId].getIndexesGrid().refresh();
+            }
+
+            function onIndexesDetailsAvailable(result, tabId){
+              tabs[tabId].getIndexesDetailsGrid().records = result;
+              tabs[tabId].getIndexesDetailsGrid().refresh();
+            }
+
+            function onSQLAvailable(result, tabId){
+              tabs[tabId].getSQLEditor().setValue(result);
             }
           }
 
@@ -253,7 +393,7 @@
             indexes[tabId].addColumnsAvailableEventListener(onColumnsAvailable);
             indexes[tabId].addStatisticsAvailableEventListener(onStatisticsAvailable);
             indexes[tabId].addSQLAvailableEventListener(onSQLAvailable);
-            
+
             var content = tabs[tabId].getTabContent();
             a.addTab(tabId, label, content, 'index_icon');
             tabs[tabId].initTab();
@@ -370,7 +510,7 @@
             tabs[tabId].addDependenciesGridClickedEventListener(function(record, tab){
               views[tabId].getDependenciesDetails();
             });
-            
+
             tabs[tabId].addColumnsReloadButtonClickedEventListener(function(tab){
               views[tabId].getColumns();
             });
@@ -405,7 +545,7 @@
               tabs[tabId].getColumnsGrid().refresh();
             }
             views[tabId].getColumns();
-            
+
             function onColumnHeadersAvailable(result, tabId){
               tabs[tabId].getDataGrid().columns = result;
               tabs[tabId].getDataGrid().refresh();
@@ -420,7 +560,7 @@
               tabs[tabId].getGrantsGrid().records = result;
               tabs[tabId].getGrantsGrid().refresh();
             }
-            
+
             function onTriggersAvailable(result, tabId){
               tabs[tabId].getTriggersGrid().records = result;
               tabs[tabId].getTriggersGrid().refresh();
@@ -544,7 +684,7 @@
               tabs[tabId].addIndexesGridClickedEventListener(function(record, tab){
                 tables[tabId].getIndexesDetails(record.indexName);
               });
-              
+
               tabs[tabId].addColumnsReloadButtonClickedEventListener(function(tab){
                 tables[tabId].getColumns();
               });
@@ -588,7 +728,7 @@
                 tabs[tabId].getColumnsGrid().refresh();
               }
               tables[tabId].getColumns();
-              
+
               function onColumnHeadersAvailable(result, tabId){
                 tabs[tabId].getDataGrid().columns = result;
                 tabs[tabId].getDataGrid().refresh();
@@ -659,7 +799,7 @@
           }
 
           function initializeContextMenuCallback(navigationTree) {
-            
+
           }
 
           function contextMenuCallback(navigationTree, event) {
@@ -707,12 +847,12 @@
             localStorage.setItem(projectId + '-connection-password', password);
           }
 
-          function contextMenuItemSelectedCallback(navigationTree, event) {        
+          function contextMenuItemSelectedCallback(navigationTree, event) {
             if(event.menuItem.id === 'add-db-connection') {
               var projectId = event.target;
               var dbConnection = new DatabaseConnection(projectId);
               dbConnection.addConnectionInfoAvailableEventListener(onConnectionInfoAvailable);
-              
+
               dbConnection.promptConnection();
             } else if(event.menuItem.id === 'db-connect') {
               var connectionId = event.target;
