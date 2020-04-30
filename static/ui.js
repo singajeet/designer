@@ -126,7 +126,7 @@ var TableTabUI = Class.create({
                             " <div id='" + this.id + "-table-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
                             "   <div id='" + this.id + "-table-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
                             "   <div style='width: 100%; height: 2px'></div>" +
-                            "   <div id='" + this.id + "-table-sql-editor' style='width: 100%; height: 96%;'></div>" + 
+                            "   <div id='" + this.id + "-table-sql-editor' style='width: 100%; height: 96%;'></div>" +
                             " </div>" +
                             "</div>";
         return this.mainContent;
@@ -599,7 +599,7 @@ var TableTabUI = Class.create({
                                 .w2toolbar({
                                             name: this.id + '-table-sql-editor-toolbar',
                                             items: [
-                                              { type: 'button', id: this.id + '-table-sql-editor-toolbar-refresh-sql-btn', 
+                                              { type: 'button', id: this.id + '-table-sql-editor-toolbar-refresh-sql-btn',
                                                 caption: 'Refresh', icon: 'refresh_icon', hint: 'Refresh SQL'},
                                               ],
                                             onClick: function(event) {
@@ -1034,7 +1034,7 @@ var ViewTabUI = Class.create({
                             " <div id='" + this.id + "-view-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
                             "   <div id='" + this.id + "-view-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
                             "   <div style='width: 100%; height: 2px'></div>" +
-                            "   <div id='" + this.id + "-view-sql-editor' style='width: 100%; height: 96%;'></div>" + 
+                            "   <div id='" + this.id + "-view-sql-editor' style='width: 100%; height: 96%;'></div>" +
                             " </div>" +
                             " <div id='" + this.id + "-view-errors-grid' tabname='errors' style='width: 100%; height: 93%;'></div>" +
                             "</div>";
@@ -1283,7 +1283,7 @@ var ViewTabUI = Class.create({
                                 .w2toolbar({
                                             name: this.id + '-view-sql-editor-toolbar',
                                             items: [
-                                              { type: 'button', id: this.id + '-view-sql-editor-toolbar-refresh-sql-btn', 
+                                              { type: 'button', id: this.id + '-view-sql-editor-toolbar-refresh-sql-btn',
                                                 caption: 'Refresh', icon: 'refresh_icon', hint: 'Refresh SQL'},
                                               ],
                                             onClick: function(event) {
@@ -1598,7 +1598,7 @@ var IndexTabUI = Class.create({
                             " <div id='" + this.id + "-index-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
                             "   <div id='" + this.id + "-index-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
                             "   <div style='width: 100%; height: 2px'></div>" +
-                            "   <div id='" + this.id + "-index-sql-editor' style='width: 100%; height: 96%;'></div>" + 
+                            "   <div id='" + this.id + "-index-sql-editor' style='width: 100%; height: 96%;'></div>" +
                             " </div>" +
                             "</div>";
         return this.mainContent;
@@ -1683,7 +1683,7 @@ var IndexTabUI = Class.create({
                                 .w2toolbar({
                                             name: this.id + '-index-sql-editor-toolbar',
                                             items: [
-                                              { type: 'button', id: this.id + '-index-sql-editor-toolbar-refresh-sql-btn', 
+                                              { type: 'button', id: this.id + '-index-sql-editor-toolbar-refresh-sql-btn',
                                                 caption: 'Refresh', icon: 'refresh_icon', hint: 'Refresh SQL'},
                                               ],
                                             onClick: function(event) {
@@ -1761,6 +1761,559 @@ var IndexTabUI = Class.create({
   fireStatisticsReloadButtonClickedEvent: function() {
     var that = this;
     this.statisticsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.sqlReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireSQLReloadButtonClickedEvent: function() {
+    var that = this;
+    this.sqlReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  }
+});
+
+/**
+ * MaterializedViewTabUI: Provides the user interface components to display details of an provided database mview
+ * @constructor
+ * @param {string} id - A unique id to create HTML content
+ * @param {string} label - Name of the mview to be shown as label in UI components
+ */
+var MaterializedViewTabUI = Class.create({
+  id: null,
+  label: null,
+  mainContent: null,
+  columnsGrid: null,
+  dataGrid: null,
+  grantsGrid: null,
+  indexesGrid: null,
+  indexesDetailsGrid: null,
+  dependenciesGrid: null,
+  dependenciesDetailsGrid: null,
+  sqlEditor: null,
+  sqlEditorToolbar: null,
+  indexesGridClickedEventListeners: [],
+  dependenciesGridClickedEventListeners: [],
+  columnsReloadButtonClickedEventListeners: [],
+  dataReloadButtonClickedEventListeners: [],
+  grantsReloadButtonClickedEventListeners: [],
+  indexesReloadButtonClickedEventListeners: [],
+  dependenciesReloadButtonClickedEventListeners: [],
+  sqlReloadButtonClickedEventListeners: [],
+  initialize: function(id, label) {
+    this.id = id;
+    this.label = label;
+    this.mainContent = "";
+    this.columnsGrid = null;
+    this.dataGrid = null;
+    this.grantsGrid = null;
+    this.indexesGrid = null;
+    this.indexesDetailsGrid = null;
+    this.dependenciesGrid = null;
+    this.dependenciesDetailsGrid = null;
+    this.sqlEditor = null;
+    this.sqlEditorToolbar = null;
+    this.indexesGridClickedEventListeners = [];
+    this.dependenciesGridClickedEventListeners = [];
+    this.columnsReloadButtonClickedEventListeners = [];
+    this.dataReloadButtonClickedEventListeners = [];
+    this.grantsReloadButtonClickedEventListeners = [];
+    this.indexesReloadButtonClickedEventListeners = [];
+    this.dependenciesReloadButtonClickedEventListeners = [];
+    this.sqlReloadButtonClickedEventListeners = [];
+  },
+  getId: function() {
+    return this.id;
+  },
+  getTabName: function() {
+    return this.label;
+  },
+  getTabContent: function() {
+    this.mainContent = "<div id='" + this.id + "-mview-info-tabs' style='width: 100%; height: 100%;'>" +
+                            " <ul>" +
+                            "   <li><a href='#" + this.id + "-mview-columns-grid'>Columns</a></li>" +
+                            "   <li><a href='#" + this.id + "-mview-data-grid'>Data</a></li>" +
+                            "   <li><a href='#" + this.id + "-mview-grants-grid'>Grants</a></li>" +
+                            "   <li><a href='#" + this.id + "-mview-indexes-grid'>Indexes</a></li>" +
+                            "   <li><a href='#" + this.id + "-mview-dependencies-grid'>Dependencies</a></li>" +
+                            "   <li><a href='#" + this.id + "-mview-sql-editor-layout'>SQL</a></li>" +
+                            " </ul>" +
+                            " <div id='" + this.id + "-mview-columns-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-mview-data-grid' tabname='data' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-mview-grants-grid' tabname='grants' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-mview-indexes-grid' tabname='indexes' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-mview-indexes-grid-master' style='width: 100%; height: 50%;'></div>" +
+                            "   <div id='" + this.id + "-mview-indexes-grid-details' style='width: 100%; height: 50%;'></div>" +
+                            " </div>" +
+                            " <div id='" + this.id + "-mview-dependencies-grid' tabname='dependencies' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-mview-dependencies-grid-master' style='width: 100%; height: 50%;'></div>" +
+                            "   <div id='" + this.id + "-mview-dependencies-grid-details' style='width: 100%; height: 50%;'></div>" +
+                            " </div>" +
+                            " <div id='" + this.id + "-mview-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-mview-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
+                            "   <div style='width: 100%; height: 2px'></div>" +
+                            "   <div id='" + this.id + "-mview-sql-editor' style='width: 100%; height: 96%;'></div>" +
+                            " </div>" +
+                            "</div>";
+        return this.mainContent;
+  },
+  initTab: function() {
+    $j('#' + this.id + '-mview-info-tabs').tabs();
+  },
+  createColumnsGrid: function() {
+    var that = this;
+    if(this.columnsGrid === null) {
+      this.columnsGrid = $j('#' + this.id + '-mview-columns-grid')
+                          .w2grid({
+                                  name: this.id + '-mview-columns-properties',
+                                  header: this.label + ' - Columns',
+                                  show: { header: true,
+                                          toolbar: true,
+                                          lineNumbers: true,
+                                          footer: true
+                                        },
+                                  multiSearch: true,
+                                  searches: [
+                                    { field: 'columnName', caption: 'Column Name', type: 'text'},
+                                    { field: 'dataType', caption: 'Data Type', type: 'text'}
+                                  ],
+                                  columns: [
+                                    {field: 'columnName', caption: 'Column Name', size: '150px'},
+                                    {field: 'dataType', caption: 'Data Type', size: '150px'},
+                                    {field: 'nullable', caption: 'Nullable', size: '70px'},
+                                    {field: 'dataDefault', caption: 'Data Default', size: '100px'},
+                                    {field: 'columnId', caption: 'Column ID', size: '80px'},
+                                    {field: 'comments', caption: 'Comments', size: '100%'},
+                                    {field: 'insertable', caption: 'Insertable', size: '100%'},
+                                    {field: 'updatable', caption: 'Updatable', size: '100%'},
+                                    {field: 'deletable', caption: 'Deletable', size: '100%'}
+                                  ],
+                                  onReload: function(event) {
+                                    that.fireColumnsReloadButtonClickedEvent();
+                                  }
+                                });
+    }
+  },
+  isColumnsGridCreated: function() {
+    if(this.columnsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getColumnsGrid: function() {
+    return this.columnsGrid;
+  },
+  createDataGrid: function() {
+    var that = this;
+    if(this.dataGrid === null) {
+      this.dataGrid = $j('#' + this.id + '-mview-data-grid')
+                      .w2grid({
+                              name: this.id + '-mview-data-properties',
+                              header: this.label + ' - Data',
+                              show: { header: true,
+                                      toolbar: true,
+                                      lineNumbers: true,
+                                      footer: true
+                                    },
+                              multiSearch: true,
+                              onReload: function(event) {
+                                that.fireDataReloadButtonClickedEvent();
+                              }
+                            });
+    }
+  },
+  isDataGridCreated: function() {
+    if(this.dataGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDataGrid: function() {
+    return this.dataGrid;
+  },
+  createGrantsGrid: function() {
+    var that = this;
+    if(this.grantsGrid === null){
+      this.grantsGrid = $j('#' + this.id + '-mview-grants-grid')
+                          .w2grid({
+                                  name: this.id + '-mview-grants-properties',
+                                  header: this.label + ' - Grants',
+                                  show: { header: true,
+                                          toolbar: true,
+                                          lineNumbers: true,
+                                          footer: true
+                                        },
+                                  multiSearch: true,
+                                  columns: [
+                                    {field: 'privilege', caption: 'Privilege', size: '150px'},
+                                    {field: 'grantee', caption: 'Grantee', size: '100px'},
+                                    {field: 'grantable', caption: 'Grantable', size: '100px'},
+                                    {field: 'grantor', caption: 'Grantor', size: '100px'},
+                                    {field: 'objectName', caption: 'Object Name', size: '100px'},
+                                  ],
+                                  onReload: function(event) {
+                                    that.fireGrantsReloadButtonClickedEvent();
+                                  }
+                                });
+    }
+  },
+  isGrantsGridCreated: function() {
+    if(this.grantsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getGrantsGrid: function() {
+    return this.grantsGrid;
+  },
+  createIndexesGrid: function() {
+    var that = this;
+    if(this.indexesGrid === null) {
+      this.indexesGrid = $j('#' + this.id + '-mview-indexes-grid-master')
+                              .w2grid({
+                                      name: this.id + '-mview-indexes-properties-master',
+                                      header: this.label + ' - Indexes',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'triggerName', caption: 'Trigger Name', size: '150px'},
+                                        {field: 'triggerType', caption: 'Trigger Type', size: '150px'},
+                                        {field: 'triggerOwner', caption: 'Trigger Owner', size: '150px'},
+                                        {field: 'triggeringEvent', caption: 'Triggering Event', size: '150px'},
+                                        {field: 'status', caption: 'Status', size: '150px'},
+                                        {field: 'viewName', caption: 'View Name', size: '150px'}
+                                      ],
+                                      onClick: function(event) {
+                                        var record = this.get(event.recid);
+                                        that.fireIndexesGridClickedEvent(record);
+                                      },
+                                      onReload: function(event) {
+                                        that.fireIndexesReloadButtonClickedEvent();
+                                      }
+                                    });
+      this.indexesDetailsGrid = $j('#' + this.id + '-mview-indexes-grid-details')
+                                  .w2grid({
+                                          name: this.id + '-mview-indexes-properties-details',
+                                          header: this.label + ' - Index Details',
+                                          show: { header: true,
+                                                  toolbar: true,
+                                                  lineNumbers: true,
+                                                  footer: true
+                                                },
+                                          multiSearch: true,
+                                          columns: [
+                                            {field: 'triggerName', caption: 'Trigger Name', size: '150px'},
+                                            {field: 'triggerType', caption: 'Trigger Type', size: '150px'},
+                                            {field: 'triggerOwner', caption: 'Trigger Owner', size: '150px'},
+                                            {field: 'triggeringEvent', caption: 'Triggering Event', size: '150px'},
+                                            {field: 'status', caption: 'Status', size: '150px'},
+                                            {field: 'viewName', caption: 'View Name', size: '150px'}
+                                          ]
+                                        });
+    }
+  },
+  isIndexesGridCreated: function() {
+    if(this.indexesGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getIndexesGrid: function() {
+    return this.indexesGrid;
+  },
+  isIndexesDetailsGridCreated: function() {
+    if(this.indexesDetailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getIndexesDetailsGrid: function() {
+    return this.indexesDetailsGrid;
+  },
+  createDependenciesGrid: function() {
+    var that = this;
+    if(this.dependenciesGrid === null) {
+      this.dependenciesGrid = $j('#' + this.id + '-mview-dependencies-grid-master')
+                              .w2grid({
+                                      name: this.id + '-mview-dependencies-properties-master',
+                                      header: this.label + ' - Dependencies',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'name', caption: 'Name', size: '150px'},
+                                        {field: 'type', caption: 'Type', size: '150px'},
+                                        {field: 'referencedOwner', caption: 'Referenced Owner', size: '150px'},
+                                        {field: 'referencedName', caption: 'Referenced Name', size: '150px'},
+                                        {field: 'referencedType', caption: 'Referenced Type', size: '150px'}
+                                      ],
+                                      onClick: function(event) {
+                                        var record = this.get(event.recid);
+                                        that.fireDependenciesGridClickedEvent(record);
+                                      },
+                                      onReload: function(event) {
+                                        that.fireDependenciesReloadButtonClickedEvent();
+                                      }
+                                    });
+      this.dependenciesDetailsGrid = $j('#' + this.id + '-mview-dependencies-grid-details')
+                                      .w2grid({
+                                              name: this.id + '-mview-dependencies-properties-details',
+                                              header: this.label + ' - References',
+                                              show: { header: true,
+                                                      toolbar: true,
+                                                      lineNumbers: true,
+                                                      footer: true
+                                                    },
+                                              multiSearch: true,
+                                              columns: [
+                                                {field: 'name', caption: 'Name', size: '150px'},
+                                                {field: 'type', caption: 'Type', size: '150px'},
+                                                {field: 'referencedOwner', caption: 'Referenced Owner', size: '150px'},
+                                                {field: 'referencedName', caption: 'Referenced Name', size: '150px'},
+                                                {field: 'referencedType', caption: 'Referenced Type', size: '150px'}
+                                              ]
+                                            });
+    }
+  },
+  isDependenciesGridCreated: function() {
+    if(this.dependenciesGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDependenciesGrid: function() {
+    return this.dependenciesGrid;
+  },
+  isDependenciesDetailsGridCreated: function() {
+    if(this.dependenciesDetailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDependenciesDetailsGrid: function() {
+    return this.dependenciesDetailsGrid;
+  },
+  createSQLEditor: function() {
+    var that = this;
+    if(this.sqlEditor === null) {
+      this.sqlEditorToolbar = $j('#' + this.id + '-mview-sql-editor-toolbar')
+                                .w2toolbar({
+                                            name: this.id + '-mview-sql-editor-toolbar',
+                                            items: [
+                                              { type: 'button', id: this.id + '-mview-sql-editor-toolbar-refresh-sql-btn',
+                                                caption: 'Refresh', icon: 'refresh_icon', hint: 'Refresh SQL'},
+                                              ],
+                                            onClick: function(event) {
+                                              var target = event.target;
+                                              if(target === that.id + '-mview-sql-editor-toolbar-refresh-sql-btn') {
+                                                that.fireSQLReloadButtonClickedEvent();
+                                              }
+                                            }
+                                          });
+      this.sqlEditor = ace.edit(this.id + '-mview-sql-editor');
+      this.sqlEditor.setTheme('ace/theme/sqlserver');
+      this.sqlEditor.session.setMode('ace/mode/sqlserver');
+      this.sqlEditor.setReadOnly(true);
+    }
+  },
+  isSQLEditorCreated: function() {
+    if(this.sqlEditor === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getSQLEditor: function() {
+    return this.sqlEditor;
+  },
+  addTabsBeforeActivateEventListener: function(listener) {
+    $j('#' + this.id + '-mview-info-tabs').on('tabsbeforeactivate', listener);
+  },
+  destroy: function() {
+    if(this.columnsGrid !== null) {
+      this.columnsGrid.destroy();
+    }
+    if(this.dataGrid !== null) {
+      this.dataGrid.destroy();
+    }
+    if(this.grantsGrid !== null) {
+      this.grantsGrid.destroy();
+    }
+    if(this.indexesGrid !== null) {
+      this.indexesGrid.destroy();
+    }
+    if(this.indexesDetailsGrid !== null) {
+      this.indexesDetailsGrid.destroy();
+    }
+    if(this.dependenciesGrid !== null) {
+      this.dependenciesGrid.destroy();
+    }
+    if(this.dependenciesDetailsGrid !== null) {
+      this.dependenciesDetailsGrid.destroy();
+    }
+    if(this.sqlEditor !== null) {
+      this.sqlEditor.destroy();
+    }
+    if(this.sqlEditorToolbar !== null) {
+      this.sqlEditorToolbar.destroy();
+    }
+  },
+  addIndexesGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.indexesGridClickedEventListeners.push(listener);
+    }
+  },
+  removeIndexesGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.indexesGridClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.indexesGridClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireIndexesGridClickedEvent: function(record) {
+    var that = this;
+    this.indexesGridClickedEventListeners.forEach(function(listener){
+      listener(record, that);
+    });
+  },
+  addDependenciesGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesGridClickedEventListeners.push(listener);
+    }
+  },
+  removeDependenciesGridClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesGridClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.dependenciesGridClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDependenciesGridClickedEvent: function(record) {
+    var that = this;
+    this.dependenciesGridClickedEventListeners.forEach(function(listener){
+      listener(record, that);
+    });
+  },
+  addColumnsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.columnsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeColumnsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.columnsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.columnsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireColumnsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.columnsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addDataReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dataReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDataReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dataReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.dataReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDataReloadButtonClickedEvent: function() {
+    var that = this;
+    this.dataReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addGrantsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.grantsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeGrantsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.grantsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.grantsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireGrantsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.grantsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addIndexesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.indexesReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeIndexesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.indexesReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.indexesReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireIndexesReloadButtonClickedEvent: function() {
+    var that = this;
+    this.indexesReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addDependenciesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDependenciesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.dependenciesReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDependenciesReloadButtonClickedEvent: function() {
+    var that = this;
+    this.dependenciesReloadButtonClickedEventListeners.forEach(function(listener){
       listener(that);
     });
   },
