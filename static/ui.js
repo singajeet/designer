@@ -2496,10 +2496,11 @@ var PLSQLTabUI = Class.create({
                                       multiSearch: true,
                                       columns: [
                                         {field: 'name', caption: 'Name', size: '150px'},
+                                        {field: 'owner', caption: 'Owner', size: '150px'},
                                         {field: 'type', caption: 'Type', size: '150px'},
-                                        {field: 'referencedOwner', caption: 'Referenced Owner', size: '150px'},
-                                        {field: 'referencedName', caption: 'Referenced Name', size: '150px'},
-                                        {field: 'referencedType', caption: 'Referenced Type', size: '150px'}
+                                        {field: 'objectId', caption: 'Object ID', size: '150px'},
+                                        {field: 'status', caption: 'Status', size: '150px'},
+                                        {field: 'typeLink', caption: 'Type Link', size: '150px'}
                                       ],
                                       onReload: function(event) {
                                         that.fireDependenciesReloadButtonClickedEvent();
@@ -2584,10 +2585,11 @@ var PLSQLTabUI = Class.create({
                                       multiSearch: true,
                                       columns: [
                                         {field: 'name', caption: 'Name', size: '150px'},
+                                        {field: 'owner', caption: 'Owner', size: '150px'},
                                         {field: 'type', caption: 'Type', size: '150px'},
-                                        {field: 'referencedOwner', caption: 'Referenced Owner', size: '150px'},
-                                        {field: 'referencedName', caption: 'Referenced Name', size: '150px'},
-                                        {field: 'referencedType', caption: 'Referenced Type', size: '150px'}
+                                        {field: 'objectId', caption: 'Object ID', size: '150px'},
+                                        {field: 'status', caption: 'Status', size: '150px'},
+                                        {field: 'typeLink', caption: 'Type Link', size: '150px'}
                                       ],
                                       onReload: function(event) {
                                         that.fireReferencesReloadButtonClickedEvent();

@@ -15412,6 +15412,7 @@ var DatabaseMaterializedView = Class.create({
  */
 var DatabasePLSQL = Class.create({
   objectName: null,
+  objectType: null,
   socket: null,
   tabId: null,
   sqlAvailableEventListeners: [],
@@ -15421,8 +15422,20 @@ var DatabasePLSQL = Class.create({
   grantsAvailableEventListeners: [],
   referencesAvailableEventListeners: [],
   detailsAvailableEventListeners: [],
-  initialize: function(objectName, tabId) {
+  initialize: function(objectName, tabId, nodeType) {
     this.objectName = objectName;
+    this.objectType = '';
+    if(nodeType === DatabaseNavNodeType.PROCEDURE) {
+      this.objectType = 'PROCEDURE';
+    } else if(nodeType === DatabaseNavNodeType.FUNCTION) {
+      this.objectType = 'FUNCTION';
+    } else if(nodeType === DatabaseNavNodeType.PACKAGE) {
+      this.objectType = 'PACKAGE';
+    } else if(nodeType === DatabaseNavNodeType.PACKAGE_BODY) {
+      this.objectType = 'PACKAGE BODY';
+    } else if(nodeType === DatabaseNavNodeType.TRIGGER) {
+      this.objectType = 'TRIGGER'
+    }
     this.tabId = tabId;
     this.socket = io('/oracle_db_plsql');
     this.sqlAvailableEventListeners = [];
@@ -15557,7 +15570,7 @@ var DatabasePLSQL = Class.create({
     this.socket.on('sql_result', function(result){
       that.fireSQLAvailableEvent(result);
     });
-    this.socket.emit('get_sql', this.objectName);
+    this.socket.emit('get_sql', this.objectName, this.objectType);
   },
   getErrors: function() {
     var that = this;
@@ -15571,7 +15584,7 @@ var DatabasePLSQL = Class.create({
     this.socket.on('dependencies_result', function(result){
       that.fireDependenciesAvailableEvent(result);
     });
-    this.socket.emit('get_dependencies', this.objectName);
+    this.socket.emit('get_dependencies', this.objectName, this.objectType);
   },
   getProfiles: function() {
     var that = this;
@@ -15592,6 +15605,6 @@ var DatabasePLSQL = Class.create({
     this.socket.on('references_result', function(result){
       that.fireReferencesAvailableEvent(result);
     });
-    this.socket.emit('get_references', this.objectName);
+    this.socket.emit('get_references', this.objectName, this.objectType);
   }
 });

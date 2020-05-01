@@ -256,7 +256,7 @@
                 createMViewTab(id, item.node.text);
                 openedMViews.push(id + '-mview-tab');
               }
-            } else if(item.node.nodeType === DatabaseNavNodeType.PROCEDURE || item.node.nodeType === DatabaseNavNodeType.FUNCTION || item.node.nodeType === DatabaseNavNodeType.PACKAGE || item.node.nodeType === DatabaseNavNodeType.PACKAGE_BODY) {
+            } else if(item.node.nodeType === DatabaseNavNodeType.PROCEDURE || item.node.nodeType === DatabaseNavNodeType.FUNCTION || item.node.nodeType === DatabaseNavNodeType.PACKAGE || item.node.nodeType === DatabaseNavNodeType.PACKAGE_BODY || item.node.nodeType === DatabaseNavNodeType.TRIGGER) {
               var index = openedPLSQLs.indexOf(id + '-plsql-tab');
               if(index === -1){
                 createPLSQLTab(id, item.node.text, item.node.nodeType);
@@ -267,15 +267,20 @@
 
           function createPLSQLTab(id, label, nodeType) {
             var tabId = id + '-plsql-tab';
-            // plsqls[tabId] = new DatabasePLSQL(label, tabId);
+            if(nodeType === DatabaseNavNodeType.PACKAGE_BODY) {
+              plsqls[tabId] = new DatabasePLSQL(label.replace(' Body', ''), tabId, nodeType);
+            } else {
+              plsqls[tabId] = new DatabasePLSQL(label, tabId, nodeType);
+            }
+            
             tabs[tabId] = new PLSQLTabUI(id, label);
 
-            // plsqls[tabId].addSQLAvailableEventListener(onSQLAvailable);
-            // plsqls[tabId].addErrorsAvailableEventListener(onErrorsAvailable);
-            // plsqls[tabId].addDependenciesAvailableEventListener(onDependenciesAvailable);
+            plsqls[tabId].addSQLAvailableEventListener(onSQLAvailable);
+            plsqls[tabId].addErrorsAvailableEventListener(onErrorsAvailable);
+            plsqls[tabId].addDependenciesAvailableEventListener(onDependenciesAvailable);
             // plsqls[tabId].addProfilesAvailableEventListener(onProfilesAvailable);
-            // plsqls[tabId].addGrantsAvailableEventListener(onGrantsAvailable);
-            // plsqls[tabId].addReferencesAvailableEventListener(onReferencesAvailable);
+            plsqls[tabId].addGrantsAvailableEventListener(onGrantsAvailable);
+            plsqls[tabId].addReferencesAvailableEventListener(onReferencesAvailable);
 
             var content = tabs[tabId].getTabContent();
             var icon = "";
@@ -287,6 +292,8 @@
               icon = 'package_icon';
             } else if(nodeType === DatabaseNavNodeType.PACKAGE_BODY) {
               icon = 'package_icon';
+            } else if(nodeType === DatabaseNavNodeType.TRIGGER) {
+              icon = 'trigger_icon';
             }
             a.addTab(tabId, label, content, icon);
             tabs[tabId].initTab();
@@ -299,12 +306,12 @@
               if(name === 'errors') {
                 if(!tabs[tabId].isErrorsGridCreated()) {
                   tabs[tabId].createErrorsGrid();
-                  // plsqls[tabId].getSQL();
+                  plsqls[tabId].getErrors();
                 }
               } else if(name === 'dependencies') {
                 if(!tabs[tabId].isDependenciesGridCreated()) {
                   tabs[tabId].createDependenciesGrid();
-                  // plsqls[tabId].getDependencies();
+                  plsqls[tabId].getDependencies();
                 }
               } else if(name === 'profiles') {
                 if(!tabs[tabId].isProfilesGridCreated()) {
@@ -314,15 +321,41 @@
               } else if(name === 'grants') {
                 if(!tabs[tabId].isGrantsGridCreated()) {
                   tabs[tabId].createGrantsGrid();
-                  // plsqls[tabId].getGrants();
+                  plsqls[tabId].getGrants();
                 }
               } else if(name === 'references') {
                 if(!tabs[tabId].isReferencesGridCreated()) {
                   tabs[tabId].createReferencesGrid();
-                  // plsqls[tabId].getReferences();
+                  plsqls[tabId].getReferences();
                 }
               }
             });
+
+            plsqls[tabId].getSQL();
+
+            function onSQLAvailable(result, tabId){
+              tabs[tabId].getSQLEditor().setValue(result);
+            }
+
+            function onErrorsAvailable(result, tabId){
+              tabs[tabId].getErrorsGrid().records = result;
+              tabs[tabId].getErrorsGrid().refresh();
+            }
+
+            function onDependenciesAvailable(result, tabId){
+              tabs[tabId].getDependenciesGrid().records = result;
+              tabs[tabId].getDependenciesGrid().refresh();
+            }
+
+            function onGrantsAvailable(result, tabId){
+              tabs[tabId].getGrantsGrid().records = result;
+              tabs[tabId].getGrantsGrid().refresh();
+            }
+
+            function onReferencesAvailable(result, tabId){
+              tabs[tabId].getReferencesGrid().records = result;
+              tabs[tabId].getReferencesGrid().refresh();
+            }
           }
 
           function createMViewTab(id, label) {

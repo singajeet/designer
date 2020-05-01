@@ -158,34 +158,14 @@ class DatabaseSchemaServer(Namespace):
         """For internal use only: will be called when 'get_procedures' event will be emitted
         """
         db_conn = self._db_connection.get_connection()
-        cursor = db_conn.cursor()
-        # ########## Get Oracle Version ################
-        version_str = ""
-        query = "SELECT version FROM PRODUCT_COMPONENT_VERSION WHERE product LIKE '%Oracle%'"
-        cursor.execute(query)
-        for result in cursor:
-            version_str = result[0]
-        version_array = version_str.split('.')
-        version = int(version_array[0])
-        # ######### Get Procedures ######################
-        if version <= 10:
-            query = """
-                    SELECT
-                        object_name
-                    FROM
-                        SYS.user_objects
-                    WHERE
-                        object_type='PROCEDURE'
-                    """
-        else:
-            query = """
-                    SELECT
-                        object_name
-                    FROM
-                        SYS.user_procedures
-                    WHERE
-                        object_type='PROCEDURE'
-                    """
+        query = """
+                SELECT
+                    object_name
+                FROM
+                    SYS.user_objects
+                WHERE
+                    object_type='PROCEDURE'
+                """
         cursor = db_conn.cursor()
         cursor.execute(query)
         result_array = []
@@ -197,34 +177,14 @@ class DatabaseSchemaServer(Namespace):
         """For internal use only: will be called when 'get_functions' event will be emitted
         """
         db_conn = self._db_connection.get_connection()
-        cursor = db_conn.cursor()
-        # ########## Get Oracle Version ################
-        version_str = ""
-        query = "SELECT version FROM PRODUCT_COMPONENT_VERSION WHERE product LIKE '%Oracle%'"
-        cursor.execute(query)
-        for result in cursor:
-            version_str = result[0]
-        version_array = version_str.split('.')
-        version = int(version_array[0])
-        # ######### Get Functions ######################
-        if version <= 10:
-            query = """
-                    SELECT
-                        object_name
-                    FROM
-                        SYS.user_objects
-                    WHERE
-                        object_type='FUNCTION'
-                    """
-        else:
-            query = """
-                    SELECT
-                        object_name
-                    FROM
-                        SYS.user_procedures
-                    WHERE
-                        object_type='FUNCTION'
-                    """
+        query = """
+                SELECT
+                    object_name
+                FROM
+                    SYS.user_objects
+                WHERE
+                    object_type='FUNCTION'
+                """
         cursor = db_conn.cursor()
         cursor.execute(query)
         result_array = []
@@ -236,31 +196,11 @@ class DatabaseSchemaServer(Namespace):
         """For internal use only: will be called when 'get_packages' event will be emitted
         """
         db_conn = self._db_connection.get_connection()
-        cursor = db_conn.cursor()
-        # ########## Get Oracle Version ################
-        version_str = ""
-        query = "SELECT version FROM PRODUCT_COMPONENT_VERSION WHERE product LIKE '%Oracle%'"
-        cursor.execute(query)
-        for result in cursor:
-            version_str = result[0]
-        version_array = version_str.split('.')
-        version = int(version_array[0])
-        # ######### Get Functions ######################
-        if version <= 10:
-            query = """
+        query = """
                     SELECT
                         object_name
                     FROM
                         SYS.user_objects
-                    WHERE
-                        object_type='PACKAGE'
-                    """
-        else:
-            query = """
-                    SELECT
-                        object_name
-                    FROM
-                        SYS.user_procedures
                     WHERE
                         object_type='PACKAGE'
                     """
@@ -1916,3 +1856,209 @@ class DatabaseMaterializedViewServer(Namespace):
             sql += result[0] + '\n'
         emit('sql_result', sql, namespace=self._namespace_url)
 
+
+class DatabasePLSQLServer(Namespace):
+    """Class to interact with the database procedure, function or package available under schema
+        provided as parameter to the class
+    """
+
+    _socket_io = None
+    _schema_name = None
+    _schema = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabasePLSQLServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db_plsql')
+        self._namespace_url = '/oracle_db_plsql'
+        self._socket_io = socket_io
+        self._schema = schema
+        self._db_connection = self._schema.get_connection()
+        self._schema_name = self._schema.get_schema_name()
+        socket_io.on_namespace(self)
+
+    def on_get_sql(self, object_name, object_type):
+        """For internal use only: will be called when 'get_sql' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        sql = ""
+        # ########### Get DDL of table ###############
+        cursor = db_conn.cursor()
+        object_type = object_type.replace(' ', '_')
+        if object_type == 'PACKAGE':
+            query = """
+                    SELECT
+                       TEXT
+                    FROM
+                        SYS.user_source
+                    WHERE
+                        name='%s'
+                        AND type='PACKAGE'
+                    ORDER BY line
+                    """ % object_name
+        else:
+            query = """
+                    SELECT to_char(dbms_metadata.get_ddl('%s', '%s')) FROM dual
+                    """ % (object_type, object_name)
+        cursor.execute(query)
+        for result in cursor:
+            sql = sql + result[0]
+        if object_type == 'PACKAGE':
+            sql = 'CREATE OR REPLACE ' + sql
+        emit('sql_result', sql, namespace=self._namespace_url)
+
+    def on_get_errors(self, object_name):
+        """For internal use only: will be called when 'get_errors' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    attribute,
+                    line || ':' || position,
+                    text
+                FROM
+                    SYS.user_errors
+                WHERE
+                    name='%s'
+                """ % object_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'attribute': result[1],
+                                 'linePosition': result[2],
+                                 'text': result[3]
+                                 })
+        emit('errors_result', result_array, namespace=self._namespace_url)
+
+    def on_get_dependencies(self, object_name, object_type):
+        """For internal use only: will be called when 'get_dependencies' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT DISTINCT
+                    ROWNUM,
+                    b.object_name   AS name,
+                    b.owner,
+                    b.object_type   type,
+                    b.object_id,
+                    b.status,
+                    replace(b.object_type, ' ', '_') type_link
+                FROM
+                    sys.all_objects b,
+                    (
+                        SELECT
+                            object_id,
+                            referenced_object_id,
+                            level l,
+                            ROWNUM ord
+                        FROM
+                            public_dependency
+                        START WITH
+                            object_id = (SELECT object_id FROM SYS.user_objects WHERE object_name='%s' and object_type='%s')
+                        CONNECT BY NOCYCLE
+                            PRIOR referenced_object_id = object_id
+                    ) c
+                WHERE
+                    b.object_id = c.referenced_object_id
+                    AND b.owner NOT IN (
+                        'SYS',
+                        'SYSTEM'
+                    )
+                    AND b.object_name <> 'DUAL'
+                """ % (object_name, object_type)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'owner': result[2],
+                                 'type': result[3],
+                                 'objectId': result[4],
+                                 'status': result[5],
+                                 'typeLink': result[6]
+                                 })
+        emit('dependencies_result', result_array, namespace=self._namespace_url)
+
+    def on_get_grants(self, object_name):
+        """For internal use only: will be called when 'get_grants' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    privilege,
+                    grantee,
+                    grantable,
+                    grantor,
+                    table_name
+                FROM
+                    SYS.user_tab_privs
+                WHERE
+                    table_name='%s'
+                """ % object_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'privilege': result[1],
+                                 'grantee': result[2],
+                                 'grantable': result[3],
+                                 'grantor': result[4],
+                                 'objectName': result[5]
+                                 })
+        emit('grants_result', result_array, namespace=self._namespace_url)
+
+    def on_get_references(self, object_name, object_type):
+        """For internal use only: will be called when 'get_references' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT DISTINCT
+                    ROWNUM,
+                    object_name   AS name,
+                    owner,
+                    object_type   type,
+                    hier.object_id,
+                    status,
+                    decode(replace(object_type, ' ', '_'), 'PACKAGE_BODY', 'PACKAGE', replace(object_type, ' ', '_')) type_link
+                FROM
+                    sys.all_objects o,
+                    (
+                        SELECT
+                            object_id,
+                            level l,
+                            ROWNUM ord
+                        FROM
+                            public_dependency
+                        CONNECT BY NOCYCLE
+                            PRIOR object_id = referenced_object_id
+                        START WITH referenced_object_id = (SELECT object_id FROM SYS.user_objects WHERE object_name='%s' and object_type='%s')
+                    ) hier
+                WHERE
+                    hier.object_id = o.object_id
+                """ % (object_name, object_type)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'owner': result[2],
+                                 'type': result[3],
+                                 'objectId': result[4],
+                                 'status': result[5],
+                                 'typeLink': result[6]
+                                 })
+        emit('references_result', result_array, namespace=self._namespace_url)
