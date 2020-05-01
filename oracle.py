@@ -171,13 +171,11 @@ class DatabaseSchemaServer(Namespace):
         if version <= 10:
             query = """
                     SELECT
-                        a.object_name
+                        object_name
                     FROM
-                        SYS.user_procedures a,
-                        SYS.user_objects b
+                        SYS.user_objects
                     WHERE
-                        a.object_name = b.object_name
-                        AND b.object_type='PROCEDURE'
+                        object_type='PROCEDURE'
                     """
         else:
             query = """
@@ -212,13 +210,11 @@ class DatabaseSchemaServer(Namespace):
         if version <= 10:
             query = """
                     SELECT
-                        a.object_name
+                        object_name
                     FROM
-                        SYS.user_procedures a,
-                        SYS.user_objects b
+                        SYS.user_objects
                     WHERE
-                        a.object_name = b.object_name
-                        AND b.object_type='FUNCTION'
+                        object_type='FUNCTION'
                     """
         else:
             query = """
@@ -253,13 +249,11 @@ class DatabaseSchemaServer(Namespace):
         if version <= 10:
             query = """
                     SELECT
-                        a.object_name
+                        object_name
                     FROM
-                        SYS.user_procedures a,
-                        SYS.user_objects b
+                        SYS.user_objects
                     WHERE
-                        a.object_name = b.object_name
-                        AND b.object_type='PACKAGE'
+                        object_type='PACKAGE'
                     """
         else:
             query = """
