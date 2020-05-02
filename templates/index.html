@@ -49,6 +49,7 @@
           var openedSequences = [];
           var openedSynonyms = [];
           var openedDBLinks = [];
+          var openedDirectories = [];
           var tables = {};
           var views = {};
           var indexes = {};
@@ -57,6 +58,7 @@
           var sequences = {};
           var synonyms = {};
           var dblinks = {};
+          var directories = {};
 
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback,
             contextMenuCallback);
@@ -179,6 +181,9 @@
             index = openedIndexes.indexOf(tabId);
             openedIndexes.splice(index, 1);
 
+            index = openedMViews.indexOf(tabId);
+            openedMViews.splice(index, 1);
+
             index = openedPLSQLs.indexOf(tabId);
             openedPLSQLs.splice(index, 1);
 
@@ -191,14 +196,19 @@
             index = openedDBLinks.indexOf(tabId);
             openedDBLinks.splice(index, 1);
 
+            index = openedDirectories.indexOf(tabId);
+            openedDirectories.splice(index, 1);
+
             delete tables[tabId];
             delete tabs[tabId];
             delete views[tabId];
             delete indexes[tabId];
+            delete mviews[tabId];
             delete plsqls[tabId];
             delete sequences[tabId];
             delete synonyms[tabId];
             delete dblinks[tabId];
+            delete directories[tabId];
           }
 
           function createConnection(navigationTree, project) {
@@ -292,13 +302,43 @@
                 createSynonymTab(id, item.node.text);
                 openedSynonyms.push(id + '-synonym-tab');
               }
-            } else if(item.node.nodeType === DatabaseNavNodeType.DBLINK) {
+            } else if(item.node.nodeType === DatabaseNavNodeType.DBLINK || item.node.nodeType === DatabaseNavNodeType.PUBLIC_DBLINK) {
               var index = openedDBLinks.indexOf(id + '-dblink-tab');
               if(index === -1){
                 createDBLinkTab(id, item.node.text);
                 openedDBLinks.push(id + '-dblink-tab');
               }
+            } else if(item.node.nodeType === DatabaseNavNodeType.DBLINK || item.node.nodeType === DatabaseNavNodeType.DIRECTORY) {
+              var index = openedDirectories.indexOf(id + '-directory-tab');
+              if(index === -1){
+                createDirectoryTab(id, item.node.text);
+                openedDirectories.push(id + '-directory-tab');
+              }
             }
+          }
+
+          function createDirectoryTab(id, label) {
+            var tabId = id + '-directory-tab';
+            directories[tabId] = new DatabaseDirectory(label, tabId);
+            tabs[tabId] = new DatabaseDirectoryTabUI(id, label);
+
+            directories[tabId].addDetailsAvailableEventListener(onDetailsAvailable);
+
+            var content = tabs[tabId].getTabContent();
+            a.addTab(tabId, label, content, 'directory_icon');
+            tabs[tabId].initTab();
+
+            tabs[tabId].createDetailsGrid();
+
+            tabs[tabId].addDetailsReloadButtonClickedEventListener(function(tab){
+              directories[tabId].getDetails();
+            });
+
+            function onDetailsAvailable(result, tabId){
+              tabs[tabId].getDetailsGrid().records = result;
+              tabs[tabId].getDetailsGrid().refresh();
+            }
+            directories[tabId].getDetails();
           }
 
           function createDBLinkTab(id, label) {

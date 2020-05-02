@@ -3,7 +3,7 @@ from flask_socketio import SocketIO
 from oracle import DatabaseConnectionServer, DatabaseSchemaServer, DatabaseTableServer
 from oracle import DatabaseViewServer, DatabaseIndexServer, DatabaseMaterializedViewServer
 from oracle import DatabasePLSQLServer, DatabaseSequenceServer, DatabaseSynonymServer
-from oracle import DatabaseLinkServer
+from oracle import DatabaseLinkServer, DatabaseDirectoryServer
 from engineio.payload import Payload
 
 
@@ -29,6 +29,7 @@ def start_app():
     dseq = DatabaseSequenceServer(socketio, ds)
     dsynm = DatabaseSynonymServer(socketio, ds)
     dblink = DatabaseLinkServer(socketio, ds)
+    ddir = DatabaseDirectoryServer(socketio, ds)
     socketio.run(app, debug=True)
 
 

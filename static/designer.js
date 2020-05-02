@@ -15872,3 +15872,46 @@ var DatabaseLink = Class.create({
     this.socket.emit('get_sql', this.linkName);
   }
 });
+
+/**
+ * DatabaseDirectory: This class represents an directory in database and interacts with
+ *  websocket calls to get directory details
+ * @constructor
+ * @param {string} directoryName - Name of the directory in database
+ */
+var DatabaseDirectory = Class.create({
+  directoryName: null,
+  socket: null,
+  tabId: null,
+  detailsAvailableEventListeners: [],
+  initialize: function(directoryName, tabId) {
+    this.directoryName = directoryName;
+    this.tabId = tabId;
+    this.socket = io('/oracle_db_directory');
+    this.detailsAvailableEventListeners = [];
+  },
+  addDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsAvailableEventListeners.push(listener);
+    }
+  },
+  removeDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsAvailableEventListeners.indexOf(listener);
+      this.detailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.detailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  getDetails: function() {
+    var that = this;
+    this.socket.on('details_result', function(result){
+      that.fireDetailsAvailableEvent(result);
+    });
+    this.socket.emit('get_details', this.directoryName);
+  }
+});

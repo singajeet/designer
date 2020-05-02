@@ -3355,3 +3355,102 @@ var DatabaseLinkTabUI = Class.create({
     });
   }
 });
+
+/**
+ * DatabaseDirectoryTabUI: Provides the user interface components to display details of an provided database directory
+ * @constructor
+ * @param {string} id - A unique id to create HTML content
+ * @param {string} label - Name of the directory to be shown as label in UI components
+ */
+var DatabaseDirectoryTabUI = Class.create({
+  id: null,
+  label: null,
+  mainContent: null,
+  detailsGrid: null,
+  detailsReloadButtonClickedEventListeners: [],
+  initialize: function(id, label) {
+    this.id = id;
+    this.label = label;
+    this.mainContent = "";
+    this.detailsGrid = null;
+    this.detailsReloadButtonClickedEventListeners = [];
+  },
+  getId: function() {
+    return this.id;
+  },
+  getTabName: function() {
+    return this.label;
+  },
+  getTabContent: function() {
+    this.mainContent = "<div id='" + this.id + "-directory-info-tabs' style='width: 100%; height: 100%;'>" +
+                            " <ul>" +
+                            "   <li><a href='#" + this.id + "-directory-details-grid'>Details</a></li>" +
+                            " </ul>" +
+                            " <div id='" + this.id + "-directory-details-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
+                            "</div>";
+        return this.mainContent;
+  },
+  initTab: function() {
+    $j('#' + this.id + '-directory-info-tabs').tabs();
+  },
+  createDetailsGrid: function() {
+    var that = this;
+    if(this.detailsGrid === null) {
+      this.detailsGrid = $j('#' + this.id + '-directory-details-grid')
+                            .w2grid({
+                                    name: this.id + '-directory-details-properties',
+                                    header: this.label + ' - Details',
+                                    show: { header: true,
+                                            toolbar: true,
+                                            lineNumbers: true,
+                                            footer: true
+                                          },
+                                    multiSearch: true,
+                                    columns: [
+                                      {field: 'name', caption: 'Name', size: '150px'},
+                                      {field: 'value', caption: 'Value', size: '150px'}
+                                    ],
+                                    onReload: function(event) {
+                                      that.fireDetailsReloadButtonClickedEvent();
+                                    }
+                                  });
+    }
+  },
+  isDetailsGridCreated: function() {
+    if(this.detailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDetailsGrid: function() {
+    return this.detailsGrid;
+  },
+  addTabsBeforeActivateEventListener: function(listener) {
+    $j('#' + this.id + '-directory-info-tabs').on('tabsbeforeactivate', listener);
+  },
+  destroy: function() {
+    if(this.detailsGrid !== null) {
+      this.detailsGrid.destroy();
+    }
+  },
+  addDetailsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDetailsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.detailsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDetailsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.detailsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  }
+});

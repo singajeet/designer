@@ -2337,13 +2337,13 @@ class DatabaseLinkServer(Namespace):
         cursor = db_conn.cursor()
         query = """
                 SELECT ROWNUM, a.* FROM
-                (SELECT 'CREATED', to_char(CREATED) FROM SYS.user_db_links WHERE db_link='{0}'
+                (SELECT 'CREATED', to_char(CREATED) FROM SYS.all_db_links WHERE db_link='{0}'
                 UNION
-                SELECT 'DB_LINK', DB_LINK FROM SYS.user_db_links WHERE db_link='{0}'
+                SELECT 'DB_LINK', DB_LINK FROM SYS.all_db_links WHERE db_link='{0}'
                 UNION
-                SELECT 'USERNAME', USERNAME FROM SYS.user_db_links WHERE db_link='{0}'
+                SELECT 'USERNAME', USERNAME FROM SYS.all_db_links WHERE db_link='{0}'
                 UNION
-                SELECT 'HOST', HOST FROM SYS.user_db_links WHERE db_link='{0}') a
+                SELECT 'HOST', HOST FROM SYS.all_db_links WHERE db_link='{0}') a
                 """.format(link_name)
         cursor.execute(query)
         result_array = []
@@ -2367,3 +2367,56 @@ class DatabaseLinkServer(Namespace):
         for result in cursor:
             sql = result[0]
         emit('sql_result', sql, namespace=self._namespace_url)
+
+
+class DatabaseDirectoryServer(Namespace):
+    """Class to interact with the database directory available under schema
+        provided as parameter to the class
+    """
+
+    _socket_io = None
+    _schema_name = None
+    _schema = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabaseDirectoryServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db_directory')
+        self._namespace_url = '/oracle_db_directory'
+        self._socket_io = socket_io
+        self._schema = schema
+        self._db_connection = self._schema.get_connection()
+        self._schema_name = self._schema.get_schema_name()
+        socket_io.on_namespace(self)
+
+    def on_get_details(self, directory_name):
+        """For internal use only: will be called when 'get_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT ROWNUM, a.* FROM
+                (SELECT 'DIRECTORY_NAME', DIRECTORY_NAME FROM SYS.all_directories WHERE directory_name='{0}'
+                UNION
+                SELECT 'DIRECTORY_PATH', DIRECTORY_PATH FROM SYS.all_directories WHERE directory_name='{0}'
+                UNION
+                SELECT 'Privilege list', priv_list
+                    FROM (SELECT LISTAGG(privilege, ', ')
+                                    WITHIN GROUP (ORDER BY privilege) priv_list
+                            FROM all_tab_privs WHERE table_name='{0}')
+                ) a
+                """.format(directory_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'value': result[2]})
+        emit('details_result', result_array, namespace=self._namespace_url)
