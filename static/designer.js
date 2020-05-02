@@ -12707,6 +12707,7 @@ var DatabaseNavNodeType = {
     PUBLIC_SYNONYM: 'DB-PUBLIC-SYNONYM',
     TRIGGER: 'DB-TRIGGER',
     TYPE: 'DB-TYPE',
+    TYPE_BODY: 'DB-TYPE-BODY',
     QUEUE: 'DB-QUEUE',
     DBLINK: 'DB-DBLINK',
     PUBLIC_DBLINK: 'DB-PUBLIC-DBLINK',
@@ -15435,6 +15436,10 @@ var DatabasePLSQL = Class.create({
       this.objectType = 'PACKAGE BODY';
     } else if(nodeType === DatabaseNavNodeType.TRIGGER) {
       this.objectType = 'TRIGGER'
+    } else if(nodeType === DatabaseNavNodeType.TYPE) {
+      this.objectType = 'TYPE'
+    } else if(nodeType === DatabaseNavNodeType.TYPE_BODY) {
+      this.objectType = 'TYPE BODY'
     }
     this.tabId = tabId;
     this.socket = io('/oracle_db_plsql');
@@ -15727,5 +15732,143 @@ var DatabaseSequence = Class.create({
       that.fireSQLAvailableEvent(result);
     });
     this.socket.emit('get_sql', this.sequenceName);
+  }
+});
+
+/**
+ * DatabaseSynonym: This class represents an synonym in database and interacts with
+ *  websocket calls to get synonym details
+ * @constructor
+ * @param {string} synonymName - Name of the synonym in database
+ */
+var DatabaseSynonym = Class.create({
+  synonymName: null,
+  socket: null,
+  tabId: null,
+  detailsAvailableEventListeners: [],
+  sqlAvailableEventListeners: [],
+  initialize: function(synonymName, tabId) {
+    this.synonymName = synonymName;
+    this.tabId = tabId;
+    this.socket = io('/oracle_db_synonym');
+    this.detailsAvailableEventListeners = [];
+    this.sqlAvailableEventListeners = [];
+  },
+  addDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsAvailableEventListeners.push(listener);
+    }
+  },
+  addSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlAvailableEventListeners.push(listener);
+    }
+  },
+  removeDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsAvailableEventListeners.indexOf(listener);
+      this.detailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlAvailableEventListeners.indexOf(listener);
+      this.sqlAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.detailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireSQLAvailableEvent: function(result) {
+    var that = this;
+    this.sqlAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  getDetails: function() {
+    var that = this;
+    this.socket.on('details_result', function(result){
+      that.fireDetailsAvailableEvent(result);
+    });
+    this.socket.emit('get_details', this.synonymName);
+  },
+  getSQL: function() {
+    var that = this;
+    this.socket.on('sql_result', function(result){
+      that.fireSQLAvailableEvent(result);
+    });
+    this.socket.emit('get_sql', this.synonymName);
+  }
+});
+
+/**
+ * DatabaseLink: This class represents an link in database and interacts with
+ *  websocket calls to get link details
+ * @constructor
+ * @param {string} linkName - Name of the link in database
+ */
+var DatabaseLink = Class.create({
+  linkName: null,
+  socket: null,
+  tabId: null,
+  detailsAvailableEventListeners: [],
+  sqlAvailableEventListeners: [],
+  initialize: function(linkName, tabId) {
+    this.linkName = linkName;
+    this.tabId = tabId;
+    this.socket = io('/oracle_db_link');
+    this.detailsAvailableEventListeners = [];
+    this.sqlAvailableEventListeners = [];
+  },
+  addDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsAvailableEventListeners.push(listener);
+    }
+  },
+  addSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlAvailableEventListeners.push(listener);
+    }
+  },
+  removeDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsAvailableEventListeners.indexOf(listener);
+      this.detailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlAvailableEventListeners.indexOf(listener);
+      this.sqlAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.detailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireSQLAvailableEvent: function(result) {
+    var that = this;
+    this.sqlAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  getDetails: function() {
+    var that = this;
+    this.socket.on('details_result', function(result){
+      that.fireDetailsAvailableEvent(result);
+    });
+    this.socket.emit('get_details', this.linkName);
+  },
+  getSQL: function() {
+    var that = this;
+    this.socket.on('sql_result', function(result){
+      that.fireSQLAvailableEvent(result);
+    });
+    this.socket.emit('get_sql', this.linkName);
   }
 });

@@ -2789,7 +2789,7 @@ var SequenceTabUI = Class.create({
   getTabContent: function() {
     this.mainContent = "<div id='" + this.id + "-sequences-info-tabs' style='width: 100%; height: 100%;'>" +
                             " <ul>" +
-                            "   <li><a href='#" + this.id + "-sequences-details-grid'>Columns</a></li>" +
+                            "   <li><a href='#" + this.id + "-sequences-details-grid'>Details</a></li>" +
                             "   <li><a href='#" + this.id + "-sequences-dependencies-grid'>Dependencies</a></li>" +
                             "   <li><a href='#" + this.id + "-sequences-sql-editor-layout'>SQL</a></li>" +
                             " </ul>" +
@@ -2994,6 +2994,344 @@ var SequenceTabUI = Class.create({
   fireDependenciesReloadButtonClickedEvent: function() {
     var that = this;
     this.dependenciesReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.sqlReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireSQLReloadButtonClickedEvent: function() {
+    var that = this;
+    this.sqlReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  }
+});
+
+/**
+ * SynonymTabUI: Provides the user interface components to display details of an provided database synonym
+ * @constructor
+ * @param {string} id - A unique id to create HTML content
+ * @param {string} label - Name of the synonym to be shown as label in UI components
+ */
+var SynonymTabUI = Class.create({
+  id: null,
+  label: null,
+  mainContent: null,
+  detailsGrid: null,
+  sqlEditor: null,
+  sqlEditorToolbar: null,
+  detailsReloadButtonClickedEventListeners: [],
+  sqlReloadButtonClickedEventListeners: [],
+  initialize: function(id, label) {
+    this.id = id;
+    this.label = label;
+    this.mainContent = "";
+    this.detailsGrid = null;
+    this.sqlEditor = null;
+    this.sqlEditorToolbar = null;
+    this.detailsReloadButtonClickedEventListeners = [];
+    this.sqlReloadButtonClickedEventListeners = [];
+  },
+  getId: function() {
+    return this.id;
+  },
+  getTabName: function() {
+    return this.label;
+  },
+  getTabContent: function() {
+    this.mainContent = "<div id='" + this.id + "-synonym-info-tabs' style='width: 100%; height: 100%;'>" +
+                            " <ul>" +
+                            "   <li><a href='#" + this.id + "-synonym-details-grid'>Details</a></li>" +
+                            "   <li><a href='#" + this.id + "-synonym-sql-editor-layout'>SQL</a></li>" +
+                            " </ul>" +
+                            " <div id='" + this.id + "-synonym-details-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-synonym-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-synonym-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
+                            "   <div style='width: 100%; height: 2px'></div>" +
+                            "   <div id='" + this.id + "-synonym-sql-editor' style='width: 100%; height: 96%;'></div>" +
+                            " </div>" +
+                            "</div>";
+        return this.mainContent;
+  },
+  initTab: function() {
+    $j('#' + this.id + '-synonym-info-tabs').tabs();
+  },
+  createDetailsGrid: function() {
+    var that = this;
+    if(this.detailsGrid === null) {
+      this.detailsGrid = $j('#' + this.id + '-synonym-details-grid')
+                            .w2grid({
+                                    name: this.id + '-synonym-details-properties',
+                                    header: this.label + ' - Details',
+                                    show: { header: true,
+                                            toolbar: true,
+                                            lineNumbers: true,
+                                            footer: true
+                                          },
+                                    multiSearch: true,
+                                    columns: [
+                                      {field: 'name', caption: 'Name', size: '150px'},
+                                      {field: 'value', caption: 'Value', size: '150px'}
+                                    ],
+                                    onReload: function(event) {
+                                      that.fireDetailsReloadButtonClickedEvent();
+                                    }
+                                  });
+    }
+  },
+  isDetailsGridCreated: function() {
+    if(this.detailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDetailsGrid: function() {
+    return this.detailsGrid;
+  },
+  createSQLEditor: function() {
+    var that = this;
+    if(this.sqlEditor === null) {
+      this.sqlEditorToolbar = $j('#' + this.id + '-synonym-sql-editor-toolbar')
+                                .w2toolbar({
+                                            name: this.id + '-synonym-sql-editor-toolbar',
+                                            items: [
+                                              { type: 'button', id: this.id + '-synonym-sql-editor-toolbar-refresh-sql-btn',
+                                                caption: 'Refresh', icon: 'refresh_icon', hint: 'Refresh SQL'},
+                                              ],
+                                            onClick: function(event) {
+                                              var target = event.target;
+                                              if(target === that.id + '-synonym-sql-editor-toolbar-refresh-sql-btn') {
+                                                that.fireSQLReloadButtonClickedEvent();
+                                              }
+                                            }
+                                          });
+      this.sqlEditor = ace.edit(this.id + '-synonym-sql-editor');
+      this.sqlEditor.setTheme('ace/theme/sqlserver');
+      this.sqlEditor.session.setMode('ace/mode/sqlserver');
+      this.sqlEditor.setReadOnly(true);
+    }
+  },
+  isSQLEditorCreated: function() {
+    if(this.sqlEditor === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getSQLEditor: function() {
+    return this.sqlEditor;
+  },
+  addTabsBeforeActivateEventListener: function(listener) {
+    $j('#' + this.id + '-synonym-info-tabs').on('tabsbeforeactivate', listener);
+  },
+  destroy: function() {
+    if(this.detailsGrid !== null) {
+      this.detailsGrid.destroy();
+    }
+    if(this.sqlEditor !== null) {
+      this.sqlEditor.destroy();
+    }
+    if(this.sqlEditorToolbar !== null) {
+      this.sqlEditorToolbar.destroy();
+    }
+  },
+  addDetailsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDetailsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.detailsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDetailsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.detailsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.sqlReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireSQLReloadButtonClickedEvent: function() {
+    var that = this;
+    this.sqlReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  }
+});
+
+/**
+ * DatabaseLinkTabUI: Provides the user interface components to display details of an provided database db link
+ * @constructor
+ * @param {string} id - A unique id to create HTML content
+ * @param {string} label - Name of the db link to be shown as label in UI components
+ */
+var DatabaseLinkTabUI = Class.create({
+  id: null,
+  label: null,
+  mainContent: null,
+  detailsGrid: null,
+  sqlEditor: null,
+  sqlEditorToolbar: null,
+  detailsReloadButtonClickedEventListeners: [],
+  sqlReloadButtonClickedEventListeners: [],
+  initialize: function(id, label) {
+    this.id = id;
+    this.label = label;
+    this.mainContent = "";
+    this.detailsGrid = null;
+    this.sqlEditor = null;
+    this.sqlEditorToolbar = null;
+    this.detailsReloadButtonClickedEventListeners = [];
+    this.sqlReloadButtonClickedEventListeners = [];
+  },
+  getId: function() {
+    return this.id;
+  },
+  getTabName: function() {
+    return this.label;
+  },
+  getTabContent: function() {
+    this.mainContent = "<div id='" + this.id + "-dblink-info-tabs' style='width: 100%; height: 100%;'>" +
+                            " <ul>" +
+                            "   <li><a href='#" + this.id + "-dblink-details-grid'>Details</a></li>" +
+                            "   <li><a href='#" + this.id + "-dblink-sql-editor-layout'>SQL</a></li>" +
+                            " </ul>" +
+                            " <div id='" + this.id + "-dblink-details-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-dblink-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-dblink-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
+                            "   <div style='width: 100%; height: 2px'></div>" +
+                            "   <div id='" + this.id + "-dblink-sql-editor' style='width: 100%; height: 96%;'></div>" +
+                            " </div>" +
+                            "</div>";
+        return this.mainContent;
+  },
+  initTab: function() {
+    $j('#' + this.id + '-dblink-info-tabs').tabs();
+  },
+  createDetailsGrid: function() {
+    var that = this;
+    if(this.detailsGrid === null) {
+      this.detailsGrid = $j('#' + this.id + '-dblink-details-grid')
+                            .w2grid({
+                                    name: this.id + '-dblink-details-properties',
+                                    header: this.label + ' - Details',
+                                    show: { header: true,
+                                            toolbar: true,
+                                            lineNumbers: true,
+                                            footer: true
+                                          },
+                                    multiSearch: true,
+                                    columns: [
+                                      {field: 'name', caption: 'Name', size: '150px'},
+                                      {field: 'value', caption: 'Value', size: '150px'}
+                                    ],
+                                    onReload: function(event) {
+                                      that.fireDetailsReloadButtonClickedEvent();
+                                    }
+                                  });
+    }
+  },
+  isDetailsGridCreated: function() {
+    if(this.detailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDetailsGrid: function() {
+    return this.detailsGrid;
+  },
+  createSQLEditor: function() {
+    var that = this;
+    if(this.sqlEditor === null) {
+      this.sqlEditorToolbar = $j('#' + this.id + '-dblink-sql-editor-toolbar')
+                                .w2toolbar({
+                                            name: this.id + '-dblink-sql-editor-toolbar',
+                                            items: [
+                                              { type: 'button', id: this.id + '-dblink-sql-editor-toolbar-refresh-sql-btn',
+                                                caption: 'Refresh', icon: 'refresh_icon', hint: 'Refresh SQL'},
+                                              ],
+                                            onClick: function(event) {
+                                              var target = event.target;
+                                              if(target === that.id + '-dblink-sql-editor-toolbar-refresh-sql-btn') {
+                                                that.fireSQLReloadButtonClickedEvent();
+                                              }
+                                            }
+                                          });
+      this.sqlEditor = ace.edit(this.id + '-dblink-sql-editor');
+      this.sqlEditor.setTheme('ace/theme/sqlserver');
+      this.sqlEditor.session.setMode('ace/mode/sqlserver');
+      this.sqlEditor.setReadOnly(true);
+    }
+  },
+  isSQLEditorCreated: function() {
+    if(this.sqlEditor === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getSQLEditor: function() {
+    return this.sqlEditor;
+  },
+  addTabsBeforeActivateEventListener: function(listener) {
+    $j('#' + this.id + '-dblink-info-tabs').on('tabsbeforeactivate', listener);
+  },
+  destroy: function() {
+    if(this.detailsGrid !== null) {
+      this.detailsGrid.destroy();
+    }
+    if(this.sqlEditor !== null) {
+      this.sqlEditor.destroy();
+    }
+    if(this.sqlEditorToolbar !== null) {
+      this.sqlEditorToolbar.destroy();
+    }
+  },
+  addDetailsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDetailsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.detailsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDetailsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.detailsReloadButtonClickedEventListeners.forEach(function(listener){
       listener(that);
     });
   },

@@ -1892,7 +1892,7 @@ class DatabasePLSQLServer(Namespace):
         # ########### Get DDL of table ###############
         cursor = db_conn.cursor()
         object_type = object_type.replace(' ', '_')
-        if object_type == 'PACKAGE':
+        if object_type == 'PACKAGE' or object_type == 'TYPE':
             query = """
                     SELECT
                        TEXT
@@ -1900,7 +1900,7 @@ class DatabasePLSQLServer(Namespace):
                         SYS.user_source
                     WHERE
                         name='%s'
-                        AND type='PACKAGE'
+                        AND type in ('PACKAGE', 'TYPE')
                     ORDER BY line
                     """ % object_name
         else:
@@ -1910,7 +1910,7 @@ class DatabasePLSQLServer(Namespace):
         cursor.execute(query)
         for result in cursor:
             sql = sql + result[0]
-        if object_type == 'PACKAGE':
+        if object_type == 'PACKAGE' or object_type == 'TYPE':
             sql = 'CREATE OR REPLACE ' + sql
         emit('sql_result', sql, namespace=self._namespace_url)
 
@@ -2225,6 +2225,144 @@ class DatabaseSequenceServer(Namespace):
         query = """
                 SELECT to_char(dbms_metadata.get_ddl('SEQUENCE', '%s')) FROM dual
                 """ % sequence_name
+        cursor.execute(query)
+        for result in cursor:
+            sql = result[0]
+        emit('sql_result', sql, namespace=self._namespace_url)
+
+
+class DatabaseSynonymServer(Namespace):
+    """Class to interact with the database synonym available under schema
+        provided as parameter to the class
+    """
+
+    _socket_io = None
+    _schema_name = None
+    _schema = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabaseSynonymServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db_synonym')
+        self._namespace_url = '/oracle_db_synonym'
+        self._socket_io = socket_io
+        self._schema = schema
+        self._db_connection = self._schema.get_connection()
+        self._schema_name = self._schema.get_schema_name()
+        socket_io.on_namespace(self)
+
+    def on_get_details(self, synonym_name):
+        """For internal use only: will be called when 'get_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT ROWNUM, a.* FROM
+                (SELECT 'CREATED', to_char(CREATED) FROM SYS.user_objects WHERE object_name='{0}' AND object_type='SYNONYM'
+                UNION
+                SELECT 'LAST_DDL_TIME', to_char(LAST_DDL_TIME) FROM SYS.user_objects WHERE object_name='{0}' AND object_type='SYNONYM'
+                UNION
+                SELECT 'SYNONYM_NAME', SYNONYM_NAME FROM SYS.user_synonyms WHERE synonym_name='{0}'
+                UNION
+                SELECT 'OBJECT_OWNER', table_owner AS OBJECT_OWNER FROM SYS.user_synonyms WHERE synonym_name='{0}'
+                UNION
+                SELECT 'OBJECT_NAME', table_name AS OBJECT_NAME FROM SYS.user_synonyms WHERE synonym_name='{0}'
+                UNION
+                SELECT 'OBJECT_TYPE', OBJECT_TYPE FROM SYS.user_objects WHERE object_name=(SELECT table_name FROM SYS.user_synonyms WHERE synonym_name='{0}')
+                UNION
+                SELECT 'DB_LINK', DB_LINK FROM SYS.user_synonyms WHERE synonym_name='{0}') a
+                """.format(synonym_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'value': result[2]})
+        emit('details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_sql(self, synonym_name):
+        """For internal use only: will be called when 'get_sql' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        sql = ""
+        # ########### Get DDL of table ###############
+        cursor = db_conn.cursor()
+        query = """
+                SELECT to_char(dbms_metadata.get_ddl('SYNONYM', '%s')) FROM dual
+                """ % synonym_name
+        cursor.execute(query)
+        for result in cursor:
+            sql = result[0]
+        emit('sql_result', sql, namespace=self._namespace_url)
+
+
+class DatabaseLinkServer(Namespace):
+    """Class to interact with the database link available under schema
+        provided as parameter to the class
+    """
+
+    _socket_io = None
+    _schema_name = None
+    _schema = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabaseLinkServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db_link')
+        self._namespace_url = '/oracle_db_link'
+        self._socket_io = socket_io
+        self._schema = schema
+        self._db_connection = self._schema.get_connection()
+        self._schema_name = self._schema.get_schema_name()
+        socket_io.on_namespace(self)
+
+    def on_get_details(self, link_name):
+        """For internal use only: will be called when 'get_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT ROWNUM, a.* FROM
+                (SELECT 'CREATED', to_char(CREATED) FROM SYS.user_db_links WHERE db_link='{0}'
+                UNION
+                SELECT 'DB_LINK', DB_LINK FROM SYS.user_db_links WHERE db_link='{0}'
+                UNION
+                SELECT 'USERNAME', USERNAME FROM SYS.user_db_links WHERE db_link='{0}'
+                UNION
+                SELECT 'HOST', HOST FROM SYS.user_db_links WHERE db_link='{0}') a
+                """.format(link_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'value': result[2]})
+        emit('details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_sql(self, link_name):
+        """For internal use only: will be called when 'get_sql' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        sql = ""
+        # ########### Get DDL of table ###############
+        cursor = db_conn.cursor()
+        query = """
+                SELECT to_char(dbms_metadata.get_ddl('DB_LINK', '%s')) FROM dual
+                """ % link_name
         cursor.execute(query)
         for result in cursor:
             sql = result[0]

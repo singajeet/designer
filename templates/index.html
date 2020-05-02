@@ -47,12 +47,16 @@
           var openedMViews = [];
           var openedPLSQLs = [];
           var openedSequences = [];
+          var openedSynonyms = [];
+          var openedDBLinks = [];
           var tables = {};
           var views = {};
           var indexes = {};
           var mviews = {};
           var plsqls = {};
           var sequences = {};
+          var synonyms = {};
+          var dblinks = {};
 
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback,
             contextMenuCallback);
@@ -181,12 +185,20 @@
             index = openedSequences.indexOf(tabId);
             openedSequences.splice(index, 1);
 
+            index = openedSynonyms.indexOf(tabId);
+            openedSynonyms.splice(index, 1);
+
+            index = openedDBLinks.indexOf(tabId);
+            openedDBLinks.splice(index, 1);
+
             delete tables[tabId];
             delete tabs[tabId];
             delete views[tabId];
             delete indexes[tabId];
             delete plsqls[tabId];
             delete sequences[tabId];
+            delete synonyms[tabId];
+            delete dblinks[tabId];
           }
 
           function createConnection(navigationTree, project) {
@@ -262,7 +274,7 @@
                 createMViewTab(id, item.node.text);
                 openedMViews.push(id + '-mview-tab');
               }
-            } else if(item.node.nodeType === DatabaseNavNodeType.PROCEDURE || item.node.nodeType === DatabaseNavNodeType.FUNCTION || item.node.nodeType === DatabaseNavNodeType.PACKAGE || item.node.nodeType === DatabaseNavNodeType.PACKAGE_BODY || item.node.nodeType === DatabaseNavNodeType.TRIGGER) {
+            } else if(item.node.nodeType === DatabaseNavNodeType.PROCEDURE || item.node.nodeType === DatabaseNavNodeType.FUNCTION || item.node.nodeType === DatabaseNavNodeType.PACKAGE || item.node.nodeType === DatabaseNavNodeType.PACKAGE_BODY || item.node.nodeType === DatabaseNavNodeType.TRIGGER || item.node.nodeType === DatabaseNavNodeType.TYPE || item.node.nodeType === DatabaseNavNodeType.TYPE_BODY) {
               var index = openedPLSQLs.indexOf(id + '-plsql-tab');
               if(index === -1){
                 createPLSQLTab(id, item.node.text, item.node.nodeType);
@@ -274,6 +286,106 @@
                 createSequenceTab(id, item.node.text);
                 openedSequences.push(id + '-sequence-tab');
               }
+            } else if(item.node.nodeType === DatabaseNavNodeType.SYNONYM) {
+              var index = openedSynonyms.indexOf(id + '-synonym-tab');
+              if(index === -1){
+                createSynonymTab(id, item.node.text);
+                openedSynonyms.push(id + '-synonym-tab');
+              }
+            } else if(item.node.nodeType === DatabaseNavNodeType.DBLINK) {
+              var index = openedDBLinks.indexOf(id + '-dblink-tab');
+              if(index === -1){
+                createDBLinkTab(id, item.node.text);
+                openedDBLinks.push(id + '-dblink-tab');
+              }
+            }
+          }
+
+          function createDBLinkTab(id, label) {
+            var tabId = id + '-dblink-tab';
+            dblinks[tabId] = new DatabaseLink(label, tabId);
+            tabs[tabId] = new DatabaseLinkTabUI(id, label);
+
+            dblinks[tabId].addDetailsAvailableEventListener(onDetailsAvailable);
+            dblinks[tabId].addSQLAvailableEventListener(onSQLAvailable);
+
+            var content = tabs[tabId].getTabContent();
+            a.addTab(tabId, label, content, 'dblink_icon');
+            tabs[tabId].initTab();
+
+            tabs[tabId].createDetailsGrid();
+
+            tabs[tabId].addTabsBeforeActivateEventListener(function(event, ui){
+                var panel = ui.newPanel;
+                var name = panel.attr('tabname');
+                if(name === 'sql') {
+                  if(!tabs[tabId].isSQLEditorCreated()) {
+                    tabs[tabId].createSQLEditor();
+                    dblinks[tabId].getSQL();
+                  }
+                }
+              });
+
+            tabs[tabId].addDetailsReloadButtonClickedEventListener(function(tab){
+              dblinks[tabId].getDetails();
+            });
+
+            tabs[tabId].addSQLReloadButtonClickedEventListener(function(tab){
+              dblinks[tabId].getSQL();
+            });
+
+            function onDetailsAvailable(result, tabId){
+              tabs[tabId].getDetailsGrid().records = result;
+              tabs[tabId].getDetailsGrid().refresh();
+            }
+            dblinks[tabId].getDetails();
+
+            function onSQLAvailable(result, tabId){
+              tabs[tabId].getSQLEditor().setValue(result);
+            }
+          }
+
+          function createSynonymTab(id, label) {
+            var tabId = id + '-synonym-tab';
+            synonyms[tabId] = new DatabaseSynonym(label, tabId);
+            tabs[tabId] = new SynonymTabUI(id, label);
+
+            synonyms[tabId].addDetailsAvailableEventListener(onDetailsAvailable);
+            synonyms[tabId].addSQLAvailableEventListener(onSQLAvailable);
+
+            var content = tabs[tabId].getTabContent();
+            a.addTab(tabId, label, content, 'synonym_icon');
+            tabs[tabId].initTab();
+
+            tabs[tabId].createDetailsGrid();
+
+            tabs[tabId].addTabsBeforeActivateEventListener(function(event, ui){
+                var panel = ui.newPanel;
+                var name = panel.attr('tabname');
+                if(name === 'sql') {
+                  if(!tabs[tabId].isSQLEditorCreated()) {
+                    tabs[tabId].createSQLEditor();
+                    synonyms[tabId].getSQL();
+                  }
+                }
+              });
+
+            tabs[tabId].addDetailsReloadButtonClickedEventListener(function(tab){
+              synonyms[tabId].getDetails();
+            });
+
+            tabs[tabId].addSQLReloadButtonClickedEventListener(function(tab){
+              synonyms[tabId].getSQL();
+            });
+
+            function onDetailsAvailable(result, tabId){
+              tabs[tabId].getDetailsGrid().records = result;
+              tabs[tabId].getDetailsGrid().refresh();
+            }
+            synonyms[tabId].getDetails();
+
+            function onSQLAvailable(result, tabId){
+              tabs[tabId].getSQLEditor().setValue(result);
             }
           }
 
@@ -346,7 +458,7 @@
 
           function createPLSQLTab(id, label, nodeType) {
             var tabId = id + '-plsql-tab';
-            if(nodeType === DatabaseNavNodeType.PACKAGE_BODY) {
+            if(nodeType === DatabaseNavNodeType.PACKAGE_BODY || nodeType === DatabaseNavNodeType.TYPE_BODY) {
               plsqls[tabId] = new DatabasePLSQL(label.replace(' Body', ''), tabId, nodeType);
             } else {
               plsqls[tabId] = new DatabasePLSQL(label, tabId, nodeType);
@@ -373,6 +485,10 @@
               icon = 'package_icon';
             } else if(nodeType === DatabaseNavNodeType.TRIGGER) {
               icon = 'trigger_icon';
+            } else if(nodeType === DatabaseNavNodeType.TYPE) {
+              icon = 'type_icon';
+            } else if(nodeType === DatabaseNavNodeType.TYPE_BODY) {
+              icon = 'type_icon';
             }
             a.addTab(tabId, label, content, icon);
             tabs[tabId].initTab();
@@ -1198,7 +1314,9 @@
               function onTypesAvailable(types) {
                 types.forEach(function(type) {
                   navigationTree.insert(connectionId + '-types', null, [
-                                          {id: connectionId + '-types-' + type, text: type, icon: 'type_icon', nodeType: DatabaseNavNodeType.TYPE}
+                                          {id: connectionId + '-types-' + type, text: type, icon: 'type_icon', nodeType: DatabaseNavNodeType.TYPE,
+                                            nodes: [{id: connectionId + '-types-' + type + '-body', text: type + ' Body', icon: 'type_icon', nodeType: DatabaseNavNodeType.TYPE_BODY}]
+                                          }
                                         ]);
                 });
               }
