@@ -2062,3 +2062,170 @@ class DatabasePLSQLServer(Namespace):
                                  'typeLink': result[6]
                                  })
         emit('references_result', result_array, namespace=self._namespace_url)
+
+
+class DatabaseSequenceServer(Namespace):
+    """Class to interact with the database sequence available under schema
+        provided as parameter to the class
+    """
+
+    _socket_io = None
+    _schema_name = None
+    _schema = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabaseSequenceServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db_sequence')
+        self._namespace_url = '/oracle_db_sequence'
+        self._socket_io = socket_io
+        self._schema = schema
+        self._db_connection = self._schema.get_connection()
+        self._schema_name = self._schema.get_schema_name()
+        socket_io.on_namespace(self)
+
+    def on_get_details(self, sequence_name):
+        """For internal use only: will be called when 'get_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT ROWNUM, a.* FROM
+                (SELECT 'CREATED', to_char(CREATED) FROM SYS.user_objects WHERE object_name='{0}'
+                UNION
+                SELECT 'LAST_DDL_TIME', to_char(LAST_DDL_TIME) FROM SYS.user_objects WHERE object_name='{0}'
+                UNION
+                SELECT 'SEQUENCE_NAME', SEQUENCE_NAME FROM SYS.user_sequences WHERE sequence_name='{0}'
+                UNION
+                SELECT 'MIN_VALUE', to_char(MIN_VALUE) FROM SYS.user_sequences WHERE sequence_name='{0}'
+                UNION
+                SELECT 'MAX_VALUE', to_char(MAX_VALUE) FROM SYS.user_sequences WHERE sequence_name='{0}'
+                UNION
+                SELECT 'INCREMENT_BY', to_char(INCREMENT_BY) FROM SYS.user_sequences WHERE sequence_name='{0}'
+                UNION
+                SELECT 'CYCLE_FLAG', CYCLE_FLAG FROM SYS.user_sequences WHERE sequence_name='{0}'
+                UNION
+                SELECT 'ORDER_FLAG', ORDER_FLAG FROM SYS.user_sequences WHERE sequence_name='{0}'
+                UNION
+                SELECT 'CACHE_SIZE', to_char(CACHE_SIZE) FROM SYS.user_sequences WHERE sequence_name='{0}'
+                UNION
+                SELECT 'LAST_NUMBER', to_char(LAST_NUMBER) FROM SYS.user_sequences WHERE sequence_name='{0}') a
+                """.format(sequence_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'value': result[2]})
+        emit('details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_dependencies(self, sequence_name):
+        """For internal use only: will be called when 'get_dependencies' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    b.object_id,
+                    b.object_type,
+                    b.object_name,
+                    b.status,
+                    replace(b.object_type, ' ', '_') type_link
+                FROM
+                    sys.all_objects   a,
+                    sys.all_objects   b,
+                    (
+                        SELECT
+                            object_id,
+                            referenced_object_id
+                        FROM
+                            public_dependency
+                        START WITH
+                            object_id = (SELECT object_id FROM SYS.user_objects WHERE object_name='%s' AND object_type='SEQUENCE')
+                        CONNECT BY
+                            PRIOR referenced_object_id = object_id
+                    ) c
+                WHERE
+                    a.object_id = c.object_id
+                    AND b.object_id = c.referenced_object_id
+                    AND a.owner NOT IN (
+                        'SYS',
+                        'SYSTEM'
+                    )
+                    AND b.owner NOT IN (
+                        'SYS',
+                        'SYSTEM'
+                    )
+                    AND a.object_name <> 'DUAL'
+                    AND b.object_name <> 'DUAL'
+                """ % sequence_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'objectId': result[1],
+                                 'objectType': result[2],
+                                 'objectName': result[3],
+                                 'status': result[4],
+                                 'typeLink': result[5]})
+        emit('dependencies_result', result_array, namespace=self._namespace_url)
+
+    def on_get_dependencies_details(self, sequence_name):
+        """For internal use only: will be called when 'get_dependencies' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    object_id,
+                    object_type,
+                    object_name,
+                    status,
+                    decode(replace(object_type, ' ', '_'), 'PACKAGE_BODY', 'PACKAGE', replace(object_type, ' ', '_')) type_link
+                FROM
+                    sys.all_objects
+                WHERE
+                    object_id IN (
+                        SELECT
+                            object_id
+                        FROM
+                            public_dependency
+                        CONNECT BY
+                            PRIOR object_id = referenced_object_id
+                        START WITH referenced_object_id = (SELECT object_id FROM SYS.user_objects WHERE object_name='%s' AND object_type='SEQUENCE')
+                    )
+                """ % sequence_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'objectId': result[1],
+                                 'objectType': result[2],
+                                 'objectName': result[3],
+                                 'status': result[4],
+                                 'typeLink': result[5]})
+        emit('dependencies_details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_sql(self, sequence_name):
+        """For internal use only: will be called when 'get_sql' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        sql = ""
+        # ########### Get DDL of table ###############
+        cursor = db_conn.cursor()
+        query = """
+                SELECT to_char(dbms_metadata.get_ddl('SEQUENCE', '%s')) FROM dual
+                """ % sequence_name
+        cursor.execute(query)
+        for result in cursor:
+            sql = result[0]
+        emit('sql_result', sql, namespace=self._namespace_url)

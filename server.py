@@ -1,6 +1,6 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO
-from oracle import DatabaseConnectionServer, DatabaseSchemaServer, DatabaseTableServer, DatabaseViewServer, DatabaseIndexServer, DatabaseMaterializedViewServer, DatabasePLSQLServer
+from oracle import DatabaseConnectionServer, DatabaseSchemaServer, DatabaseTableServer, DatabaseViewServer, DatabaseIndexServer, DatabaseMaterializedViewServer, DatabasePLSQLServer, DatabaseSequenceServer
 from engineio.payload import Payload
 
 
@@ -23,6 +23,7 @@ def start_app():
     di = DatabaseIndexServer(socketio, ds)
     dmv = DatabaseMaterializedViewServer(socketio, ds)
     dplsql = DatabasePLSQLServer(socketio, ds)
+    dseq = DatabaseSequenceServer(socketio, ds)
     socketio.run(app, debug=True)
 
 

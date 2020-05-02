@@ -15608,3 +15608,124 @@ var DatabasePLSQL = Class.create({
     this.socket.emit('get_references', this.objectName, this.objectType);
   }
 });
+
+/**
+ * DatabaseSequence: This class represents an sequence in database and interacts with
+ *  websocket calls to get sequence details
+ * @constructor
+ * @param {string} sequenceName - Name of the sequence in database
+ */
+var DatabaseSequence = Class.create({
+  sequenceName: null,
+  socket: null,
+  tabId: null,
+  detailsAvailableEventListeners: [],
+  dependenciesAvailableEventListeners: [],
+  dependenciesDetailsAvailableEventListeners: [],
+  sqlAvailableEventListeners: [],
+  initialize: function(sequenceName, tabId) {
+    this.sequenceName = sequenceName;
+    this.tabId = tabId;
+    this.socket = io('/oracle_db_sequence');
+    this.detailsAvailableEventListeners = [];
+    this.dependenciesAvailableEventListeners = [];
+    this.dependenciesDetailsAvailableEventListeners = [];
+    this.sqlAvailableEventListeners = [];
+  },
+  addDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsAvailableEventListeners.push(listener);
+    }
+  },
+  addDependenciesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesAvailableEventListeners.push(listener);
+    }
+  },
+  addDependenciesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesDetailsAvailableEventListeners.push(listener);
+    }
+  },
+  addSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlAvailableEventListeners.push(listener);
+    }
+  },
+  removeDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsAvailableEventListeners.indexOf(listener);
+      this.detailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDependenciesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesAvailableEventListeners.indexOf(listener);
+      this.dependenciesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeDependenciesDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesDetailsAvailableEventListeners.indexOf(listener);
+      this.dependenciesDetailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlAvailableEventListeners.indexOf(listener);
+      this.sqlAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.detailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDependenciesAvailableEvent: function(result) {
+    var that = this;
+    this.dependenciesAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireDependenciesDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.dependenciesDetailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireSQLAvailableEvent: function(result) {
+    var that = this;
+    this.sqlAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  getDetails: function() {
+    var that = this;
+    this.socket.on('details_result', function(result){
+      that.fireDetailsAvailableEvent(result);
+    });
+    this.socket.emit('get_details', this.sequenceName);
+  },
+  getDependencies: function() {
+    var that = this;
+    this.socket.on('dependencies_result', function(result){
+      that.fireDependenciesAvailableEvent(result);
+    });
+    this.socket.emit('get_dependencies', this.sequenceName);
+  },
+  getDependenciesDetails: function() {
+    var that = this;
+    this.socket.on('dependencies_details_result', function(result){
+      that.fireDependenciesDetailsAvailableEvent(result);
+    });
+    this.socket.emit('get_dependencies_details', this.sequenceName);
+  },
+  getSQL: function() {
+    var that = this;
+    this.socket.on('sql_result', function(result){
+      that.fireSQLAvailableEvent(result);
+    });
+    this.socket.emit('get_sql', this.sequenceName);
+  }
+});

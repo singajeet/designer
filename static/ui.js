@@ -2748,3 +2748,272 @@ var PLSQLTabUI = Class.create({
     });
   }
 });
+
+/**
+ * SequenceTabUI: Provides the user interface components to display details of an provided database sequence
+ * @constructor
+ * @param {string} id - A unique id to create HTML content
+ * @param {string} label - Name of the sequence to be shown as label in UI components
+ */
+var SequenceTabUI = Class.create({
+  id: null,
+  label: null,
+  mainContent: null,
+  detailsGrid: null,
+  dependenciesGrid: null,
+  dependenciesDetailsGrid: null,
+  sqlEditor: null,
+  sqlEditorToolbar: null,
+  detailsReloadButtonClickedEventListeners: [],
+  dependenciesReloadButtonClickedEventListeners: [],
+  sqlReloadButtonClickedEventListeners: [],
+  initialize: function(id, label) {
+    this.id = id;
+    this.label = label;
+    this.mainContent = "";
+    this.detailsGrid = null;
+    this.dependenciesGrid = null;
+    this.dependenciesDetailsGrid = null;
+    this.sqlEditor = null;
+    this.sqlEditorToolbar = null;
+    this.detailsReloadButtonClickedEventListeners = [];
+    this.dependenciesReloadButtonClickedEventListeners = [];
+    this.sqlReloadButtonClickedEventListeners = [];
+  },
+  getId: function() {
+    return this.id;
+  },
+  getTabName: function() {
+    return this.label;
+  },
+  getTabContent: function() {
+    this.mainContent = "<div id='" + this.id + "-sequences-info-tabs' style='width: 100%; height: 100%;'>" +
+                            " <ul>" +
+                            "   <li><a href='#" + this.id + "-sequences-details-grid'>Columns</a></li>" +
+                            "   <li><a href='#" + this.id + "-sequences-dependencies-grid'>Dependencies</a></li>" +
+                            "   <li><a href='#" + this.id + "-sequences-sql-editor-layout'>SQL</a></li>" +
+                            " </ul>" +
+                            " <div id='" + this.id + "-sequences-details-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-sequences-dependencies-grid' tabname='dependencies' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-sequences-dependencies-grid-master' style='width: 100%; height: 50%'></div>" +
+                            "   <div id='" + this.id + "-sequences-dependencies-grid-details' style='width: 100%; height: 50%'></div>" +
+                            " </div>" +
+                            " <div id='" + this.id + "-sequences-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-sequences-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
+                            "   <div style='width: 100%; height: 2px'></div>" +
+                            "   <div id='" + this.id + "-sequences-sql-editor' style='width: 100%; height: 96%;'></div>" +
+                            " </div>" +
+                            "</div>";
+        return this.mainContent;
+  },
+  initTab: function() {
+    $j('#' + this.id + '-sequences-info-tabs').tabs();
+  },
+  createDetailsGrid: function() {
+    var that = this;
+    if(this.detailsGrid === null) {
+      this.detailsGrid = $j('#' + this.id + '-sequences-details-grid')
+                            .w2grid({
+                                    name: this.id + '-sequences-details-properties',
+                                    header: this.label + ' - Details',
+                                    show: { header: true,
+                                            toolbar: true,
+                                            lineNumbers: true,
+                                            footer: true
+                                          },
+                                    multiSearch: true,
+                                    columns: [
+                                      {field: 'name', caption: 'Name', size: '150px'},
+                                      {field: 'value', caption: 'Value', size: '150px'}
+                                    ],
+                                    onReload: function(event) {
+                                      that.fireDetailsReloadButtonClickedEvent();
+                                    }
+                                  });
+    }
+  },
+  isDetailsGridCreated: function() {
+    if(this.detailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDetailsGrid: function() {
+    return this.detailsGrid;
+  },
+  createDependenciesGrid: function() {
+    var that = this;
+    if(this.dependenciesGrid === null) {
+      this.dependenciesGrid = $j('#' + this.id + '-sequences-dependencies-grid-master')
+                            .w2grid({
+                                    name: this.id + '-sequences-dependencies-properties-master',
+                                    header: this.label + ' - Dependencies',
+                                    show: { header: true,
+                                            toolbar: true,
+                                            lineNumbers: true,
+                                            footer: true
+                                          },
+                                    multiSearch: true,
+                                    columns: [
+                                      {field: 'objectId', caption: 'Object ID', size: '150px'},
+                                      {field: 'objectType', caption: 'Object Type', size: '150px'},
+                                      {field: 'objectName', caption: 'Object Name', size: '150px'},
+                                      {field: 'status', caption: 'Status', size: '150px'},
+                                      {field: 'typeLink', caption: 'Type Link', size: '150px'}
+                                    ],
+                                    onReload: function(event) {
+                                      that.fireDependenciesReloadButtonClickedEvent();
+                                    }
+                                  });
+      this.dependenciesDetailsGrid = $j('#' + this.id + '-sequences-dependencies-grid-details')
+                                      .w2grid({
+                                              name: this.id + '-sequences-dependencies-properties-details',
+                                              header: this.label + ' - References',
+                                              show: { header: true,
+                                                      toolbar: true,
+                                                      lineNumbers: true,
+                                                      footer: true
+                                                    },
+                                              multiSearch: true,
+                                              columns: [
+                                                {field: 'objectId', caption: 'Object ID', size: '150px'},
+                                                {field: 'objectType', caption: 'Object Type', size: '150px'},
+                                                {field: 'objectName', caption: 'Object Name', size: '150px'},
+                                                {field: 'status', caption: 'Status', size: '150px'},
+                                                {field: 'typeLink', caption: 'Type Link', size: '150px'}
+                                              ]
+                                            });
+    }
+  },
+  isDependenciesGridCreated: function() {
+    if(this.dependenciesGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDependenciesGrid: function() {
+    return this.dependenciesGrid;
+  },
+  isDependenciesDetailsGridCreated: function() {
+    if(this.dependenciesDetailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDependenciesDetailsGrid: function() {
+    return this.dependenciesDetailsGrid;
+  },
+  createSQLEditor: function() {
+    var that = this;
+    if(this.sqlEditor === null) {
+      this.sqlEditorToolbar = $j('#' + this.id + '-sequences-sql-editor-toolbar')
+                                .w2toolbar({
+                                            name: this.id + '-sequences-sql-editor-toolbar',
+                                            items: [
+                                              { type: 'button', id: this.id + '-sequences-sql-editor-toolbar-refresh-sql-btn',
+                                                caption: 'Refresh', icon: 'refresh_icon', hint: 'Refresh SQL'},
+                                              ],
+                                            onClick: function(event) {
+                                              var target = event.target;
+                                              if(target === that.id + '-sequences-sql-editor-toolbar-refresh-sql-btn') {
+                                                that.fireSQLReloadButtonClickedEvent();
+                                              }
+                                            }
+                                          });
+      this.sqlEditor = ace.edit(this.id + '-sequences-sql-editor');
+      this.sqlEditor.setTheme('ace/theme/sqlserver');
+      this.sqlEditor.session.setMode('ace/mode/sqlserver');
+      this.sqlEditor.setReadOnly(true);
+    }
+  },
+  isSQLEditorCreated: function() {
+    if(this.sqlEditor === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getSQLEditor: function() {
+    return this.sqlEditor;
+  },
+  addTabsBeforeActivateEventListener: function(listener) {
+    $j('#' + this.id + '-sequences-info-tabs').on('tabsbeforeactivate', listener);
+  },
+  destroy: function() {
+    if(this.detailsGrid !== null) {
+      this.detailsGrid.destroy();
+    }
+    if(this.dependenciesGrid !== null) {
+      this.dependenciesGrid.destroy();
+    }
+    if(this.dependenciesDetailsGrid !== null) {
+      this.dependenciesDetailsGrid.destroy();
+    }
+    if(this.sqlEditor !== null) {
+      this.sqlEditor.destroy();
+    }
+    if(this.sqlEditorToolbar !== null) {
+      this.sqlEditorToolbar.destroy();
+    }
+  },
+  addDetailsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDetailsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.detailsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDetailsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.detailsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addDependenciesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.dependenciesReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDependenciesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.dependenciesReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.dependenciesReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDependenciesReloadButtonClickedEvent: function() {
+    var that = this;
+    this.dependenciesReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.sqlReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireSQLReloadButtonClickedEvent: function() {
+    var that = this;
+    this.sqlReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  }
+});
