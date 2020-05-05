@@ -159,6 +159,18 @@ var TableTabUI = Class.create({
                                     {field: 'columnId', caption: 'Column ID', size: '80px'},
                                     {field: 'comments', caption: 'Comments', size: '100%'}
                                   ],
+                                  toolbar: {
+                                    items: [
+                                      {type: 'break'},
+                                      {id: this.id + '-edit-table', type: 'button', caption: 'Edit', icon: 'edit_icon'}
+                                    ],
+                                    onClick: function(event) {
+                                      if(event.target === that.id + '-edit-table') {
+                                        window.history.pushState(null, null, '?id=' + that.id);
+                                        w2popup.load({ url: '/edit-table', showMax: true, modal: true, showClose: false });
+                                      }
+                                    }
+                                  },
                                   onReload: function(event) {
                                     that.fireColumnsReloadButtonClickedEvent();
                                   }
@@ -2793,7 +2805,7 @@ var SequenceTabUI = Class.create({
                             "   <li><a href='#" + this.id + "-sequences-dependencies-grid'>Dependencies</a></li>" +
                             "   <li><a href='#" + this.id + "-sequences-sql-editor-layout'>SQL</a></li>" +
                             " </ul>" +
-                            " <div id='" + this.id + "-sequences-details-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-sequences-details-grid' tabname='details' style='width: 100%; height: 93%;'></div>" +
                             " <div id='" + this.id + "-sequences-dependencies-grid' tabname='dependencies' style='width: 100%; height: 93%;'>" +
                             "   <div id='" + this.id + "-sequences-dependencies-grid-master' style='width: 100%; height: 50%'></div>" +
                             "   <div id='" + this.id + "-sequences-dependencies-grid-details' style='width: 100%; height: 50%'></div>" +
@@ -3055,7 +3067,7 @@ var SynonymTabUI = Class.create({
                             "   <li><a href='#" + this.id + "-synonym-details-grid'>Details</a></li>" +
                             "   <li><a href='#" + this.id + "-synonym-sql-editor-layout'>SQL</a></li>" +
                             " </ul>" +
-                            " <div id='" + this.id + "-synonym-details-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-synonym-details-grid' tabname='details' style='width: 100%; height: 93%;'></div>" +
                             " <div id='" + this.id + "-synonym-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
                             "   <div id='" + this.id + "-synonym-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
                             "   <div style='width: 100%; height: 2px'></div>" +
@@ -3224,7 +3236,7 @@ var DatabaseLinkTabUI = Class.create({
                             "   <li><a href='#" + this.id + "-dblink-details-grid'>Details</a></li>" +
                             "   <li><a href='#" + this.id + "-dblink-sql-editor-layout'>SQL</a></li>" +
                             " </ul>" +
-                            " <div id='" + this.id + "-dblink-details-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-dblink-details-grid' tabname='details' style='width: 100%; height: 93%;'></div>" +
                             " <div id='" + this.id + "-dblink-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
                             "   <div id='" + this.id + "-dblink-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
                             "   <div style='width: 100%; height: 2px'></div>" +
@@ -3386,7 +3398,7 @@ var DatabaseDirectoryTabUI = Class.create({
                             " <ul>" +
                             "   <li><a href='#" + this.id + "-directory-details-grid'>Details</a></li>" +
                             " </ul>" +
-                            " <div id='" + this.id + "-directory-details-grid' tabname='columns' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-directory-details-grid' tabname='details' style='width: 100%; height: 93%;'></div>" +
                             "</div>";
         return this.mainContent;
   },
@@ -3450,6 +3462,336 @@ var DatabaseDirectoryTabUI = Class.create({
   fireDetailsReloadButtonClickedEvent: function() {
     var that = this;
     this.detailsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  }
+});
+
+/**
+ * QueueTabUI: Provides the user interface components to display details of an provided database queue
+ * @constructor
+ * @param {string} id - A unique id to create HTML content
+ * @param {string} label - Name of the queue to be shown as label in UI components
+ */
+var QueueTabUI = Class.create({
+  id: null,
+  label: null,
+  mainContent: null,
+  detailsGrid: null,
+  sqlEditor: null,
+  sqlEditorToolbar: null,
+  schedulesGrid: null,
+  subscribersGrid: null,
+  detailsReloadButtonClickedEventListeners: [],
+  sqlReloadButtonClickedEventListeners: [],
+  schedulesReloadButtonClickedEventListeners: [],
+  subscribersReloadButtonClickedEventListeners: [],
+  initialize: function(id, label) {
+    this.id = id;
+    this.label = label;
+    this.mainContent = "";
+    this.detailsGrid = null;
+    this.sqlEditor = null;
+    this.sqlEditorToolbar = null;
+    this.schedulesGrid = null;
+    this.subscribersGrid = null;
+    this.detailsReloadButtonClickedEventListeners = [];
+    this.sqlReloadButtonClickedEventListeners = [];
+    this.schedulesReloadButtonClickedEventListeners = [];
+    this.subscribersReloadButtonClickedEventListeners = [];
+  },
+  getId: function() {
+    return this.id;
+  },
+  getTabName: function() {
+    return this.label;
+  },
+  getTabContent: function() {
+    this.mainContent = "<div id='" + this.id + "-queue-info-tabs' style='width: 100%; height: 100%;'>" +
+                            " <ul>" +
+                            "   <li><a href='#" + this.id + "-queue-details-grid'>Details</a></li>" +
+                            "   <li><a href='#" + this.id + "-queue-sql-editor-layout'>SQL</a></li>" +
+                            "   <li><a href='#" + this.id + "-queue-schedules-grid'>Schedules</a></li>" +
+                            "   <li><a href='#" + this.id + "-queue-subscribers-grid'>Subscribers</a></li>" +
+                            " </ul>" +
+                            " <div id='" + this.id + "-queue-details-grid' tabname='details' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-queue-sql-editor-layout' tabname='sql' style='width: 100%; height: 93%;'>" +
+                            "   <div id='" + this.id + "-queue-sql-editor-toolbar' style='width: 100%; height: 33px; border: 1px solid lightgrey;'></div>" +
+                            "   <div style='width: 100%; height: 2px'></div>" +
+                            "   <div id='" + this.id + "-queue-sql-editor' style='width: 100%; height: 96%;'></div>" +
+                            " </div>" +
+                            " <div id='" + this.id + "-queue-schedules-grid' tabname='schedules' style='width: 100%; height: 93%;'></div>" +
+                            " <div id='" + this.id + "-queue-subscribers-grid' tabname='subscribers' style='width: 100%; height: 93%;'></div>" +
+                            "</div>";
+        return this.mainContent;
+  },
+  initTab: function() {
+    $j('#' + this.id + '-queue-info-tabs').tabs();
+  },
+  createDetailsGrid: function() {
+    var that = this;
+    if(this.detailsGrid === null) {
+      this.detailsGrid = $j('#' + this.id + '-queue-details-grid')
+                            .w2grid({
+                                    name: this.id + '-queue-details-properties',
+                                    header: this.label + ' - Details',
+                                    show: { header: true,
+                                            toolbar: true,
+                                            lineNumbers: true,
+                                            footer: true
+                                          },
+                                    multiSearch: true,
+                                    columns: [
+                                      {field: 'name', caption: 'Name', size: '150px'},
+                                      {field: 'value', caption: 'Value', size: '150px'}
+                                    ],
+                                    onReload: function(event) {
+                                      that.fireDetailsReloadButtonClickedEvent();
+                                    }
+                                  });
+    }
+  },
+  isDetailsGridCreated: function() {
+    if(this.detailsGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getDetailsGrid: function() {
+    return this.detailsGrid;
+  },
+  createSQLEditor: function() {
+    var that = this;
+    if(this.sqlEditor === null) {
+      this.sqlEditorToolbar = $j('#' + this.id + '-queue-sql-editor-toolbar')
+                                .w2toolbar({
+                                            name: this.id + '-queue-sql-editor-toolbar',
+                                            items: [
+                                              { type: 'button', id: this.id + '-queue-sql-editor-toolbar-refresh-sql-btn',
+                                                caption: 'Refresh', icon: 'refresh_icon', hint: 'Refresh SQL'},
+                                              ],
+                                            onClick: function(event) {
+                                              var target = event.target;
+                                              if(target === that.id + '-queue-sql-editor-toolbar-refresh-sql-btn') {
+                                                that.fireSQLReloadButtonClickedEvent();
+                                              }
+                                            }
+                                          });
+      this.sqlEditor = ace.edit(this.id + '-queue-sql-editor');
+      this.sqlEditor.setTheme('ace/theme/sqlserver');
+      this.sqlEditor.session.setMode('ace/mode/sqlserver');
+      this.sqlEditor.setReadOnly(true);
+    }
+  },
+  isSQLEditorCreated: function() {
+    if(this.sqlEditor === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getSQLEditor: function() {
+    return this.sqlEditor;
+  },
+  createSchedulesGrid: function() {
+    var that = this;
+    if(this.schedulesGrid === null) {
+      this.schedulesGrid = $j('#' + this.id + '-queue-schedules-grid')
+                            .w2grid({
+                                    name: this.id + '-queue-schedules-properties',
+                                    header: this.label + ' - Schedules',
+                                    show: { header: true,
+                                            toolbar: true,
+                                            lineNumbers: true,
+                                            footer: true
+                                          },
+                                    multiSearch: true,
+                                    columns: [
+                                      {field: 'QNAME', caption: 'QNAME', size: '150px'},
+                                      {field: 'DESTINATION', caption: 'DESTINATION', size: '150px'},
+                                      {field: 'START_DATE', caption: 'START DATE', size: '150px'},
+                                      {field: 'START_TIME', caption: 'START TIME', size: '150px'},
+                                      {field: 'PROPAGATION_WINDOW', caption: 'PROPAGATION WINDOW', size: '150px'},
+                                      {field: 'NEXT_TIME', caption: 'NEXT TIME', size: '150px'},
+                                      {field: 'LATENCY', caption: 'LATENCY', size: '150px'},
+                                      {field: 'SCHEDULE_DISABLED', caption: 'SCHEDULE DISABLED', size: '150px'},
+                                      {field: 'PROCESS_NAME', caption: 'PROCESS NAME', size: '150px'},
+                                      {field: 'SESSION_ID', caption: 'SESSION ID', size: '150px'},
+                                      {field: 'INSTANCE', caption: 'INSTANCE', size: '150px'},
+                                      {field: 'LAST_RUN_DATE', caption: 'LAST RUN DATE', size: '150px'},
+                                      {field: 'LAST_RUN_TIME', caption: 'LAST RUN TIME', size: '150px'},
+                                      {field: 'CURRENT_START_DATE', caption: 'CURRENT START DATE', size: '150px'},
+                                      {field: 'CURRENT_START_TIME', caption: 'CURRENT START TIME', size: '150px'},
+                                      {field: 'NEXT_RUN_DATE', caption: 'NEXT RUN DATE', size: '150px'},
+                                      {field: 'NEXT_RUN_TIME', caption: 'NEXT RUN TIME', size: '150px'},
+                                      {field: 'TOTAL_TIME', caption: 'TOTAL TIME', size: '150px'},
+                                      {field: 'TOTAL_NUMBER', caption: 'TOTAL NUMBER', size: '150px'},
+                                      {field: 'TOTAL_BYTES', caption: 'TOTAL BYTES', size: '150px'},
+                                      {field: 'MAX_NUMBER', caption: 'MAX NUMBER', size: '150px'},
+                                      {field: 'MAX_BYTES', caption: 'MAX BYTES', size: '150px'},
+                                      {field: 'AVG_NUMBER', caption: 'AVG NUMBER', size: '150px'},
+                                      {field: 'AVG_SIZE', caption: 'AVG SIZE', size: '150px'},
+                                      {field: 'AVG_TIME', caption: 'AVG TIME', size: '150px'},
+                                      {field: 'FAILURES', caption: 'FAILURES', size: '150px'},
+                                      {field: 'LAST_ERROR_DATE', caption: 'LAST ERROR DATE', size: '150px'},
+                                      {field: 'LAST_ERROR_TIME', caption: 'LAST ERROR TIME', size: '150px'},
+                                      {field: 'LAST_ERROR_MSG', caption: 'LAST ERROR MSG', size: '150px'},
+                                      {field: 'MESSAGE_DELIVERY_MODE', caption: 'MESSAGE DELIVERY MODE', size: '150px'},
+                                      {field: 'ELAPSED_DEQUEUE_TIME', caption: 'ELAPSED DEQUEUE TIME', size: '150px'},
+                                      {field: 'ELAPSED_PICKLE_TIME', caption: 'ELAPSED PICKLE TIME', size: '150px'},
+                                      {field: 'JOB_NAME', caption: 'JOB NAME', size: '150px'}
+                                    ],
+                                    onReload: function(event) {
+                                      that.fireSchedulesReloadButtonClickedEvent();
+                                    }
+                                  });
+    }
+  },
+  isSchedulesGridCreated: function() {
+    if(this.schedulesGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getSchedulesGrid: function() {
+    return this.schedulesGrid;
+  },
+  createSubscribersGrid: function() {
+    var that = this;
+    if(this.subscribersGrid === null) {
+      this.subscribersGrid = $j('#' + this.id + '-queue-subscribers-grid')
+                              .w2grid({
+                                      name: this.id + '-queue-subscribers-properties',
+                                      header: this.label + ' - Subscribers',
+                                      show: { header: true,
+                                              toolbar: true,
+                                              lineNumbers: true,
+                                              footer: true
+                                            },
+                                      multiSearch: true,
+                                      columns: [
+                                        {field: 'QUEUE_NAME', caption: 'QUEUE NAME', size: '150px'},
+                                        {field: 'QUEUE_TABLE', caption: 'QUEUE TABLE', size: '150px'},
+                                        {field: 'CONSUMER_NAME', caption: 'CONSUMER NAME', size: '150px'},
+                                        {field: 'ADDRESS', caption: 'ADDRESS', size: '150px'},
+                                        {field: 'PROTOCOL', caption: 'PROTOCOL', size: '150px'},
+                                        {field: 'TRANSFORMATION', caption: 'TRANSFORMATION', size: '150px'},
+                                        {field: 'RULE', caption: 'RULE', size: '150px'},
+                                        {field: 'DELIVERY_MODE', caption: 'DELIVERY MODE', size: '150px'},
+                                        {field: 'NONDURABLE', caption: 'NONDURABLE', size: '150px'},
+                                        {field: 'QUEUE_TO_QUEUE', caption: 'QUEUE TO QUEUE', size: '150px'}
+                                      ],
+                                      onReload: function(event) {
+                                        that.fireSubscribersReloadButtonClickedEvent();
+                                      }
+                                    });
+    }
+  },
+  isSubscribersGridCreated: function() {
+    if(this.subscribersGrid === null) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  getSubscribersGrid: function() {
+    return this.subscribersGrid;
+  },
+  addTabsBeforeActivateEventListener: function(listener) {
+    $j('#' + this.id + '-queue-info-tabs').on('tabsbeforeactivate', listener);
+  },
+  destroy: function() {
+    if(this.detailsGrid !== null) {
+      this.detailsGrid.destroy();
+    }
+    if(this.sqlEditor !== null) {
+      this.sqlEditor.destroy();
+    }
+    if(this.sqlEditorToolbar !== null) {
+      this.sqlEditorToolbar.destroy();
+    }
+    if(this.schedulesGrid !== null) {
+      this.schedulesGrid.destroy();
+    }
+    if(this.subscribersGrid !== null) {
+      this.subscribersGrid.destroy();
+    }
+  },
+  addDetailsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeDetailsReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.detailsReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireDetailsReloadButtonClickedEvent: function() {
+    var that = this;
+    this.detailsReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeSQLReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.sqlReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireSQLReloadButtonClickedEvent: function() {
+    var that = this;
+    this.sqlReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addSchedulesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.schedulesReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeSchedulesReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.schedulesReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.schedulesReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireSchedulesReloadButtonClickedEvent: function() {
+    var that = this;
+    this.schedulesReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addSubscribersReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.subscribersReloadButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeSubscribersReloadButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.subscribersReloadButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.subscribersReloadButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireSubscribersReloadButtonClickedEvent: function() {
+    var that = this;
+    this.subscribersReloadButtonClickedEventListeners.forEach(function(listener){
       listener(that);
     });
   }

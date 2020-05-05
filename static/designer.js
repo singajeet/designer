@@ -12677,6 +12677,7 @@ var ProjectNavigator = Class.create({
  *                        DATABASE OBJECTS APIs
  *********************************************************************************/
 var DatabaseNavNodeType = {
+    DATABASE_FOLDER: 'DB-FOLDER',
     CONNECTION_FOLDER: 'DB-CONNECTION-FOLDER',
     TABLES_FOLDER: 'DB-TABLES-FOLDER',
     VIEWS_FOLDER: 'DB-VIEWS-FOLDER',
@@ -12726,9 +12727,9 @@ var DatabaseConnection = Class.create({
   connectionInfoAvailableEventListeners: [],
   connectedEventListeners: [],
   connected: false,
-  projectId: null,
-  initialize: function(projectId) {
-    this.projectId = projectId;
+  databaseFolderId: null,
+  initialize: function(databaseFolderId) {
+    this.databaseFolderId = databaseFolderId;
     this.connectionName = null;
     this.connectionString = null;
     this.username = null;
@@ -12739,8 +12740,8 @@ var DatabaseConnection = Class.create({
   isConnected: function() {
     return this.connected;
   },
-  getProjectId: function() {
-    return this.projectId;
+  getDatabaseFolderId: function() {
+    return this.databaseFolderId;
   },
   getConnectionName: function() {
     return this.connectionName;
@@ -12754,8 +12755,8 @@ var DatabaseConnection = Class.create({
   getPassword: function () {
     return this.password;
   },
-  setProjectId: function(value) {
-    this.projectId = value;
+  setDatabaseFolderd: function(value) {
+    this.databaseFolderId = value;
   },
   setConnectionName: function(value) {
     this.connectionName = value;
@@ -12858,7 +12859,7 @@ var DatabaseConnection = Class.create({
   fireConnectionInfoAvailableEvent: function() {
     var that = this;
     this.connectionInfoAvailableEventListeners.forEach(function(listener){
-      listener(that.projectId, that.connectionName, that.connectionString, that.username, that.password, that);
+      listener(that.databaseFolderId, that.connectionName, that.connectionString, that.username, that.password, that);
     });
   }
 });
@@ -15913,5 +15914,126 @@ var DatabaseDirectory = Class.create({
       that.fireDetailsAvailableEvent(result);
     });
     this.socket.emit('get_details', this.directoryName);
+  }
+});
+
+/**
+ * DatabaseQueue: This class represents an queue in database and interacts with
+ *  websocket calls to get queue details
+ * @constructor
+ * @param {string} queueName - Name of the queue in database
+ */
+var DatabaseQueue = Class.create({
+  queueName: null,
+  socket: null,
+  tabId: null,
+  detailsAvailableEventListeners: [],
+  sqlAvailableEventListeners: [],
+  schedulesAvailableEventListeners: [],
+  subscribersAvailableEventListeners: [],
+  initialize: function(queueName, tabId) {
+    this.queueName = queueName;
+    this.tabId = tabId;
+    this.socket = io('/oracle_db_queue');
+    this.detailsAvailableEventListeners = [];
+    this.sqlAvailableEventListeners = [];
+    this.schedulesAvailableEventListeners = [];
+    this.subscribersAvailableEventListeners = [];
+  },
+  addDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.detailsAvailableEventListeners.push(listener);
+    }
+  },
+  addSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.sqlAvailableEventListeners.push(listener);
+    }
+  },
+  addSchedulesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.schedulesAvailableEventListeners.push(listener);
+    }
+  },
+  addSubscribersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.subscribersAvailableEventListeners.push(listener);
+    }
+  },
+  removeDetailsAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.detailsAvailableEventListeners.indexOf(listener);
+      this.detailsAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeSQLAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.sqlAvailableEventListeners.indexOf(listener);
+      this.sqlAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeSchedulesAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.schedulesAvailableEventListeners.indexOf(listener);
+      this.schedulesAvailableEventListeners.splice(index, 1);
+    }
+  },
+  removeSubscribersAvailableEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.subscribersAvailableEventListeners.indexOf(listener);
+      this.subscribersAvailableEventListeners.splice(index, 1);
+    }
+  },
+  fireDetailsAvailableEvent: function(result) {
+    var that = this;
+    this.detailsAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireSQLAvailableEvent: function(result) {
+    var that = this;
+    this.sqlAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireSchedulesAvailableEvent: function(result) {
+    var that = this;
+    this.schedulesAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  fireSubscribersAvailableEvent: function(result) {
+    var that = this;
+    this.subscribersAvailableEventListeners.forEach(function(listener){
+      listener(result, that.tabId);
+    });
+  },
+  getDetails: function() {
+    var that = this;
+    this.socket.on('details_result', function(result){
+      that.fireDetailsAvailableEvent(result);
+    });
+    this.socket.emit('get_details', this.queueName);
+  },
+  getSQL: function() {
+    var that = this;
+    this.socket.on('sql_result', function(result){
+      that.fireSQLAvailableEvent(result);
+    });
+    this.socket.emit('get_sql', this.queueName);
+  },
+  getSchedules: function() {
+    var that = this;
+    this.socket.on('schedules_result', function(result){
+      that.fireSchedulesAvailableEvent(result);
+    });
+    this.socket.emit('get_schedules', this.queueName);
+  },
+  getSubscribers: function() {
+    var that = this;
+    this.socket.on('subscribers_result', function(result){
+      that.fireSubscribersAvailableEvent(result);
+    });
+    this.socket.emit('get_subscribers', this.queueName);
   }
 });

@@ -17,6 +17,7 @@
     <script src="/static/js/socket.io.slim.js"></script>
     <script src="/static/js/ace/src-min/ace.js"></script>
     <script src="/static/js/ace/src-min/ext-language_tools.js"></script>
+    <script src="/static/js/dialogs/edit_table.js" ></script>
     <script src="/static/designer.js" ></script>
     <script src="/static/ui.js" ></script>
   	<script>
@@ -50,6 +51,7 @@
           var openedSynonyms = [];
           var openedDBLinks = [];
           var openedDirectories = [];
+          var openedQueues = [];
           var tables = {};
           var views = {};
           var indexes = {};
@@ -59,6 +61,7 @@
           var synonyms = {};
           var dblinks = {};
           var directories = {};
+          var queues = {};
 
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback,
             contextMenuCallback);
@@ -199,6 +202,9 @@
             index = openedDirectories.indexOf(tabId);
             openedDirectories.splice(index, 1);
 
+            index = openedQueues.indexOf(tabId);
+            openedQueues.splice(index, 1);
+
             delete tables[tabId];
             delete tabs[tabId];
             delete views[tabId];
@@ -209,25 +215,26 @@
             delete synonyms[tabId];
             delete dblinks[tabId];
             delete directories[tabId];
+            delete queues[tabId];
           }
 
           function createConnection(navigationTree, project) {
-            var projectId = project.toLowerCase() + '-project';
-            var connName = localStorage.getItem(projectId + '-connection-name');
-            var connString = localStorage.getItem(projectId + '-connection-string');
-            var username = localStorage.getItem(projectId + '-connection-username');
-            var password = localStorage.getItem(projectId + '-connection-password');
+            var databaseFolderId = project.toLowerCase() + '-project-db';
+            var connName = localStorage.getItem(databaseFolderId + '-connection-name');
+            var connString = localStorage.getItem(databaseFolderId + '-connection-string');
+            var username = localStorage.getItem(databaseFolderId + '-connection-username');
+            var password = localStorage.getItem(databaseFolderId + '-connection-password');
 
             if(connName && connString && username && password) {
-              var connectionId = projectId + '-' + connName.toLowerCase();
-              var dbConnection = new DatabaseConnection(projectId);
+              var connectionId = databaseFolderId + '-' + connName.toLowerCase();
+              var dbConnection = new DatabaseConnection(databaseFolderId);
               dbConnection.setConnectionName(connName);
               dbConnection.setConnectionString(connString);
               dbConnection.setUsername(username);
               dbConnection.setPassword(password);
 
-              navigationTree.insert(projectId, null, [
-                                    {id: connectionId, text: connName, icon: 'database_connection_icon', nodeType: DatabaseNavNodeType.CONNECTION_FOLDER, dbConnection: dbConnection
+              navigationTree.insert(databaseFolderId, null, [
+                                    {id: connectionId, text: connName, icon: 'database_connection_icon', expanded: true, nodeType: DatabaseNavNodeType.CONNECTION_FOLDER, dbConnection: dbConnection
                                     }]
                                   );
             }
@@ -308,12 +315,92 @@
                 createDBLinkTab(id, item.node.text);
                 openedDBLinks.push(id + '-dblink-tab');
               }
-            } else if(item.node.nodeType === DatabaseNavNodeType.DBLINK || item.node.nodeType === DatabaseNavNodeType.DIRECTORY) {
+            } else if(item.node.nodeType === DatabaseNavNodeType.DIRECTORY) {
               var index = openedDirectories.indexOf(id + '-directory-tab');
               if(index === -1){
                 createDirectoryTab(id, item.node.text);
                 openedDirectories.push(id + '-directory-tab');
               }
+            } else if(item.node.nodeType === DatabaseNavNodeType.QUEUE) {
+              var index = openedQueues.indexOf(id + '-queue-tab');
+              if(index === -1){
+                createQueueTab(id, item.node.text);
+                openedQueues.push(id + '-queue-tab');
+              }
+            }
+          }
+
+          function createQueueTab(id, label) {
+            var tabId = id + '-queue-tab';
+            queues[tabId] = new DatabaseQueue(label, tabId);
+            tabs[tabId] = new QueueTabUI(id, label);
+
+            queues[tabId].addDetailsAvailableEventListener(onDetailsAvailable);
+            queues[tabId].addSQLAvailableEventListener(onSQLAvailable);
+            queues[tabId].addSchedulesAvailableEventListener(onSchedulesAvailable);
+            queues[tabId].addSubscribersAvailableEventListener(onSubscribersAvailable);
+
+            var content = tabs[tabId].getTabContent();
+            a.addTab(tabId, label, content, 'queue_icon');
+            tabs[tabId].initTab();
+
+            tabs[tabId].createDetailsGrid();
+
+            tabs[tabId].addTabsBeforeActivateEventListener(function(event, ui){
+                var panel = ui.newPanel;
+                var name = panel.attr('tabname');
+                if(name === 'sql') {
+                  if(!tabs[tabId].isSQLEditorCreated()) {
+                    tabs[tabId].createSQLEditor();
+                    queues[tabId].getSQL();
+                  }
+                } else if(name === 'schedules') {
+                  if(!tabs[tabId].isSchedulesGridCreated()) {
+                    tabs[tabId].createSchedulesGrid();
+                    queues[tabId].getSchedules();
+                  }
+                } else if(name === 'subscribers') {
+                  if(!tabs[tabId].isSubscribersGridCreated()) {
+                    tabs[tabId].createSubscribersGrid();
+                    queues[tabId].getSubscribers();
+                  }
+                }
+              });
+
+            tabs[tabId].addDetailsReloadButtonClickedEventListener(function(tab){
+              queues[tabId].getDetails();
+            });
+
+            tabs[tabId].addSQLReloadButtonClickedEventListener(function(tab){
+              queues[tabId].getSQL();
+            });
+
+            tabs[tabId].addSchedulesReloadButtonClickedEventListener(function(tab){
+              queues[tabId].getSchedules();
+            });
+
+            tabs[tabId].addSubscribersReloadButtonClickedEventListener(function(tab){
+              queues[tabId].getSubscribers();
+            });
+
+            function onDetailsAvailable(result, tabId){
+              tabs[tabId].getDetailsGrid().records = result;
+              tabs[tabId].getDetailsGrid().refresh();
+            }
+            queues[tabId].getDetails();
+
+            function onSQLAvailable(result, tabId){
+              tabs[tabId].getSQLEditor().setValue(result);
+            }
+
+            function onSchedulesAvailable(result, tabId){
+              tabs[tabId].getSchedulesGrid().records = result;
+              tabs[tabId].getSchedulesGrid().refresh();
+            }
+
+            function onSubscribersAvailable(result, tabId){
+              tabs[tabId].getSubscribersGrid().records = result;
+              tabs[tabId].getSubscribersGrid().refresh();
             }
           }
 
@@ -984,38 +1071,47 @@
                   if(!tabs[tabId].isDataGridCreated()) {
                     tabs[tabId].createDataGrid();
                     tables[tabId].getData();
+                    tabs[tabId].getDataGrid().lock('Reading Data...', true);
                   }
                 } else if(name === 'constraints') {
                   if(!tabs[tabId].isConstraintsGridCreated()) {
                     tabs[tabId].createConstraintsGrid();
                     tables[tabId].getConstraints();
+                    tabs[tabId].getConstraintsGrid().lock('Reading Constraints...', true);
                   }
                 } else if(name === 'grants') {
                   if(!tabs[tabId].isGrantsGridCreated()) {
                     tabs[tabId].createGrantsGrid();
                     tables[tabId].getGrants();
+                    tabs[tabId].getGrantsGrid().lock('Reading Grants...', true);
                   }
                 } else if(name === 'statistics') {
                   if(!tabs[tabId].isStatisticsGridCreated()) {
                     tabs[tabId].createStatisticsGrid();
                     tables[tabId].getStatistics();
+                    tabs[tabId].getStatisticsGrid().lock('Reading Statistics...', true);
                     tables[tabId].getStatisticsDetails();
+                    tabs[tabId].getStatisticsDetailsGrid().lock('Reading Statistics Details...', true);
                   }
                 } else if(name === 'triggers') {
                   if(!tabs[tabId].isTriggersGridCreated()) {
                     tabs[tabId].createTriggersGrid();
                     tables[tabId].getTriggers();
+                    tabs[tabId].getTriggersGrid().lock('Reading Triggers...', true);
                   }
                 } else if(name === 'dependencies') {
                   if(!tabs[tabId].isDependenciesGridCreated()) {
                     tabs[tabId].createDependenciesGrid();
                     tables[tabId].getDependencies();
+                    tabs[tabId].getDependenciesGrid().lock('Reading Dependencies...', true);
                     tables[tabId].getDependenciesDetails();
+                    tabs[tabId].getDependenciesDetailsGrid().lock('Reading Dependencie Details...', true);
                   }
                 } else if(name === 'indexes') {
                   if(!tabs[tabId].isIndexesGridCreated()) {
                     tabs[tabId].createIndexesGrid();
                     tables[tabId].getIndexes();
+                    tabs[tabId].getIndexesGrid().lock('Reading Indexes...', true);
                   }
                 } else if(name === 'sql') {
                   if(!tabs[tabId].isSQLEditorCreated()) {
@@ -1027,10 +1123,12 @@
 
               tabs[tabId].addConstraintsGridClickedEventListener(function(record, tab){
                 tables[tabId].getConstraintDetails(record.constraintName);
+                tabs[tabId].getConstraintDetailsGrid().lock('Reading Constraint Details...', true);
               });
 
               tabs[tabId].addStatisticsGridClickedEventListener(function(record, tab){
                 tables[tabId].getStatisticsDetails();
+                tabs[tabId].getStatisticsDetailsGrid().lock('Reading Statistics Details...', true);
               });
 
               tabs[tabId].addTriggersGridClickedEventListener(function(record, tab){
@@ -1039,10 +1137,12 @@
 
               tabs[tabId].addDependenciesGridClickedEventListener(function(record, tab){
                 tables[tabId].getDependenciesDetails();
+                tabs[tabId].getDependenciesDetailsGrid().lock('Reading Dependencie Details...', true);
               });
 
               tabs[tabId].addIndexesGridClickedEventListener(function(record, tab){
                 tables[tabId].getIndexesDetails(record.indexName);
+                tabs[tabId].getIndexesDetailsGrid().lock('Reading Index Details...', true);
               });
 
               tabs[tabId].addColumnsReloadButtonClickedEventListener(function(tab){
@@ -1086,8 +1186,10 @@
               function onColumnsAvailable(result, tabId){
                 tabs[tabId].getColumnsGrid().records = result;
                 tabs[tabId].getColumnsGrid().refresh();
+                tabs[tabId].getColumnsGrid().unlock();
               }
               tables[tabId].getColumns();
+              tabs[tabId].getColumnsGrid().lock('Reading Columns...', true);
 
               function onColumnHeadersAvailable(result, tabId){
                 tabs[tabId].getDataGrid().columns = result;
@@ -1097,36 +1199,43 @@
               function onDataAvailable(result, tabId){
                 tabs[tabId].getDataGrid().records = result;
                 tabs[tabId].getDataGrid().refresh();
+                tabs[tabId].getDataGrid().unlock();
               }
 
               function onConstraintsAvailable(result, tabId){
                 tabs[tabId].getConstraintsGrid().records = result;
                 tabs[tabId].getConstraintsGrid().refresh();
+                tabs[tabId].getConstraintsGrid().unlock();
               }
 
               function onConstraintDetailsAvailable(result, tabId){
                 tabs[tabId].getConstraintDetailsGrid().records = result;
                 tabs[tabId].getConstraintDetailsGrid().refresh();
+                tabs[tabId].getConstraintDetailsGrid().unlock();
               }
 
               function onGrantsAvailable(result, tabId){
                 tabs[tabId].getGrantsGrid().records = result;
                 tabs[tabId].getGrantsGrid().refresh();
+                tabs[tabId].getGrantsGrid().unlock();
               }
 
               function onStatisticsAvailable(result, tabId){
                 tabs[tabId].getStatisticsGrid().records = result;
                 tabs[tabId].getStatisticsGrid().refresh();
+                tabs[tabId].getStatisticsGrid().unlock();
               }
 
               function onStatisticsDetailsAvailable(result, tabId){
                 tabs[tabId].getStatisticsDetailsGrid().records = result;
                 tabs[tabId].getStatisticsDetailsGrid().refresh();
+                tabs[tabId].getStatisticsDetailsGrid().unlock();
               }
 
               function onTriggersAvailable(result, tabId){
                 tabs[tabId].getTriggersGrid().records = result;
                 tabs[tabId].getTriggersGrid().refresh();
+                tabs[tabId].getTriggersGrid().unlock();
               }
 
               function onTriggerBodyAvailable(result, tabId){
@@ -1136,21 +1245,25 @@
               function onDependenciesAvailable(result, tabId){
                 tabs[tabId].getDependenciesGrid().records = result;
                 tabs[tabId].getDependenciesGrid().refresh();
+                tabs[tabId].getDependenciesGrid().unlock();
               }
 
               function onDependenciesDetailsAvailable(result, tabId){
                 tabs[tabId].getDependenciesDetailsGrid().records = result;
                 tabs[tabId].getDependenciesDetailsGrid().refresh();
+                tabs[tabId].getDependenciesDetailsGrid().unlock();
               }
 
               function onIndexesAvailable(result, tabId){
                 tabs[tabId].getIndexesGrid().records = result;
                 tabs[tabId].getIndexesGrid().refresh();
+                tabs[tabId].getIndexesGrid().unlock();
               }
 
               function onIndexesDetailsAvailable(result, tabId){
                 tabs[tabId].getIndexesDetailsGrid().records = result;
                 tabs[tabId].getIndexesDetailsGrid().refresh();
+                tabs[tabId].getIndexesDetailsGrid().unlock();
               }
 
               function onSQLAvailable(result, tabId){
@@ -1163,7 +1276,7 @@
           }
 
           function contextMenuCallback(navigationTree, event) {
-            if(event.object.nodeType === NavNodeType.PROJECT) {
+            if(event.object.nodeType === DatabaseNavNodeType.DATABASE_FOLDER) {
               navigationTree.menu = [
                 { id: 'add-db-connection', text: 'New Connection...', icon: 'database_connection_icon'},
                 { id: 'sep-1', text: '--'},
@@ -1194,23 +1307,23 @@
             }
           }
 
-          function onConnectionInfoAvailable(projectId, connName, connString, username, password, dbConnection) {
-            var connectionId = projectId + '-' + connName.toLowerCase();
+          function onConnectionInfoAvailable(databaseFolderId, connName, connString, username, password, dbConnection) {
+            var connectionId = databaseFolderId + '-' + connName.toLowerCase();
             var navigationTree = a.getNavigationTree();
-            navigationTree.insert(projectId, null, [
-                                    {id: connectionId, text: connName, icon: 'database_connection_icon', nodeType: DatabaseNavNodeType.CONNECTION_FOLDER, dbConnection: dbConnection
+            navigationTree.insert(databaseFolderId, null, [
+                                    {id: connectionId, text: connName, icon: 'database_connection_icon', expanded: true, nodeType: DatabaseNavNodeType.CONNECTION_FOLDER, dbConnection: dbConnection
                                     }]
                                   );
-            localStorage.setItem(projectId + '-connection-name', connName);
-            localStorage.setItem(projectId + '-connection-string', connString);
-            localStorage.setItem(projectId + '-connection-username', username);
-            localStorage.setItem(projectId + '-connection-password', password);
+            localStorage.setItem(databaseFolderId + '-connection-name', connName);
+            localStorage.setItem(databaseFolderId + '-connection-string', connString);
+            localStorage.setItem(databaseFolderId + '-connection-username', username);
+            localStorage.setItem(databaseFolderId + '-connection-password', password);
           }
 
           function contextMenuItemSelectedCallback(navigationTree, event) {
             if(event.menuItem.id === 'add-db-connection') {
-              var projectId = event.target;
-              var dbConnection = new DatabaseConnection(projectId);
+              var databaseFolderId = event.target;
+              var dbConnection = new DatabaseConnection(databaseFolderId);
               dbConnection.addConnectionInfoAvailableEventListener(onConnectionInfoAvailable);
 
               dbConnection.promptConnection();
@@ -1244,19 +1357,19 @@
                                             {id: connectionId + '-tables', text: 'Tables', icon: 'tables_folder_icon', nodeType: DatabaseNavNodeType.TABLES_FOLDER},
                                             {id: connectionId + '-views', text: 'Views', icon: 'views_folder_icon', nodeType: DatabaseNavNodeType.VIEWS_FOLDER},
                                             {id: connectionId + '-indexes', text: 'Indexes', icon: 'indexes_folder_icon', nodeType: DatabaseNavNodeType.INDEXES_FOLDER},
-                                            {id: connectionId + '-mviews', text: 'Materialized Views', icon: 'mview_icon', nodeType: DatabaseNavNodeType.MVIEWS_FOLDER},
-                                            {id: connectionId + '-procedures', text: 'Procedures', icon: 'procedure_icon', nodeType: DatabaseNavNodeType.PROCEDURES_FOLDER},
-                                            {id: connectionId + '-functions', text: 'Functions', icon: 'function_icon', nodeType: DatabaseNavNodeType.FUNCTIONS_FOLDER},
-                                            {id: connectionId + '-packages', text: 'Packages', icon: 'package_icon', nodeType: DatabaseNavNodeType.PACKAGES_FOLDER},
-                                            {id: connectionId + '-sequences', text: 'Sequences', icon: 'sequence_icon', nodeType: DatabaseNavNodeType.SEQUENCES_FOLDER},
-                                            {id: connectionId + '-synonyms', text: 'Synonyms', icon: 'synonym_icon', nodeType: DatabaseNavNodeType.SYNONYMS_FOLDER},
-                                            // {id: connectionId + '-public-synonyms', text: 'Public Synonyms', icon: 'public_synonym_icon', nodeType: DatabaseNavNodeType.PUBLIC_SYNONYMS_FOLDER},
-                                            {id: connectionId + '-triggers', text: 'Triggers', icon: 'trigger_icon', nodeType: DatabaseNavNodeType.TRIGGERS_FOLDER},
-                                            {id: connectionId + '-types', text: 'Types', icon: 'type_icon', nodeType: DatabaseNavNodeType.TYPES_FOLDER},
-                                            {id: connectionId + '-queues', text: 'Queues', icon: 'queue_icon', nodeType: DatabaseNavNodeType.QUEUES_FOLDER},
-                                            {id: connectionId + '-database-links', text: 'Database Links', icon: 'dblink_icon', nodeType: DatabaseNavNodeType.DBLINKS_FOLDER},
-                                            {id: connectionId + '-public-database-links', text: 'Public Database Links', icon: 'public_dblink_icon', nodeType: DatabaseNavNodeType.PUBLIC_DBLINKS_FOLDER},
-                                            {id: connectionId + '-directories', text: 'Directories', icon: 'directory_icon', nodeType: DatabaseNavNodeType.DIRECTORIES_FOLDER}
+                                            {id: connectionId + '-mviews', text: 'Materialized Views', icon: 'mview_folder_icon', nodeType: DatabaseNavNodeType.MVIEWS_FOLDER},
+                                            {id: connectionId + '-procedures', text: 'Procedures', icon: 'procedure_folder_icon', nodeType: DatabaseNavNodeType.PROCEDURES_FOLDER},
+                                            {id: connectionId + '-functions', text: 'Functions', icon: 'function_folder_icon', nodeType: DatabaseNavNodeType.FUNCTIONS_FOLDER},
+                                            {id: connectionId + '-packages', text: 'Packages', icon: 'package_folder_icon', nodeType: DatabaseNavNodeType.PACKAGES_FOLDER},
+                                            {id: connectionId + '-sequences', text: 'Sequences', icon: 'sequence_folder_icon', nodeType: DatabaseNavNodeType.SEQUENCES_FOLDER},
+                                            {id: connectionId + '-synonyms', text: 'Synonyms', icon: 'synonym_folder_icon', nodeType: DatabaseNavNodeType.SYNONYMS_FOLDER},
+                                            // {id: connectionId + '-public-synonyms', text: 'Public Synonyms', icon: 'public_synonym_folder_icon', nodeType: DatabaseNavNodeType.PUBLIC_SYNONYMS_FOLDER},
+                                            {id: connectionId + '-triggers', text: 'Triggers', icon: 'trigger_folder_icon', nodeType: DatabaseNavNodeType.TRIGGERS_FOLDER},
+                                            {id: connectionId + '-types', text: 'Types', icon: 'type_folder_icon', nodeType: DatabaseNavNodeType.TYPES_FOLDER},
+                                            {id: connectionId + '-queues', text: 'Queues', icon: 'queue_folder_icon', nodeType: DatabaseNavNodeType.QUEUES_FOLDER},
+                                            {id: connectionId + '-database-links', text: 'Database Links', icon: 'dblink_folder_icon', nodeType: DatabaseNavNodeType.DBLINKS_FOLDER},
+                                            {id: connectionId + '-public-database-links', text: 'Public Database Links', icon: 'public_dblink_folder_icon', nodeType: DatabaseNavNodeType.PUBLIC_DBLINKS_FOLDER},
+                                            {id: connectionId + '-directories', text: 'Directories', icon: 'directory_folder_icon', nodeType: DatabaseNavNodeType.DIRECTORIES_FOLDER}
                                           ]);
                 schema.populateSchemaObjects();
               }
@@ -1414,10 +1527,11 @@
 
           function createProject(navigationTree, project) {
             var projectId = project.toLowerCase() + '-project';
-            navigationTree.insert('projects', null, [{id: projectId, text: project, icon: 'fas fa-drafting-compass',
+            navigationTree.insert('projects', null, [{id: projectId, text: project, icon: 'fas fa-drafting-compass', expanded: true,
                             nodes: [
-                              { id: projectId + '-edges', text: 'Edges', icon: 'edges_icon', nodeType: NavNodeType.EDGES_FOLDER},
-                              { id: projectId + '-nodes', text: 'Nodes', icon: 'nodes_icon', nodeType: NavNodeType.NODES_FOLDER}
+                              { id: projectId + '-edges', text: 'Edges', icon: 'edges_icon', expanded: true, nodeType: NavNodeType.EDGES_FOLDER},
+                              { id: projectId + '-nodes', text: 'Nodes', icon: 'nodes_icon', expanded: true, nodeType: NavNodeType.NODES_FOLDER},
+                              { id: projectId + '-db', text: 'Databases', icon: 'database_folder_icon', expanded: true, nodeType: DatabaseNavNodeType.DATABASE_FOLDER}
                             ], nodeType: NavNodeType.PROJECT
                           }]);
           }

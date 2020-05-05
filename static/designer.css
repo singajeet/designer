@@ -373,16 +373,64 @@
     content: url('/static/icons/index.png')
 }
 
+.mview_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.mview_folder_icon::after {
+    content: url('/static/icons/materialized_view.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
+}
+
 .mview_icon {
     content: url('/static/icons/materialized_view.png')
+}
+
+.procedure_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.procedure_folder_icon::after {
+    content: url('/static/icons/plsql_proc.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
 }
 
 .procedure_icon {
     content: url('/static/icons/plsql_proc.png')
 }
 
+.function_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.function_folder_icon::after {
+    content: url('/static/icons/plsql_function.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
+}
+
 .function_icon {
     content: url('/static/icons/plsql_function.png')
+}
+
+.package_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.package_folder_icon::after {
+    content: url('/static/icons/plsql_package.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
 }
 
 .package_icon {
@@ -393,36 +441,136 @@
     content: url('/static/icons/packagetreeview.png')
 }
 
+.sequence_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.sequence_folder_icon::after {
+    content: url('/static/icons/sequence.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
+}
+
 .sequence_icon {
     content: url('/static/icons/sequence.png')
+}
+
+.synonym_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.synonym_folder_icon::after {
+    content: url('/static/icons/synonym.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
 }
 
 .synonym_icon {
     content: url('/static/icons/synonym.png')
 }
 
+.public_synonym_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.public_synonym_folder_icon::after {
+    content: url('/static/icons/publicsynonym.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
+}
+
 .public_synonym_icon {
     content: url('/static/icons/publicsynonym.png')
+}
+
+.trigger_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.trigger_folder_icon::after {
+    content: url('/static/icons/trigger.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
 }
 
 .trigger_icon {
     content: url('/static/icons/trigger.png')
 }
 
+.type_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.type_folder_icon::after {
+    content: url('/static/icons/objecttype.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
+}
+
 .type_icon {
     content: url('/static/icons/objecttype.png')
 }
 
+.queue_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.queue_folder_icon::after {
+    content: url('/static/icons/node_role.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
+}
+
 .queue_icon {
-    content: url('/static/icons/objecttype.png')
+    content: url('/static/icons/node_role.png')
+}
+
+.dblink_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.dblink_folder_icon::after {
+    content: url('/static/icons/link.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
 }
 
 .dblink_icon {
     content: url('/static/icons/link.png')
 }
 
+.public_dblink_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.public_dblink_folder_icon::after {
+    content: url('/static/icons/publicdblink.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
+}
+
 .public_dblink_icon {
     content: url('/static/icons/publicdblink.png')
+}
+
+.directory_folder_icon {
+    content: url('/static/icons/system.png')
 }
 
 .directory_icon {
@@ -431,6 +579,10 @@
 
 .database_connection_icon {
     content: url('/static/icons/dbconn.png');
+}
+
+.database_folder_icon {
+    content: url('/static/icons/database.png');
 }
 
 .shuttle_right_icon {
@@ -507,6 +659,36 @@
 
 .edit_icon {
     content: url('/static/icons/edit.png');
+}
+
+.column_icon {
+    content: url('/static/icons/column.png');
+}
+
+.constraint_icon {
+    content: url('/static/icons/constraint.png');
+}
+
+.storage_icon {
+    content: url('/static/icons/tablespace.png');
+}
+
+.comment_icon {
+    content: url('/static/icons/comment.png');
+}
+
+.ddl_icon {
+    content: url('/static/icons/sqlfile.png');
+}
+
+.sidebar_panel {
+    width: 100%;
+    height: 100%;
+    display: none;
+} 
+
+.display_sidebar_panel {
+    display: block !important;
 }
 
 div.menu {

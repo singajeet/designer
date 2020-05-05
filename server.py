@@ -3,7 +3,7 @@ from flask_socketio import SocketIO
 from oracle import DatabaseConnectionServer, DatabaseSchemaServer, DatabaseTableServer
 from oracle import DatabaseViewServer, DatabaseIndexServer, DatabaseMaterializedViewServer
 from oracle import DatabasePLSQLServer, DatabaseSequenceServer, DatabaseSynonymServer
-from oracle import DatabaseLinkServer, DatabaseDirectoryServer
+from oracle import DatabaseLinkServer, DatabaseDirectoryServer, DatabaseQueueServer
 from engineio.payload import Payload
 
 
@@ -13,9 +13,14 @@ Payload.max_decode_packets = 500
 socketio = SocketIO(app, async_mode=None)
 
 
+@app.route('/edit-table')
+def edit_table():
+	return render_template('dialogs/edit_table.html')
+
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+	return render_template('index.html')
 
 
 def start_app():
@@ -30,6 +35,7 @@ def start_app():
     dsynm = DatabaseSynonymServer(socketio, ds)
     dblink = DatabaseLinkServer(socketio, ds)
     ddir = DatabaseDirectoryServer(socketio, ds)
+    dq = DatabaseQueueServer(socketio, ds)
     socketio.run(app, debug=True)
 
 

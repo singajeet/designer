@@ -2420,3 +2420,211 @@ class DatabaseDirectoryServer(Namespace):
                                  'name': result[1],
                                  'value': result[2]})
         emit('details_result', result_array, namespace=self._namespace_url)
+
+
+class DatabaseQueueServer(Namespace):
+    """Class to interact with the database queue available under schema
+        provided as parameter to the class
+    """
+
+    _socket_io = None
+    _schema_name = None
+    _schema = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabaseQueueServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db_queue')
+        self._namespace_url = '/oracle_db_queue'
+        self._socket_io = socket_io
+        self._schema = schema
+        self._db_connection = self._schema.get_connection()
+        self._schema_name = self._schema.get_schema_name()
+        socket_io.on_namespace(self)
+
+    def on_get_details(self, queue_name):
+        """For internal use only: will be called when 'get_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT ROWNUM, a.* FROM
+                (SELECT 'NAME', NAME FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'QUEUE_TABLE', QUEUE_TABLE FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'QID', to_char(QID) FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'QUEUE_TYPE', QUEUE_TYPE FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'MAX_RETRIES', to_char(MAX_RETRIES) FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'RETRY_DELAY', to_char(RETRY_DELAY) FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'ENQUEUE_ENABLED', ENQUEUE_ENABLED FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'DEQUEUE_ENABLED', DEQUEUE_ENABLED FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'RETENTION', to_char(RETENTION) FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'USER_COMMENT', USER_COMMENT FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'NETWORK_NAME', NETWORK_NAME FROM SYS.user_queues WHERE name='{0}'
+                UNION
+                SELECT 'CREATED', to_char(CREATED) FROM SYS.user_objects WHERE object_name='{0}' AND object_type='QUEUE'
+                UNION
+                SELECT 'LAST_DDL_TIME', to_char(LAST_DDL_TIME) FROM SYS.user_objects WHERE object_name='{0}' AND object_type='QUEUE') a
+                """.format(queue_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'name': result[1],
+                                 'value': result[2]})
+        emit('details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_sql(self, queue_name):
+        """For internal use only: will be called when 'get_sql' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        sql = ""
+        # ########### Get DDL of table ###############
+        cursor = db_conn.cursor()
+        query = """
+                SELECT to_char(dbms_metadata.get_ddl('AQ_QUEUE', '%s')) FROM dual
+                """ % queue_name
+        cursor.execute(query)
+        for result in cursor:
+            sql = result[0]
+        emit('sql_result', sql, namespace=self._namespace_url)
+
+    def on_get_schedules(self, queue_name):
+        """For internal use only: will be called when 'get_schedules' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    QNAME,
+                    DESTINATION,
+                    START_DATE,
+                    START_TIME,
+                    PROPAGATION_WINDOW,
+                    NEXT_TIME,
+                    LATENCY,
+                    SCHEDULE_DISABLED,
+                    PROCESS_NAME,
+                    SESSION_ID,
+                    INSTANCE,
+                    LAST_RUN_DATE,
+                    LAST_RUN_TIME,
+                    CURRENT_START_DATE,
+                    CURRENT_START_TIME,
+                    NEXT_RUN_DATE,
+                    NEXT_RUN_TIME,
+                    TOTAL_TIME,
+                    TOTAL_NUMBER,
+                    TOTAL_BYTES,
+                    MAX_NUMBER,
+                    MAX_BYTES,
+                    AVG_NUMBER,
+                    AVG_SIZE,
+                    AVG_TIME,
+                    FAILURES,
+                    LAST_ERROR_DATE,
+                    LAST_ERROR_TIME,
+                    LAST_ERROR_MSG,
+                    MESSAGE_DELIVERY_MODE,
+                    ELAPSED_DEQUEUE_TIME,
+                    ELAPSED_PICKLE_TIME,
+                    JOB_NAME
+                FROM
+                    SYS.user_queue_schedules
+                WHERE
+                    qname='%s'
+                """ % queue_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'QNAME': result[1],
+                                 'DESTINATION': result[2],
+                                 'START_DATE': result[3],
+                                 'START_TIME': result[4],
+                                 'PROPAGATION_WINDOW': result[5],
+                                 'NEXT_TIME': result[6],
+                                 'LATENCY': result[7],
+                                 'SCHEDULE_DISABLED': result[8],
+                                 'PROCESS_NAME': result[9],
+                                 'SESSION_ID': result[10],
+                                 'INSTANCE': result[11],
+                                 'LAST_RUN_DATE': result[12],
+                                 'LAST_RUN_TIME': result[13],
+                                 'CURRENT_START_DATE': result[14],
+                                 'CURRENT_START_TIME': result[15],
+                                 'NEXT_RUN_DATE': result[16],
+                                 'NEXT_RUN_TIME': result[17],
+                                 'TOTAL_TIME': result[18],
+                                 'TOTAL_NUMBER': result[19],
+                                 'TOTAL_BYTES': result[20],
+                                 'MAX_NUMBER': result[21],
+                                 'MAX_BYTES': result[22],
+                                 'AVG_NUMBER': result[23],
+                                 'AVG_SIZE': result[24],
+                                 'AVG_TIME': result[25],
+                                 'FAILURES': result[26],
+                                 'LAST_ERROR_DATE': result[27],
+                                 'LAST_ERROR_TIME': result[28],
+                                 'LAST_ERROR_MSG': result[29],
+                                 'MESSAGE_DELIVERY_MODE': result[30],
+                                 'ELAPSED_DEQUEUE_TIME': result[31],
+                                 'ELAPSED_PICKLE_TIME': result[32],
+                                 'JOB_NAME': result[33]})
+        emit('schedules_result', result_array, namespace=self._namespace_url)
+
+    def on_get_subscribers(self, queue_name):
+        """For internal use only: will be called when 'get_subscribers' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    QUEUE_NAME,
+                    QUEUE_TABLE,
+                    CONSUMER_NAME,
+                    ADDRESS,
+                    PROTOCOL,
+                    TRANSFORMATION,
+                    RULE,
+                    DELIVERY_MODE,
+                    NONDURABLE,
+                    QUEUE_TO_QUEUE
+                FROM
+                    SYS.user_queue_subscribers
+                WHERE
+                    queue_name='%s'
+                """ % queue_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'QUEUE_NAME': result[1],
+                                 'QUEUE_TABLE': result[2],
+                                 'CONSUMER_NAME': result[3],
+                                 'ADDRESS': result[4],
+                                 'PROTOCOL': result[5],
+                                 'TRANSFORMATION': result[6],
+                                 'RULE': result[7],
+                                 'DELIVERY_MODE': result[8],
+                                 'NONDURABLE': result[9],
+                                 'QUEUE_TO_QUEUE': result[10]})
+        emit('subscribers_result', result_array, namespace=self._namespace_url)

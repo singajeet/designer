@@ -1,0 +1,94 @@
+<div id="table-edit-popup" style="width: 900px; height: 800px;">
+    <div rel="title">
+        Edit Table
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div id="table-edit-layout" style="width: 100%; height: 100%"></div>
+        <script>
+			// $j(document).ready(function() {
+				var queryString = window.location.search;
+				var params = new URLSearchParams(queryString);
+				var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
+
+				$j("#table-edit-layout").w2layout({
+					name: 'table-edit-layout',
+			        padding: 4,
+			        panels: [
+			            { type: 'top', size: 90, resizable: false, style: pstyle, content: 'top' },
+			            { type: 'left', size: 200, resizable: true, style: pstyle, content: 'left' },
+			            { type: 'main', style: pstyle, content: 'main' }
+			        ]
+				});
+				
+				var mainHtml = `
+					<div id='table-edit-sidebar-columns-panel' class='sidebar_panel display_sidebar_panel'>Columns</div>
+					<div id='table-edit-sidebar-constraints-panel' class='sidebar_panel'>Constraints</div>
+					<div id='table-edit-sidebar-indexes-panel' class='sidebar_panel'>Indexes</div>
+					<div id='table-edit-sidebar-storage-panel' class='sidebar_panel'>Storage</div>
+					<div id='table-edit-sidebar-comments-panel' class='sidebar_panel'>Comments</div>
+					<div id='table-edit-sidebar-ddl-panel' class='sidebar_panel'>DDL</div>
+				`;
+				w2ui['table-edit-layout'].content('main', mainHtml);
+
+				var topHtml = `
+					<div style='float: left'>
+						<table>
+							<tr>
+								<td>Schema:</td>
+								<td><input id='table-edit-text-schema-name' size='80px' disabled /></td>
+							</tr>
+							<tr>
+								<td>Name:</td>
+								<td><input id='table-edit-text-name' size='80px' /></td>
+							</tr>
+							<tr>
+								<td>Table Type:</td>
+								<td><input id='table-edit-text-type' size='80px' disabled /></td>
+							</tr>
+						</table>
+					</div>
+					<div style="float: right; margin-top: 15px;">
+						<img src='/static/icons/header/database.png' />
+					</div>
+				`;
+				w2ui["table-edit-layout"].content('top', topHtml);
+
+				w2ui["table-edit-layout"].content('left', $j().w2sidebar({
+					name: 'table-edit-sidebar',
+					topHTML    : '<div style="background-color: #eee; padding: 10px 5px; border-bottom: 1px solid silver">Options</div>',
+					nodes: [
+						{id: 'table-edit-sidebar-columns', text: 'Columns', icon: 'column_icon'},
+						{id: 'table-edit-sidebar-constraints', text: 'Constraints', icon: 'constraint_icon'},
+						{id: 'table-edit-sidebar-indexes', text: 'Indexes', icon: 'index_icon'},
+						{id: 'table-edit-sidebar-storage', text: 'Storage', icon: 'storage_icon'},
+						{id: 'table-edit-sidebar-comments', text: 'Comments', icon: 'comment_icon'},
+						{id: 'table-edit-sidebar-ddl', text: 'DDL', icon: 'ddl_icon'}
+					],
+					onClick: function(event) {
+						var id = event.target;
+						w2ui['table-edit-sidebar'].nodes.forEach(function(node) {
+							$j('#' +node.id + '-panel').removeClass('display_sidebar_panel');
+						});
+						$j('#' + id + '-panel').addClass('display_sidebar_panel');
+					}
+				}));
+				w2ui['table-edit-sidebar'].select('table-edit-sidebar-columns');
+
+				var columnsPanel = new ColumnsPanelUI('table-edit-sidebar-columns-panel', '');
+				if(!columnsPanel.isPanelCreated()) {
+					columnsPanel.createPanel();
+				}
+
+				function destroy() {
+					w2ui['table-edit-layout'].destroy();
+					w2ui['table-edit-sidebar'].destroy();
+					columnsPanel.destroy();
+				}
+			// });
+		</script>
+    </div>
+    <div rel="buttons">
+    	<button class="w2ui-btn" onclick="destroy(); w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="destroy(); w2popup.close()">Close</button>
+    </div>
+</div>
