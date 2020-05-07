@@ -166,7 +166,7 @@ var TableTabUI = Class.create({
                                     ],
                                     onClick: function(event) {
                                       if(event.target === that.id + '-edit-table') {
-                                        window.history.pushState(null, null, '?id=' + that.id);
+                                        window.history.pushState(null, null, '?name=' + that.label);
                                         w2popup.load({ url: '/edit-table', showMax: true, modal: true, showClose: false });
                                       }
                                     }

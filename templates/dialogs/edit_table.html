@@ -8,6 +8,7 @@
 			// $j(document).ready(function() {
 				var queryString = window.location.search;
 				var params = new URLSearchParams(queryString);
+				var tableName = params.get('name');
 				var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
 
 				$j("#table-edit-layout").w2layout({
@@ -39,7 +40,7 @@
 							</tr>
 							<tr>
 								<td>Name:</td>
-								<td><input id='table-edit-text-name' size='80px' /></td>
+								<td><input id='table-edit-text-name' size='80px' value='` + tableName+ `' /></td>
 							</tr>
 							<tr>
 								<td>Table Type:</td>
@@ -74,7 +75,7 @@
 				}));
 				w2ui['table-edit-sidebar'].select('table-edit-sidebar-columns');
 
-				var columnsPanel = new ColumnsPanelUI('table-edit-sidebar-columns-panel', '');
+				var columnsPanel = new ColumnsPanelUI('table-edit-sidebar-columns-panel', tableName);
 				if(!columnsPanel.isPanelCreated()) {
 					columnsPanel.createPanel();
 				}

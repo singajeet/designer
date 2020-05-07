@@ -691,6 +691,37 @@
     display: block !important;
 }
 
+.simple_panel {
+    line-height: 30px;
+    display: none;
+}
+
+.display_simple_panel {
+    display: block !important;
+}
+
+.data_type_panel {
+    line-height: 30px;
+    display: none;
+}
+
+.display_data_type_panel {
+    display: block !important;
+}
+
+.tab_content {
+    padding: 10px 2px;
+    height: 84%;
+    border-bottom: 1px solid lightgrey;
+    border-left: 1px solid lightgrey;
+    border-right: 1px solid lightgrey;
+    display: none;
+}
+
+.display_tab_content {
+    display: block !important;
+}
+
 div.menu {
     overflow-y: visible !important;
 }
