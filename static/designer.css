@@ -589,6 +589,18 @@
     content: url('/static/icons/shuttle_right.png');
 }
 
+.shuttle_left_icon {
+    content: url('/static/icons/shuttle_left.png');
+}
+
+.shuttle_right_all_icon {
+    content: url('/static/icons/shuttle_rightall.png');
+}
+
+.shuttle_left_all_icon {
+    content: url('/static/icons/shuttle_leftall.png');
+}
+
 .delete_icon {
     content: url('/static/icons/delete.png')
 }
@@ -681,11 +693,68 @@
     content: url('/static/icons/sqlfile.png');
 }
 
+.last_icon {
+    content: url('/static/icons/last.png');
+}
+
+.bottom_icon {
+    content: url('/static/icons/bottom.png');
+}
+
+.down_icon {
+    content: url('/static/icons/down.png');
+}
+
+.up_icon {
+    content: url('/static/icons/up.png');
+}
+
+.top_icon {
+    content: url('/static/icons/top.png');
+}
+
+.expression_icon {
+    content: url('/static/icons/expression.png');
+}
+
+.first_icon {
+    content: url('/static/icons/first.png');
+}
+
+.foreign_key_icon {
+    content: url('/static/icons/foreignkey.png');
+}
+
+.func_icon {
+    content: url('/static/icons/function.png');
+}
+
+.key_icon {
+    content: url('/static/icons/key.png');
+}
+
+.primary_key_icon {
+    content: url('/static/icons/primarykey.png');
+}
+
+.previous_icon {
+    content: url('/static/icons/previous.png');
+}
+
+.next_icon {
+    content: url('/static/icons/next.png');
+}
+
+.assist_icon {
+    content: url('/static/icons/assist.png');
+    vertical-align: middle;
+}
+
 .sidebar_panel {
     width: 100%;
     height: 100%;
     display: none;
-} 
+}
 
 .display_sidebar_panel {
     display: block !important;
@@ -706,6 +775,15 @@
 }
 
 .display_data_type_panel {
+    display: block !important;
+}
+
+.constraints_panel {
+    line-height: 30px;
+    display: none;
+}
+
+.display_constraints_panel {
     display: block !important;
 }
 
@@ -738,4 +816,115 @@ div.menu {
     margin-top: 7px;
     margin-left: 5px;
     margin-right: -5px;
+}
+
+/********************************* Collapsible CSS ***********************************/
+.wrap-collabsible {
+  margin-bottom: 1.2rem 0;
+}
+
+.toggle {
+  display: none;
+}
+
+.lbl-toggle {
+  display: block;
+
+  font-weight: bold;
+  font-family: monospace;
+  font-size: .9rem;
+  text-transform: uppercase;
+  text-align: center;
+
+  color: #444;
+  background: #c2d5ed;
+
+  cursor: pointer;
+
+  border-radius: 7px;
+  transition: all 0.25s ease-out;
+}
+
+.lbl-toggle:hover {
+  color: #111;
+}
+
+.lbl-toggle::before {
+  content: ' ';
+  display: inline-block;
+
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 5px solid currentColor;
+  vertical-align: middle;
+  margin-right: .7rem;
+  transform: translateY(-2px);
+
+  transition: transform .2s ease-out;
+}
+
+.toggle:checked + .lbl-toggle::before {
+  transform: rotate(90deg) translateX(-3px);
+}
+
+.collapsible-content {
+  max-height: 0px;
+  overflow: hidden;
+  transition: max-height .25s ease-in-out;
+}
+
+.toggle:checked + .lbl-toggle + .collapsible-content {
+  max-height: 100vh;
+}
+
+.toggle:checked + .lbl-toggle {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.collapsible-content .content-inner {
+  background: #eee;
+  border-bottom: 1px solid #ccc;
+  border-bottom-left-radius: 7px;
+  border-bottom-right-radius: 7px;
+}
+/*************************************************************************************/
+
+.index_expression_grid {
+    height: 83%;
+    width: 100%;
+}
+
+.index_compact_expression_grid {
+    height: 53%;
+    width: 100%;
+}
+
+.index_domain_panel {
+    display: none;
+}
+
+.display_index_domain_panel {
+    display: block !important;
+}
+
+.message_popup_header {
+    background-image: linear-gradient(#dae6f3,#c2d5ed); 
+    height: 30px; 
+    text-align: center; 
+    font-size: 16px; 
+    padding-top: 2px; 
+    border-bottom: 1px solid #99bbe8!important;
+}
+
+.index_advance_tab_panel {
+    height: 93%; 
+    border-left: 1px solid lightgrey; 
+    border-bottom: 1px solid lightgrey; 
+    border-right: 1px solid lightgrey;
+    display: none;
+}
+
+.display_index_advance_tab_panel {
+    display: block !important;
 }

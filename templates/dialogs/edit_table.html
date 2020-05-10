@@ -54,6 +54,10 @@
 				`;
 				w2ui["table-edit-layout"].content('top', topHtml);
 
+				var columnsPanel = new ColumnsPanelUI('table-edit-sidebar-columns-panel', tableName);
+				var constraintsPanel = new ConstraintsPanelUI('table-edit-sidebar-constraints-panel', tableName);
+				var indexesPanel = new IndexesPanelUI('table-edit-sidebar-indexes-panel', tableName);
+
 				w2ui["table-edit-layout"].content('left', $j().w2sidebar({
 					name: 'table-edit-sidebar',
 					topHTML    : '<div style="background-color: #eee; padding: 10px 5px; border-bottom: 1px solid silver">Options</div>',
@@ -71,11 +75,26 @@
 							$j('#' +node.id + '-panel').removeClass('display_sidebar_panel');
 						});
 						$j('#' + id + '-panel').addClass('display_sidebar_panel');
+
+						if(id === 'table-edit-sidebar-constraints') {
+							if(!constraintsPanel.isPanelCreated()) {
+								constraintsPanel.createPanel();
+							} else {
+								constraintsPanel.refresh();
+							}
+						} if(id === 'table-edit-sidebar-indexes') {
+							if(!indexesPanel.isPanelCreated()) {
+								indexesPanel.createPanel();
+							} else {
+								indexesPanel.refresh();
+							}
+						} else if(id === 'table-edit-sidebar-columns') {
+							columnsPanel.refresh();
+						}
 					}
 				}));
 				w2ui['table-edit-sidebar'].select('table-edit-sidebar-columns');
 
-				var columnsPanel = new ColumnsPanelUI('table-edit-sidebar-columns-panel', tableName);
 				if(!columnsPanel.isPanelCreated()) {
 					columnsPanel.createPanel();
 				}
@@ -84,6 +103,7 @@
 					w2ui['table-edit-layout'].destroy();
 					w2ui['table-edit-sidebar'].destroy();
 					columnsPanel.destroy();
+					constraintsPanel.destroy();
 				}
 			// });
 		</script>
