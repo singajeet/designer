@@ -53,22 +53,170 @@ var ColumnsPanelUI = Class.create({
 											      toolbar: true,
 											      lineNumbers: true
 											    },
+											reorderRows: true,
 											columns: [
-												{field: 'pk', caption: 'PK', size: '30px'},
-												{field: 'columnName', caption: 'Column Name', size: '100px'},
-												{field: 'dataType', caption: 'Data Type', size: '80px'},
-												{field: 'size', caption: 'Size', size: '50px'},
-												{field: 'notNull', caption: 'Not Null', size: '70px'},
-												{field: 'default', caption: 'Default', size: '70px'},
-												{field: 'comments', caption: 'Comments', size: '100%'}
+												{field: 'pk', caption: 'PK', size: '30px', sortable: true,
+                									editable: { type: 'text' }
+            									},
+												{field: 'columnName', caption: 'Column Name', size: '100px', sortable: true,
+													editable: {type: 'text'}
+												},
+												{field: 'dataType', caption: 'Data Type', size: '80px', sortable: true,
+													editable: {type: 'select', 
+													items: [
+															'VARCHAR2',
+															'NUMBER',
+															'DATE',
+															'CLOB',
+															'BLOB',
+															'──────────',
+															'BFILE',
+															'BINARY_DOUBLE',
+															'BINARY_FLOAT',
+															'BLOB',
+															'CHAR',
+															'CHAR VARYING',
+															'CHARACTER',
+															'CHARACTER VARYING',
+															'CLOB',
+															'DATE',
+															'DEC',
+															'DECIMAL',
+															'DOUBLE PRECISION',
+															'FLOAT',
+															'INT',
+															'INTEGER',
+															'INTERVAL DAY',
+															'INTERVAL YEAR',
+															'LONG',
+															'LONG RAW',
+															'LONG VARCHAR',
+															'NATIONAL CHAR',
+															'NATIONAL CHAR VARYING',
+															'NATIONAL CHARACTER',
+															'NATIONAL CHARACTER VARYING',
+															'NCHAR',
+															'NCHAR VARYING',
+															'NCLOB',
+															'NUMBER',
+															'NUMERIC',
+															'NVARCHAR2',
+															'RAW',
+															'REAL',
+															'ROWID',
+															'SMALLINT',
+															'TIMESTAMP',
+															'UROWID',
+															'VARCHAR',
+															'VARCHAR2'
+															]}
+												},
+												{field: 'size', caption: 'Size', size: '50px', sortable: true,
+													editable: {type: 'int'}
+												},
+												{field: 'notNull', caption: 'Not Null', size: '70px', style: 'text-align: center', sortable: true,
+                									editable: { type: 'checkbox', style: 'text-align: center' }
+                								},
+												{field: 'default', caption: 'Default', size: '70px', sortable: true,
+													editable: {type: 'text'}
+												},
+												{field: 'comments', caption: 'Comments', size: '100%', sortable: true,
+													editable: {type: 'text'}
+												}
 											],
+											menu: [
+												{id: this.id + '-grid-context-menu-copy-column', text: 'Copy Column', icon: 'copy_icon'},
+												{id: this.id + 'sep_1', text: '--'},
+												{id: this.id + '-grid-context-menu-drop-column', text: 'Drop Column', icon: 'delete_icon'}
+											], 
 											toolbar: {
 												items: [
 													{type: 'break'},
 													{id: this.id + '-grid-toolbar-add-column', type: 'button', caption: 'Add', icon: 'add_icon'},
 													{id: this.id + '-grid-toolbar-drop-column', type: 'button', caption: 'Drop', icon: 'delete_icon'},
 													{id: this.id + '-grid-toolbar-copy-column', type: 'button', caption: 'Copy', icon: 'copy_icon'}
-												]
+												],
+												onClick: function(event) {
+													var grid = w2ui[that.id + '-grid'];
+													if(event.target === that.id + '-grid-toolbar-add-column') {
+														grid.add({recid: grid.records.length + 1});
+													} else if(event.target === that.id + '-grid-toolbar-drop-column') {
+														var records = grid.getSelection();
+														records.forEach(function(record) {
+															grid.remove(record);
+														});
+													} else if(event.target === that.id + '-grid-toolbar-copy-column') {
+														grid.save();
+														var records = grid.getSelection();
+														records.forEach(function(recid) {
+															var record = grid.get(recid);
+															var newRecord = Object.clone(record);
+															newRecord['recid'] = grid.records.length + 1;
+															grid.add(newRecord);
+														});
+													}
+												}
+											},
+											onClick: function(event) {
+												if(event.column === 0) {
+													var recid = event.recid;
+													var recordIndex = parseInt(recid) - 1;
+													var cellValue = this.getCellValue(recordIndex, 0);
+													if(cellValue === '') {
+														this.set(recid, {pk: '<img src="/static/icons/primarykey.png" />'});
+													} else {
+														this.set(recid, {pk: ''});
+													}
+												}
+											},
+											onSelect: function(event) {
+												if(that.lastClickedRecid !== event.recid){
+													event.onComplete = function() {that.updateControls();};
+												}
+												that.lastClickedRecid = event.recid;
+											},
+											onUnselect: function(event) {
+												
+											},
+											onChange: function(event) {
+												if(event.column === 2) { //DataType column has been changed
+													var value = event.value_new;
+													$j('#' + that.id + '-data-type-tab-content-selector-simple-radio').prop('checked', true).trigger('click');
+													this.set(event.recid, {size: ''});
+													$j('#' + that.id + '-data-type-tab-content-simple-column-type-select').val(value).trigger('change');
+												} else if(event.column === 3) { //Size column has been changed
+													var dataType = this.getCellValue(event.index, 2); //get data type from current selected row
+													
+													if(dataType === 'CHAR' || dataType === 'CHAR VARYING' 
+														|| dataType === 'CHARACTER' || dataType === 'CHARACTER VARYING'
+														|| dataType === 'VARCHAR' || dataType === 'VARCHAR2') {
+														$j('#' + that.id + '-data-type-tab-content-simple-char-size-input').val(event.value_new);
+													} else if(dataType === 'NUMBER' || dataType === 'DEC' 
+														|| dataType === 'DECIMAL' || dataType === 'NUMERIC') {
+														$j('#' + that.id + '-data-type-tab-content-simple-number-precision-input').val(event.value_new);
+													} else if(dataType === 'NATIONAL CHAR' || dataType === 'NATIONAL CHAR VARYING' 
+														|| dataType === 'NATIONAL CHARACTER' || dataType === 'NATIONAL CHARACTER VARYING'
+														|| dataType === 'NCHAR' || dataType === 'NCHAR VARYING' || dataType === 'NVARCHAR2'
+														|| dataType === 'RAW' || dataType === 'UROWID') {
+														$j('#' + that.id + '-data-type-tab-content-simple-char-size-only-input').val(event.value_new);
+													} else if(dataType === 'FLOAT') {
+														$j('#' + that.id + '-data-type-tab-content-simple-number-precision-only-input').val(event.value_new);
+													} else if(dataType === 'INTERVAL DAY') {
+														$j('#' + that.id + '-data-type-tab-content-simple-interval-day-precision-input').val(event.value_new);
+													} else if(dataType === 'INTERVAL YEAR') {
+														$j('#' + that.id + '-data-type-tab-content-simple-interval-year-precision-input').val(event.value_new);
+													} else if(dataType === 'TIMESTAMP') {
+														$j('#' + that.id + '-data-type-tab-content-simple-timezone-precision-input').val(event.value_new);
+													} else {
+														
+													}
+												}
+											},
+											onContextMenu: function(event) {
+
+											},
+											onMenuClick: function(event) {
+
 											}
 										});
 			this.layout.content('main', this.columnsGrid);
@@ -192,7 +340,7 @@ var ColumnsPanelUI = Class.create({
 								<option>HTTPURITYPE</option>
 								<option>URITYPE</option>
 								<option>XDBURITYPE</option>
-								<option>XMLTYPE</option>
+								<option selected>XMLTYPE</option>
 							</select>
 						</div>
 					</div>
@@ -293,6 +441,8 @@ var ColumnsPanelUI = Class.create({
 									<select id='` + this.id + `-lob-parameters-tab-content-cache-select' style='margin-left: 83px; width: 173px;'>
 										<option>--Not Specified--</option>
 										<option>CACHE</option>
+										<option>NO CACHE</option>
+										<option>CACHE READS</option>
 									</select>
 								</div>
 							</div>
@@ -311,22 +461,176 @@ var ColumnsPanelUI = Class.create({
 			`;
 			this.layout.content('bottom', tabsHtml);
 
+			this.tabs =	$j('#' + this.id + '-tabs').w2tabs({
+									name: this.id + '-tabs',
+									active: this.id + '-data-type-tab',
+									tabs: [
+										{id: this.id + '-data-type-tab', text: 'Data Type'},
+										{id: this.id + '-constraints-tab', text: 'Constraints'},
+										{id: this.id + '-indexes-tab', text: 'Indexes'},
+										{id: this.id + '-lob-parameters-tab', text: 'LOB Parameters'},
+										{id: this.id + '-identity-column-tab', text: 'Identity Column'}
+									],
+									onClick: function(event) {
+										that.changeColumnsSubTab(event.target);
+									}
+								});
+
 			$j('[name=' + this.id + '-data-type-selector]').on('click', function() {
 				if(this.id === that.id + '-data-type-tab-content-selector-simple-radio') {
 					$j('#' + that.id + '-data-type-tab-content-complex-panel').removeClass('display_data_type_panel');
 					$j('#' + that.id + '-data-type-tab-content-virtual-panel').removeClass('display_data_type_panel');
 					$j('#' + that.id + '-data-type-tab-content-simple-panel').addClass('display_data_type_panel');
+
+					var newValue = $j('#' + that.id + '-data-type-tab-content-simple-column-type-select').val();
+					var newSize = '';
+
+					if(newValue === 'CHAR' || newValue === 'CHAR VARYING' 
+						|| newValue === 'CHARACTER' || newValue === 'CHARACTER VARYING'
+						|| newValue === 'VARCHAR' || newValue === 'VARCHAR2') {
+						newSize = '20';
+					}
+
+					var records = that.columnsGrid.getSelection();
+					that.columnsGrid.save();
+					records.forEach(function(recid) {
+						that.columnsGrid.set(recid, {dataType: newValue, columnType: 'simple', size: newSize});
+					});
 				} else if(this.id === that.id + '-data-type-tab-content-selector-complex-radio') {
 					$j('#' + that.id + '-data-type-tab-content-simple-panel').removeClass('display_data_type_panel');
 					$j('#' + that.id + '-data-type-tab-content-virtual-panel').removeClass('display_data_type_panel');
 					$j('#' + that.id + '-data-type-tab-content-complex-panel').addClass('display_data_type_panel');
+
+					var newValue = $j('#' + that.id + '-data-type-tab-content-complex-column-type-select').val();
+					var records = that.columnsGrid.getSelection();
+					that.columnsGrid.save();
+					records.forEach(function(recid) {
+						that.columnsGrid.set(recid, {dataType: newValue, columnType: 'complex', size: ''});
+					});
 				} else {
 					$j('#' + that.id + '-data-type-tab-content-simple-panel').removeClass('display_data_type_panel');
 					$j('#' + that.id + '-data-type-tab-content-complex-panel').removeClass('display_data_type_panel');
 					$j('#' + that.id + '-data-type-tab-content-virtual-panel').addClass('display_data_type_panel');
+
+					var records = that.columnsGrid.getSelection();
+					that.columnsGrid.save();
+					records.forEach(function(recid) {
+						that.columnsGrid.set(recid, {dataType: '<img src="/static/icons/function.png" />--Derived--', columnType: 'virtual', size: ''});
+					});
 				}
 			});
 
+			//Char Size event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-char-size-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {size: newValue});
+				});
+			});
+
+			//Char Unit event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-char-unit-select').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {unit: newValue});
+				});
+			});
+
+			//Number precision event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-number-precision-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {size: newValue});
+				});
+			});
+
+			//Number scale event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-number-scale-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {scale: newValue});
+				});
+			});
+
+			//Char size only event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-char-size-only-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {size: newValue});
+				});
+			});
+
+			//Number precision only event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-number-precision-only-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {size: newValue});
+				});
+			});
+
+			//Interval day precision event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-interval-day-precision-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {size: newValue});
+				});
+			});
+
+			//Interval day fraction event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-interval-day-fraction-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {scale: newValue});
+				});
+			});
+
+			//Interval year precision event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-interval-year-precision-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {size: newValue});
+				});
+			});
+
+			//Timezone precision event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-timezone-precision-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {size: newValue});
+				});
+			});
+
+			//Timezone event handler
+			$j('#' + this.id + '-data-type-tab-content-simple-timezone-select').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {unit: newValue});
+				});
+			});
+
+			//Simple data type event handler
 			$j('#' + this.id + '-data-type-tab-content-simple-column-type-select').on('change', function(){
 				if(this.value === 'CHAR' || this.value === 'CHAR VARYING' 
 					|| this.value === 'CHARACTER' || this.value === 'CHARACTER VARYING'
@@ -350,23 +654,148 @@ var ColumnsPanelUI = Class.create({
 					that.changeSimplePanel('TIMEZONE');
 				} else {
 					that.changeSimplePanel('NONE');
+
+					var records = that.columnsGrid.getSelection();
+					var newValue = this.value;
+					that.columnsGrid.save();
+					records.forEach(function(recid) {
+						that.columnsGrid.set(recid, {size: ''});
+					});
 				}
+
+				if(this.value === 'BLOB' || this.value === 'CLOB' || this.value === 'NCLOB') {
+					that.tabs.enable(that.id + '-lob-parameters-tab');
+				} else {
+					that.tabs.disable(that.id + '-lob-parameters-tab');
+				}
+
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {dataType: newValue});
+				});
 			});
 
-			this.tabs =	$j('#' + this.id + '-tabs').w2tabs({
-									name: this.id + '-tabs',
-									active: this.id + '-data-type-tab',
-									tabs: [
-										{id: this.id + '-data-type-tab', text: 'Data Type'},
-										{id: this.id + '-constraints-tab', text: 'Constraints'},
-										{id: this.id + '-indexes-tab', text: 'Indexes'},
-										{id: this.id + '-lob-parameters-tab', text: 'LOB Parameters'},
-										{id: this.id + '-identity-column-tab', text: 'Identity Column'}
-									],
-									onClick: function(event) {
-										that.changeColumnsSubTab(event.target);
-									}
-								});
+			//Complex data type event handler
+			$j('#' + this.id + '-data-type-tab-content-complex-column-type-select').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {dataType: newValue, size: ''});
+				});
+			});
+
+			//Complex schema event handler
+			$j('#' + this.id + '-data-type-tab-content-complex-schema-select').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {schema: newValue});
+				});
+			});
+
+			//Virtual data type event handler
+			$j('#' + this.id + '-data-type-tab-content-virtual-column-type-select').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {dataType: newValue});
+				});
+			});
+
+			//Virtual expression event handler
+			$j('#' + this.id + '-data-type-tab-content-virtual-expression-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {expression: newValue});
+				});
+			});
+
+			//LOB Segment Name event handler
+			$j('#' + this.id + '-lob-parameters-tab-content-segment-name-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {lobSegmentName: newValue});
+				});
+			});
+
+			//LOB Storage in row event handler
+			$j('#' + this.id + '-lob-parameters-tab-content-storage-in-row-select').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {lobStorageInRow: newValue});
+				});
+			});
+
+			//LOB chunk event handler
+			$j('#' + this.id + '-lob-parameters-tab-content-chunk-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {lobChunk: newValue});
+				});
+			});
+
+			//LOB pct version event handler
+			$j('#' + this.id + '-lob-parameters-tab-content-pct-version-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {lobPctVersion: newValue});
+				});
+			});
+
+			//LOB freepools handler
+			$j('#' + this.id + '-lob-parameters-tab-content-freepools-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {lobFreePools: newValue});
+				});
+			});
+
+			//LOB retention event handler
+			$j('#' + this.id + '-lob-parameters-tab-content-retention').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {lobRetention: newValue});
+				});
+			});
+
+			//LOB cache event handler
+			$j('#' + this.id + '-lob-parameters-tab-content-cache-select').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {lobCache: newValue});
+				});
+			});
+
+			//Identity column type event handler
+			$j('#' + this.id + '-identity-column-tab-content-type-select').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {identityColumnType: newValue});
+				});
+			});
 		}
 	},
 	isPanelCreated: function() {
@@ -384,6 +813,80 @@ var ColumnsPanelUI = Class.create({
 	},
 	getTabs: function() {
 		return this.tabs;
+	},
+	updateControls: function() {
+		var recid = this.columnsGrid.getSelection()[0];
+		var record = this.columnsGrid.get(recid);
+		var dataType = record['dataType'];
+		var size = record['size'];
+		var precision = record['precision'];
+		var scale = record['scale'];
+		var unit = record['unit'];
+		var virtual = record['virtual'];
+		var virtualExpression = record['default'];
+		var schema = record['schema'];
+
+		var lobSegmentName = record['lobSegmentName'];
+		var lobStorageInRow = record['lobStorageInRow'];
+		var lobChunk = record['lobChunk'];
+		var lobPctVersion = record['lobPctVersion'];
+		var lobFreePools = record['lobFreePools'];
+		var lobRetention = record['lobRetention'];
+		var lobCache = record['lobCache'];
+
+		if(dataType === 'BLOB' || dataType === 'CLOB' || dataType === 'NCLOB') {
+			this.tabs.enable(this.id + '-lob-parameters-tab');
+			$j('#' + this.id + '-lob-parameters-tab-content-define-check').prop('checked', true);
+			$j('#' + this.id + '-lob-parameters-tab-content-segment-name-input').val(lobSegmentName);
+			$j('#' + this.id + '-lob-parameters-tab-content-storage-in-row-select').val(lobStorageInRow);
+			$j('#' + this.id + '-lob-parameters-tab-content-chunk-input').val(lobChunk);
+			$j('#' + this.id + '-lob-parameters-tab-content-pct-version-input').val(lobPctVersion);
+			$j('#' + this.id + '-lob-parameters-tab-content-freepools-input').val(lobFreePools);
+			if(lobRetention === true) {
+				$j('#' + this.id + '-lob-parameters-tab-content-retention').prop('checked', true);
+			}
+			$j('#' + this.id + '-lob-parameters-tab-content-cache-select').val(lobCache);
+		} else {
+			this.tabs.disable(this.id + '-lob-parameters-tab');
+		}
+
+		if(dataType === 'ANYDATA' || dataType === 'ANYDATASET' || dataType === 'ANYTYPE' || dataType === 'DBURITYPE'
+			|| dataType === 'HTTPURITYPE' || dataType === 'XDBURITYPE' || dataType === 'ANYDATA' || dataType === 'XMLTYPE') {
+			$j('#' + this.id + '-data-type-tab-content-selector-complex-radio').prop('checked', true).trigger('click');
+			$j('#' + this.id + '-data-type-tab-content-complex-column-type-select').val(dataType).trigger('change');
+			$j('#' + this.id + '-data-type-tab-content-complex-schema-select').val(schema);
+		} else if(virtual === 'YES') {
+			$j('#' + this.id + '-data-type-tab-content-selector-virtual-radio').prop('checked', true).trigger('click');
+			$j('#' + this.id + '-data-type-tab-content-virtual-column-type-select').val(dataType).trigger('change');
+			$j('#' + this.id + '-data-type-tab-content-virtual-expression-input').val(virtualExpression);
+		} else {
+			$j('#' + this.id + '-data-type-tab-content-selector-simple-radio').prop('checked', true).trigger('click');
+			$j('#' + this.id + '-data-type-tab-content-simple-column-type-select').val(dataType).trigger('change');
+
+			if(dataType === 'CHAR' || dataType === 'CHAR VARYING' 
+				|| dataType === 'CHARACTER' || dataType === 'CHARACTER VARYING'
+				|| dataType === 'VARCHAR' || dataType === 'VARCHAR2') {
+				$j('#' + this.id + '-data-type-tab-content-simple-char-size-input').val(size).trigger('change');
+				$j('#' + this.id + '-data-type-tab-content-simple-char-unit-select').val(unit);
+			} else if(dataType === 'NUMBER' || dataType === 'DEC' 
+				|| dataType === 'DECIMAL' || dataType === 'NUMERIC') {
+				$j('#' + this.id + '-data-type-tab-content-simple-number-precision-input').val(precision).trigger('change');
+				$j('#' + this.id + '-data-type-tab-content-simple-number-scale-input').val(scale);
+			} else if(dataType === 'NATIONAL CHAR' || dataType === 'NATIONAL CHAR VARYING' 
+				|| dataType === 'NATIONAL CHARACTER' || dataType === 'NATIONAL CHARACTER VARYING'
+				|| dataType === 'NCHAR' || dataType === 'NCHAR VARYING' || dataType === 'NVARCHAR2'
+				|| dataType === 'RAW' || dataType === 'UROWID') {
+				$j('#' + this.id + '-data-type-tab-content-simple-char-size-only-input').val(size).trigger('change');
+			} else if(dataType === 'FLOAT') {
+				$j('#' + this.id + '-data-type-tab-content-simple-number-precision-only-input').val(precision).trigger('change');
+			} else if(dataType === 'INTERVAL DAY') {
+				$j('#' + this.id + '-data-type-tab-content-simple-interval-day-precision-input').val(precision).trigger('change');
+			} else if(dataType === 'INTERVAL YEAR') {
+				$j('#' + this.id + '-data-type-tab-content-simple-interval-year-precision-input').val(precision).trigger('change');
+			} else if(dataType === 'TIMESTAMP') {
+				$j('#' + this.id + '-data-type-tab-content-simple-timezone-precision-input').val(precision).trigger('change');
+			}
+		}
 	},
 	changeColumnsSubTab: function(id) {
 		w2ui[this.id + '-tabs'].tabs.forEach(function(tab) {
@@ -447,18 +950,25 @@ var ColumnsPanelUI = Class.create({
 
 		if(dataType === 'CHAR') {
 			$j('#' + this.simplePanelsId[0]).addClass('display_simple_panel');
+			$j('#' + this.id + '-data-type-tab-content-simple-char-size-input').val('20').trigger('change');
 		} else if(dataType === 'NUMBER') {
 			$j('#' + this.simplePanelsId[1]).addClass('display_simple_panel');
+			$j('#' + this.id + '-data-type-tab-content-simple-number-precision-input').val('').trigger('change');
 		} else if(dataType === 'CHAR_SIZE_ONLY') {
 			$j('#' + this.simplePanelsId[2]).addClass('display_simple_panel');
+			$j('#' + this.id + '-data-type-tab-content-simple-char-size-only-input').val('').trigger('change');
 		} else if(dataType === 'NUMBER_PRECISION_ONLY') {
 			$j('#' + this.simplePanelsId[3]).addClass('display_simple_panel');
+			$j('#' + this.id + '-data-type-tab-content-simple-number-precision-only-input').val('').trigger('change');
 		} else if(dataType === 'INTERVAL_DAY') {
 			$j('#' + this.simplePanelsId[4]).addClass('display_simple_panel');
+			$j('#' + this.id + '-data-type-tab-content-simple-interval-day-precision-input').val('').trigger('change');
 		} else if(dataType === 'INTERVAL_YEAR') {
 			$j('#' + this.simplePanelsId[5]).addClass('display_simple_panel');
+			$j('#' + this.id + '-data-type-tab-content-simple-interval-year-precision-input').val('').trigger('change');
 		} else if(dataType === 'TIMEZONE') {
 			$j('#' + this.simplePanelsId[6]).addClass('display_simple_panel');
+			$j('#' + this.id + '-data-type-tab-content-simple-timezone-precision-input').val('').trigger('change');
 		}
 	},
 	destroy: function() {
@@ -706,6 +1216,9 @@ var ConstraintsPanelUI = Class.create({
 		if(this.constraintsGrid !== null) {
 			this.constraintsGrid.destroy();
 		}
+		if(this.associationsGrid !== null) {
+			this.associationsGrid.destroy();
+		}
 	},
 	refresh: function() {
 		if(this.constraintsGrid !== null) {
@@ -837,17 +1350,17 @@ var IndexesPanelUI = Class.create({
 						<div class='message_popup_header'>
 							Edit Index - Advance
 						</div>
-						<div style='margin: 5px; border: 1px solid lightgrey; padding: 10px; height: 510px;'>
+						<div style='margin: 5px; border: 1px solid lightgrey; padding: 10px; height: 350px;'>
 							<div style='width: 100%; height: 15%;'>
 								<div style='float: left;'>
 									<div style='line-height: 30px;'>
-										<label for=''>Schema:</label>
-										<select id='' style='width: 400px;'>
+										<label for='` + that.id + `-index-advance-schema-select'>Schema:</label>
+										<select id='` + that.id + `-index-advance-schema-select' style='width: 400px;'>
 										</select>
 									</div>
 									<div style='line-height: 30px;'>
-										<label for=''>Name:</label>
-										<input id='' style='margin-left: 13px; width: 400px;' />
+										<label for='` + that.id + `-index-advance-name-input'>Name:</label>
+										<input id='` + that.id + `-index-advance-name-input' style='margin-left: 13px; width: 400px;' />
 									</div>
 								</div>
 								<div style='float: right; margin-top: 10px;'>
@@ -855,19 +1368,19 @@ var IndexesPanelUI = Class.create({
 								</div>
 							</div>
 							<div style='width: 100%; height: 85%'>
-								<div id='-index-advance-tabs' style='width: 100%'></div>
-								<div id='-index-advance-properties-tab-panel' class='index_advance_tab_panel display_index_advance_tab_panel'>
+								<div id='` + that.id + `-index-advance-tabs' style='width: 100%'></div>
+								<div id='` + that.id + `-index-advance-properties-tab-panel' class='index_advance_tab_panel display_index_advance_tab_panel'>
 									<div style='padding: 10px 5px;'>
 										<div style='line-height: 30px;'>
-											<label for=''>Key Compression:</label>
-											<select id=''>
+											<label for='` + that.id + `-index-advance-key-compression-select'>Key Compression:</label>
+											<select id='` + that.id + `-index-advance-key-compression-select'>
 												<option>None</option>
 												<option>Defult</option>
 												<option>Select</option>
 											</select>
-											<label for='' style='margin-left: 10px;'>Prefix Length:</label>
-											<input id='' style='width: 350px;' disabled>
-											<a id='-index-advance-key-compression-help' onclick="
+											<label for='` + that.id + `-index-advance-key-compression-prefix-length-input' style='margin-left: 10px;'>Prefix Length:</label>
+											<input id='` + that.id + `-index-advance-key-compression-prefix-length-input' style='width: 350px;' disabled>
+											<a onclick="
 												$j(this).w2overlay({
 													openAbove: true,
 													tipLeft: 12,
@@ -876,16 +1389,16 @@ var IndexesPanelUI = Class.create({
 											" href='#' style='vertical-align: top;'><i class='assist_icon' /></a>
 										</div>
 										<div style='line-height: 30px;'>
-											<label for=''>Parallel Degree:</label>
-											<select id='' style='margin-left: 14px;'>
+											<label for='` + that.id + `-index-advance-parallel-degree-select'>Parallel Degree:</label>
+											<select id='` + that.id + `-index-advance-parallel-degree-select' style='margin-left: 14px;'>
 												<option>--Not Specified--</option>
 												<option selected>None</option>
 												<option>Defult</option>
 												<option>Select</option>
 											</select>
-											<label for='' style='margin-left: 10px;'>Degree:</label>
-											<input id='' style='width: 325px;' disabled>
-											<a id='-index-advance-paralled-degree-help' onclick="
+											<label for='` + that.id + `-index-advance-parallel-degree-input' style='margin-left: 10px;'>Degree:</label>
+											<input id='` + that.id + `-index-advance-parallel-degree-input' style='width: 325px;' disabled>
+											<a onclick="
 												$j(this).w2overlay({
 													openAbove: true,
 													tipLeft: 12,
@@ -894,12 +1407,12 @@ var IndexesPanelUI = Class.create({
 											" href='#' style='vertical-align: top;'><i class='assist_icon' /></a>
 										</div>
 										<div style='line-height: 30px;'>
-											<label for=''>Reverse:</label>
-											<select id='' style='margin-left: 56px; width: 520px;'>
+											<label for='` + that.id + `-index-advance-reverse-select'>Reverse:</label>
+											<select id='` + that.id + `-index-advance-reverse-select' style='margin-left: 56px; width: 520px;'>
 												<option>Reverse</option>
 												<option selected>No Reverse</option>
 											</select>
-											<a id='-index-advance-reverse-help' onclick="
+											<a onclick="
 												$j(this).w2overlay({
 													openAbove: true,
 													tipLeft: 12,
@@ -909,7 +1422,130 @@ var IndexesPanelUI = Class.create({
 										</div>
 									</div>
 								</div>
-								<div id='-index-advance-storage-tab-panel' class='index_advance_tab_panel'></div>
+								<div id='` + that.id + `-index-advance-storage-tab-panel' class='index_advance_tab_panel'>
+									<div style='padding: 10px 5px;'>
+										<div style='line-height: 30px;'>
+											<label for='` + that.id + `-index-advance-tablespace-select'>Tablespace:</label>
+											<select id='` + that.id + `-index-advance-tablespace-select' style='width: 540px; margin-left: 10px;'>
+											</select>
+										</div>
+										<div style='line-height: 30px;'>
+											<label for='` + that.id + `-index-advance-percent-free-input'>Percent Free:</label>
+											<input id='` + that.id + `-index-advance-percent-free-input' style='width: 100px;' />
+											<label for='` + that.id + `-index-advance-percent-used-input' style='margin-left: 20px;'>Percent Used:</label>
+											<input id='` + that.id + `-index-advance-percent-used-input' style='width: 100px;' />
+											<a href='#' onclick="
+													$j(this).w2overlay({
+														openAbove: true,
+														tipLeft: 12,
+														html: '<div style=\\'padding: 10px;\\'>Help on Percent Free & Used in Index Storage</div>'
+													});
+												" style="float: right; margin-right: 13px;"><i class='assist_icon' /></a>
+										</div>
+										<div style='line-height: 30px;'>
+											<label for='` + that.id + `-index-advance-logging-select'>Logging:</label>
+											<select id='` + that.id + `-index-advance-logging-select' style='margin-left: 28px; width: 100px;'>
+												<option>On</option>
+												<option>Off</option>
+											</select>
+											<label for='` + that.id + `-index-advance-initrans-input' style='margin-left: 20px;'>Initrans:</label>
+											<input id='` + that.id + `-index-advance-initrans-input' style='margin-left: 32px; width: 100px;' />
+											<a href='#' onclick="
+													$j(this).w2overlay({
+														openAbove: true,
+														tipLeft: 12,
+														html: '<div style=\\'padding: 10px;\\'>Help on Logging and Initrans options of an Index Storage</div>'
+													});
+												" style="float: right; margin-right: 13px;"><i class='assist_icon' /></a>
+										</div>
+										<div style='line-height: 30px;'>
+											<label for='` + that.id + `-index-advance-buffer-mode-select'>Buffer Mode:</label>
+											<select id='` + that.id + `-index-advance-buffer-mode-select' style='margin-left: 2px; width: 100px;'>
+												<option>DEFAULT</option>
+												<option>KEEP</option>
+												<option>RECYCLE</option>
+											</select>
+											<label for='` + that.id + `-index-advance-freelists-input' style='margin-left: 20px;'>Freelists:</label>
+											<input id='` + that.id + `-index-advance-freelists-input' style='margin-left: 29px; width: 100px;' />
+											<label for='` + that.id + `-index-advance-freelist-groups-input' style='margin-left: 20px;'>Freelist Groups:</label>
+											<input id='` + that.id + `-index-advance-freelist-groups-input' style='width: 100px;' />
+											<a href='#' onclick="
+													$j(this).w2overlay({
+														openAbove: true,
+														tipLeft: 12,
+														html: '<div style=\\'padding: 10px;\\'>Help on Buffer Mode, Freelists <br/> & Freelist Groups option of an Index</div>'
+													});
+												"><i class='assist_icon' /></a>
+										</div>
+										<hr />
+										<div style='line-height: 30px;'>
+											<label for='` + that.id + `-index-advance-initial-extent-input'>Initial Extent:</label>
+											<input id='` + that.id + `-index-advance-initial-extent-input' style='margin-left: 24px; width: 100px;' />
+											<select id='` + that.id + `-index-advance-initial-extent-select'>
+												<option> </option>
+												<option>K</option>
+												<option>M</option>
+												<option>G</option>
+												<option>T</option>
+											</select>
+											<label for='` + that.id + `-index-advance-next-extent-input' style='margin-left: 16px;'>Next Extent:</label>
+											<input id='` + that.id + `-index-advance-next-extent-input' style='width: 222px;' />
+											<select id='` + that.id + `-index-advance-next-extent-select'>
+												<option> </option>
+												<option>K</option>
+												<option>M</option>
+												<option>G</option>
+												<option>T</option>
+											</select>
+											<a href='#' onclick="
+													$j(this).w2overlay({
+														openAbove: true,
+														tipLeft: 12,
+														html: '<div style=\\'padding: 10px;\\'>Help on Initial & Next Extent option of Index Storage</div>'
+													});
+												"><i class='assist_icon' /></a>
+										</div>
+										<div style='line-height: 30px;'>
+											<label for='` + that.id + `-index-advance-min-extent-input'>Min Extent:</label>
+											<input id='` + that.id + `-index-advance-min-extent-input' style='margin-left: 37px; width: 100px;'/>
+											<select id='` + that.id + `-index-advance-min-extent-select'>
+												<option> </option>
+												<option>K</option>
+												<option>M</option>
+												<option>G</option>
+												<option>T</option>
+											</select>
+											<label for='` + that.id + `-index-advance-max-extent-input' style='margin-left: 16px;'>Max Extent:</label>
+											<input id='` + that.id + `-index-advance-max-extent-input' style='margin-left: 5px; width: 128px;'/>
+											<select id='` + that.id + `-index-advance-max-extent-select'>
+												<option> </option>
+												<option>K</option>
+												<option>M</option>
+												<option>G</option>
+												<option>T</option>
+											</select>
+											<input type='checkbox' id='` + that.id + `-index-advance-max-extent-checkbox' style='margin-left: 16px;'>Unlimited</input>
+											<a href='#' onclick="
+													$j(this).w2overlay({
+														openAbove: true,
+														tipLeft: 12,
+														html: '<div style=\\'padding: 10px;\\'>Help on Min & Max Extent options of Index Storage</div>'
+													});
+												"><i class='assist_icon' /></a>
+										</div>
+										<div style='line-height: 30px;'>
+											<label for='` + that.id + `-index-advance-percent-increase-input'>Percent Increase:</label>
+											<input id='` + that.id + `-index-advance-percent-increase-input' style='width: 145px;'/>
+											<a href='#' onclick="
+													$j(this).w2overlay({
+														openAbove: true,
+														tipLeft: 12,
+														html: '<div style=\\'padding: 10px;\\'>Help on Percent Increase options of Index Storage</div>'
+													});
+												" style="float: right; margin-right: 13px;"><i class='assist_icon' /></a>
+										</div>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -918,10 +1554,10 @@ var IndexesPanelUI = Class.create({
 					body: advanceHtml,
 					buttons: '<button class="w2ui-btn" onclick="w2popup.message();">Apply</button>' +
 							 '<button class="w2ui-btn" onclick="w2popup.message();">Close</button> ',
-					height: 600,
+					height: 440,
 					width: 700,
 					onOpen: function(event) {
-						$j('#' + '-index-advance-tabs').w2tabs({
+						$j('#' + that.id + '-index-advance-tabs').w2tabs({
 									name: that.id + '-index-advance-tabs',
 									active: that.id + '-index-advance-properties-tab',
 									tabs: [
@@ -930,11 +1566,11 @@ var IndexesPanelUI = Class.create({
 									],
 									onClick: function(event) {
 										if(event.target === that.id + '-index-advance-properties-tab') {
-											$j('#' + '-index-advance-storage-tab-panel').removeClass('display_index_advance_tab_panel');
-											$j('#' + '-index-advance-properties-tab-panel').addClass('display_index_advance_tab_panel');
+											$j('#' + that.id + '-index-advance-storage-tab-panel').removeClass('display_index_advance_tab_panel');
+											$j('#' + that.id + '-index-advance-properties-tab-panel').addClass('display_index_advance_tab_panel');
 										} else {
-											$j('#' + '-index-advance-properties-tab-panel').removeClass('display_index_advance_tab_panel');
-											$j('#' + '-index-advance-storage-tab-panel').addClass('display_index_advance_tab_panel');
+											$j('#' + that.id + '-index-advance-properties-tab-panel').removeClass('display_index_advance_tab_panel');
+											$j('#' + that.id + '-index-advance-storage-tab-panel').addClass('display_index_advance_tab_panel');
 										}
 									}
 								});
@@ -988,5 +1624,320 @@ var IndexesPanelUI = Class.create({
 		if(this.expressionsGrid !== null) {
 			this.expressionsGrid.refresh();
 		}
+	}
+});
+
+/**
+ * StoragePanelUI: This class provides the user interface to edit the storage
+ * of an given table
+ * @constructor
+ * @param {String} id: A unique identifier to create HTML contents
+ * @param {String} label: A label to be shown on the required widgets
+ */
+var StoragePanelUI = Class.create({
+	id: null,
+	label: null,
+	layout: null,
+	initialize: function(id, label) {
+		this.id = id;
+		this.label = label;
+		this.layout = null;
+	},
+	createPanel: function() {
+		if(this.layout === null) {
+			var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
+			this.layout = $j('#' + this.id).w2layout({
+													name: this.id,
+											        padding: 4,
+											        panels: [
+											            { type: 'main', style: pstyle, content: 'main' }
+											        ]
+												});
+
+			var mainHtml = `
+				<div style='width: 100%; height: 100%;'>
+					<div style='padding: 10px 5px;'>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-parallel-degree-select'>Parallel Degree:</label>
+							<select id='` + this.id + `-parallel-degree-select'>
+								<option>--Not Specified--</option>
+								<option selected>None</option>
+								<option>Default</option>
+								<option>Select</option>
+							</select>
+							<label for='` + this.id + `-parallel-degree-input'>Degree:</label>
+							<input id='` + this.id + `-parallel-degree-input' style='width: 340px;' />
+						</div>
+						<hr />
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-tablespace-select'>Tablespace:</label>
+							<select id='` + this.id + `-tablespace-select' style='width: 540px; margin-left: 10px;'>
+							</select>
+						</div>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-percent-free-input'>Percent Free:</label>
+							<input id='` + this.id + `-percent-free-input' style='width: 100px;' />
+							<label for='` + this.id + `-percent-used-input' style='margin-left: 20px;'>Percent Used:</label>
+							<input id='` + this.id + `-percent-used-input' style='width: 100px;' />
+							<a href='#' onclick="
+									$j(this).w2overlay({
+										openAbove: true,
+										tipLeft: 12,
+										html: '<div style=\\'padding: 10px;\\'>Help on Percent Free & Used in Index Storage</div>'
+									});
+								" style="float: right;"><i class='assist_icon' /></a>
+						</div>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-logging-select'>Logging:</label>
+							<select id='` + this.id + `-logging-select' style='margin-left: 28px; width: 100px;'>
+								<option>On</option>
+								<option>Off</option>
+							</select>
+							<label for='` + this.id + `-initrans-input' style='margin-left: 20px;'>Initrans:</label>
+							<input id='` + this.id + `-initrans-input' style='margin-left: 32px; width: 100px;' />
+							<a href='#' onclick="
+									$j(this).w2overlay({
+										openAbove: true,
+										tipLeft: 12,
+										html: '<div style=\\'padding: 10px;\\'>Help on Logging and Initrans options of an Index Storage</div>'
+									});
+								" style="float: right;"><i class='assist_icon' /></a>
+						</div>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-buffer-mode-select'>Buffer Mode:</label>
+							<select id='` + this.id + `-buffer-mode-select' style='margin-left: 2px; width: 100px;'>
+								<option>DEFAULT</option>
+								<option>KEEP</option>
+								<option>RECYCLE</option>
+							</select>
+							<label for='` + this.id + `-freelists-input' style='margin-left: 20px;'>Freelists:</label>
+							<input id='` + this.id + `-freelists-input' style='margin-left: 29px; width: 100px;' />
+							<label for='` + this.id + `-freelist-groups-input' style='margin-left: 20px;'>Freelist Groups:</label>
+							<input id='` + this.id + `-freelist-groups-input' style='width: 100px;' />
+							<a href='#' onclick="
+									$j(this).w2overlay({
+										openAbove: true,
+										tipLeft: 12,
+										html: '<div style=\\'padding: 10px;\\'>Help on Buffer Mode, Freelists <br/> & Freelist Groups option of an Index</div>'
+									});
+								"><i class='assist_icon' /></a>
+						</div>
+						<hr />
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-initial-extent-input'>Initial Extent:</label>
+							<input id='` + this.id + `-initial-extent-input' style='margin-left: 24px; width: 100px;' />
+							<select id='` + this.id + `-initial-extent-select'>
+								<option> </option>
+								<option>K</option>
+								<option>M</option>
+								<option>G</option>
+								<option>T</option>
+							</select>
+							<label for='` + this.id + `-next-extent-input' style='margin-left: 16px;'>Next Extent:</label>
+							<input id='` + this.id + `-next-extent-input' style='width: 222px;' />
+							<select id='` + this.id + `-next-extent-select'>
+								<option> </option>
+								<option>K</option>
+								<option>M</option>
+								<option>G</option>
+								<option>T</option>
+							</select>
+							<a href='#' onclick="
+									$j(this).w2overlay({
+										openAbove: true,
+										tipLeft: 12,
+										html: '<div style=\\'padding: 10px;\\'>Help on Initial & Next Extent option of Index Storage</div>'
+									});
+								"><i class='assist_icon' /></a>
+						</div>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-min-extent-input'>Min Extent:</label>
+							<input id='` + this.id + `-min-extent-input' style='margin-left: 37px; width: 100px;'/>
+							<select id='` + this.id + `-min-extent-select'>
+								<option> </option>
+								<option>K</option>
+								<option>M</option>
+								<option>G</option>
+								<option>T</option>
+							</select>
+							<label for='` + this.id + `-max-extent-input' style='margin-left: 16px;'>Max Extent:</label>
+							<input id='` + this.id + `-max-extent-input' style='margin-left: 5px; width: 128px;'/>
+							<select id='` + this.id + `-max-extent-select'>
+								<option> </option>
+								<option>K</option>
+								<option>M</option>
+								<option>G</option>
+								<option>T</option>
+							</select>
+							<input type='checkbox' id='` + this.id + `-max-extent-checkbox' style='margin-left: 16px;'>Unlimited</input>
+							<a href='#' onclick="
+									$j(this).w2overlay({
+										openAbove: true,
+										tipLeft: 12,
+										html: '<div style=\\'padding: 10px;\\'>Help on Min & Max Extent options of Index Storage</div>'
+									});
+								"><i class='assist_icon' /></a>
+						</div>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-percent-increase-input'>Percent Increase:</label>
+							<input id='` + this.id + `-percent-increase-input' style='width: 145px;'/>
+							<a href='#' onclick="
+									$j(this).w2overlay({
+										openAbove: true,
+										tipLeft: 12,
+										html: '<div style=\\'padding: 10px;\\'>Help on Percent Increase options of Index Storage</div>'
+									});
+								" style="float: right;"><i class='assist_icon' /></a>
+						</div>
+					</div>
+				</div>
+			`;
+			this.layout.content('main', mainHtml);
+		}
+	},
+	isPanelCreated: function() {
+		if(this.layout === null) {
+			return false;
+		} else {
+			return true;
+		}
+	},
+	getPanel: function() {
+		return this.layout;
+	},
+	destroy: function() {
+		if(this.layout !== null) {
+			this.layout.destroy();
+		}
+	},
+	refresh: function() {
+
+	}
+});
+
+/**
+ * CommentsPanelUI: This class provides the user interface to edit the comments
+ * of an given table
+ * @constructor
+ * @param {String} id: A unique identifier to create HTML contents
+ * @param {String} label: A label to be shown on the required widgets
+ */
+var CommentsPanelUI = Class.create({
+	id: null,
+	label: null,
+	layout: null,
+	initialize: function(id, label) {
+		this.id = id;
+		this.label = label;
+		this.layout = null;
+	},
+	createPanel: function() {
+		if(this.layout === null) {
+			var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
+			this.layout = $j('#' + this.id).w2layout({
+													name: this.id,
+											        padding: 4,
+											        panels: [
+											            { type: 'main', style: pstyle, content: 'main' }
+											        ]
+												});
+
+			var mainHtml = `
+				<div style='width: 100%; height: 100%;'>
+					<div style='padding: 10px 5px;'>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-comments-input'>Comments:</label>
+						</div>
+						<textarea id='` + this.id + `-comments-input' style='height: 528px; width: 638px;' />
+					</div>
+				</div>
+			`;
+			this.layout.content('main', mainHtml);
+		}
+	},
+	isPanelCreated: function() {
+		if(this.layout === null) {
+			return false;
+		} else {
+			return true;
+		}
+	},
+	getPanel: function() {
+		return this.layout;
+	},
+	destroy: function() {
+		if(this.layout !== null) {
+			this.layout.destroy();
+		}
+	},
+	refresh: function() {
+
+	}
+});
+
+/**
+ * DDLPanelUI: This class provides the user interface to display the DDL
+ * of an given table
+ * @constructor
+ * @param {String} id: A unique identifier to create HTML contents
+ * @param {String} label: A label to be shown on the required widgets
+ */
+var DDLPanelUI = Class.create({
+	id: null,
+	label: null,
+	layout: null,
+	initialize: function(id, label) {
+		this.id = id;
+		this.label = label;
+		this.layout = null;
+	},
+	createPanel: function() {
+		if(this.layout === null) {
+			var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
+			this.layout = $j('#' + this.id).w2layout({
+													name: this.id,
+											        padding: 4,
+											        panels: [
+											            { type: 'main', style: pstyle, content: 'main' }
+											        ]
+												});
+
+			var mainHtml = `
+				<div style='width: 100%; height: 100%;'>
+					<div style='padding: 10px 5px;'>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-ddl-input'>SQL Statement(s):</label>
+						</div>
+						<div style='line-height: 30px;'>
+							<input id='` + this.id + `-ddl-create-radio' type='radio'>Create</input>
+							<input id='` + this.id + `-ddl-update-radio' type='radio' checked style='margin-left: 30px;'>Update (for current edit)</input>
+						</div>
+						<textarea id='` + this.id + `-ddl-input' style='height: 479px; width: 638px;' />
+						<div style='line-height: 30px;'>
+							<button id='` + this.id + `-save-button' style='float: right;'>Save...</button>
+						</div>
+					</div>
+				</div>
+			`;
+			this.layout.content('main', mainHtml);
+		}
+	},
+	isPanelCreated: function() {
+		if(this.layout === null) {
+			return false;
+		} else {
+			return true;
+		}
+	},
+	getPanel: function() {
+		return this.layout;
+	},
+	destroy: function() {
+		if(this.layout !== null) {
+			this.layout.destroy();
+		}
+	},
+	refresh: function() {
+
 	}
 });

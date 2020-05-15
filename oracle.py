@@ -7,6 +7,7 @@ Author: Ajeet Singh
 Date: 11/04/2020
 """
 import logging
+import json
 from flask_socketio import emit, Namespace
 import cx_Oracle
 
@@ -346,8 +347,12 @@ class DatabaseTableServer(Namespace):
         query = """
                 SELECT ROWNUM, a.column_name,
                     CASE
-                        WHEN a.data_type IN ('VARCHAR2', 'CHAR', 'VARCHAR')
+                        WHEN a.data_type IN ('VARCHAR2', 'CHAR', 'VARCHAR', 'CHAR VARYING', 'CHARACTER', 'CHARACTER VARYING')
                             THEN a.data_type || '(' || a.data_length || ' ' || decode(a.char_used, 'B', 'BYTE', 'C', 'CHAR', a.char_used) || ')'
+                        WHEN a.data_type IN ('NUMBER', 'DEC', 'DECIMAL', 'NUMERIC') AND a.data_precision IS NOT NULL AND a.data_scale IS NOT NULL
+                            THEN a.data_type || '(' || a.data_precision || ', ' || a.data_scale || ')'
+                        WHEN a.data_type IN ('NUMBER', 'DEC', 'DECIMAL', 'NUMERIC') AND a.data_precision IS NOT NULL AND a.data_scale IS NULL
+                            THEN a.data_type || '(' || a.data_precision || ')'
                         ELSE a.data_type
                     END AS data_type,
                     a.nullable,
@@ -941,6 +946,91 @@ class DatabaseTableServer(Namespace):
         for result in cursor:
             sql += result[0] + '\n'
         emit('sql_result', sql, namespace=self._namespace_url)
+
+    def on_get_columns_to_edit(self, table_name):
+        """For internal use only: will be called when 'get_columns_to_edit' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    b.column_id,
+                    CASE
+                        WHEN b.column_name = d.column_name THEN '<img src="/static/icons/primarykey.png" />'
+                        ELSE ''
+                    END AS pk,
+                    b.column_name,
+                    b.data_type,
+                    CASE 
+                        WHEN b.data_type IN ('VARCHAR2', 'CHAR', 'VARCHAR', 'CHAR VARYING', 'CHARACTER', 'CHARACTER VARYING')
+                            THEN b.data_length
+                        WHEN b.data_type IN ('NUMBER', 'DEC', 'DECIMAL', 'NUMERIC')
+                            THEN b.data_precision
+                        ELSE CAST(NULL AS NUMBER)
+                    END AS data_length,
+                    decode(b.nullable, 'N', 'true', 'Y', 'false', b.nullable) AS not_null,
+                    b.data_default,
+                    e.comments,
+                    b.data_precision,
+                    b.data_scale,
+                    decode(b.char_used, 'C', 'CHAR', 'B', 'BYTE', b.char_used) AS unit,
+                    f.segment_name,
+                    f.chunk,
+                    f.freepools,
+                    decode(f.cache, 'YES', 'CACHE', 'NO', 'NO CACHE', 'CACHEREADS', 'CACHE READS', f.cache) AS cache,
+                    decode(f.in_row, 'YES', 'Enabled', 'NO', 'Disabled', f.in_row) AS in_row,
+                    f.pctversion,
+                    decode(f.retention, 900, 'true', 'false') AS retention,
+                    g.virtual_column,
+                    b.data_type_owner AS schema
+                FROM
+                    SYS.user_tables a,
+                    SYS.user_tab_columns b,
+                    SYS.user_constraints c,
+                    SYS.user_cons_columns d,
+                    SYS.user_col_comments e,
+                    SYS.user_lobs f,
+                    SYS.user_tab_cols g
+                WHERE
+                    a.table_name = b.table_name
+                    AND a.table_name = c.table_name (+)
+                    AND c.table_name = d.table_name (+)
+                    AND c.constraint_name = d.constraint_name (+)
+                    AND b.table_name = e.table_name (+)
+                    AND b.column_name = e.column_name (+)
+                    AND b.table_name = f.table_name (+)
+                    AND b.column_name = f.column_name (+)
+                    AND b.table_name = g.table_name (+)
+                    AND b.column_name = g.column_name (+)
+                    AND a.table_name = '%s'
+                    AND c.constraint_type (+)= 'P'
+                ORDER BY
+                    b.column_id
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'pk': result[1],
+                                 'columnName': result[2],
+                                 'dataType': result[3],
+                                 'size': result[4],
+                                 'notNull': json.loads(result[5]),
+                                 'default': result[6],
+                                 'comments': result[7],
+                                 'precision': result[8],
+                                 'scale': result[9],
+                                 'unit': result[10],
+                                 'lobSegmentName': result[11],
+                                 'lobChunk': result[12],
+                                 'lobFreePools': result[13],
+                                 'lobCache': result[14],
+                                 'lobStorageInRow': result[15],
+                                 'lobPctVersion': result[16],
+                                 'lobRetention': json.loads(result[17]),
+                                 'virtual': result[18],
+                                 'schema': result[19]})
+        emit('columns_result_to_edit', result_array, namespace=self._namespace_url)
 
 
 class DatabaseViewServer(Namespace):

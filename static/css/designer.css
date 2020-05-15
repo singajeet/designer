@@ -11,7 +11,7 @@
 	height: 100% !important;
     width: 100% !important;
         max-width: 100%;
-        background-image: url('images/grid.gif');
+        background-image: url('../images/grid.gif');
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 	top:0;
 	bottom:0;
@@ -918,7 +918,7 @@ div.menu {
 }
 
 .index_advance_tab_panel {
-    height: 93%; 
+    height: 86%; 
     border-left: 1px solid lightgrey; 
     border-bottom: 1px solid lightgrey; 
     border-right: 1px solid lightgrey;

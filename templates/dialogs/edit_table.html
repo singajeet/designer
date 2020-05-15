@@ -57,6 +57,12 @@
 				var columnsPanel = new ColumnsPanelUI('table-edit-sidebar-columns-panel', tableName);
 				var constraintsPanel = new ConstraintsPanelUI('table-edit-sidebar-constraints-panel', tableName);
 				var indexesPanel = new IndexesPanelUI('table-edit-sidebar-indexes-panel', tableName);
+				var storagePanel = new StoragePanelUI('table-edit-sidebar-storage-panel', tableName);
+				var commentsPanel = new CommentsPanelUI('table-edit-sidebar-comments-panel', tableName);
+				var ddlPanel = new DDLPanelUI('table-edit-sidebar-ddl-panel', tableName);
+
+				var dbTable = new DatabaseEditableTable(tableName);
+				dbTable.addColumnsAvailableEventListener(onColumnsAvailable);
 
 				w2ui["table-edit-layout"].content('left', $j().w2sidebar({
 					name: 'table-edit-sidebar',
@@ -88,6 +94,24 @@
 							} else {
 								indexesPanel.refresh();
 							}
+						} if(id === 'table-edit-sidebar-storage') {
+							if(!storagePanel.isPanelCreated()) {
+								storagePanel.createPanel();
+							} else {
+								storagePanel.refresh();
+							}
+						} if(id === 'table-edit-sidebar-comments') {
+							if(!commentsPanel.isPanelCreated()) {
+								commentsPanel.createPanel();
+							} else {
+								commentsPanel.refresh();
+							}
+						} if(id === 'table-edit-sidebar-ddl') {
+							if(!ddlPanel.isPanelCreated()) {
+								ddlPanel.createPanel();
+							} else {
+								ddlPanel.refresh();
+							}
 						} else if(id === 'table-edit-sidebar-columns') {
 							columnsPanel.refresh();
 						}
@@ -97,6 +121,14 @@
 
 				if(!columnsPanel.isPanelCreated()) {
 					columnsPanel.createPanel();
+					dbTable.getColumns();
+					columnsPanel.getColumnsGrid().lock('Reading Columns...', true);
+				}
+
+				function onColumnsAvailable(result) {
+					columnsPanel.getColumnsGrid().records = result;
+					columnsPanel.getColumnsGrid().refresh();
+					columnsPanel.getColumnsGrid().unlock();
 				}
 
 				function destroy() {
@@ -104,6 +136,10 @@
 					w2ui['table-edit-sidebar'].destroy();
 					columnsPanel.destroy();
 					constraintsPanel.destroy();
+					indexesPanel.destroy();
+					storagePanel.destroy();
+					commentsPanel.destroy();
+					ddlPanel.destroy();
 				}
 			// });
 		</script>
