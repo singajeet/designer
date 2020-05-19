@@ -9,6 +9,7 @@
 var TableTabUI = Class.create({
 	id: null,
 	label: null,
+  schemaName: null,
 	mainContent: null,
   columnsGrid: null,
   dataGrid: null,
@@ -39,9 +40,10 @@ var TableTabUI = Class.create({
   dependenciesReloadButtonClickedEventListeners: [],
   indexesReloadButtonClickedEventListeners: [],
   sqlReloadButtonClickedEventListeners: [],
-	initialize: function(id, label) {
+	initialize: function(id, label, schemaName) {
 		this.id = id;
 		this.label = label;
+    this.schemaName = schemaName;
 		this.mainContent = "";
     this.columnsGrid = null;
     this.dataGrid = null;
@@ -166,7 +168,7 @@ var TableTabUI = Class.create({
                                     ],
                                     onClick: function(event) {
                                       if(event.target === that.id + '-edit-table') {
-                                        window.history.pushState(null, null, '?name=' + that.label);
+                                        window.history.pushState(null, null, '?name=' + that.label + '&schemaName=' + that.schemaName);
                                         w2popup.load({ url: '/edit-table', showMax: true, modal: true, showClose: false });
                                       }
                                     }

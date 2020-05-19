@@ -279,7 +279,8 @@
             if(item.node.nodeType === DatabaseNavNodeType.TABLE) {
               var index = openedTabs.indexOf(id + '-table-tab');
               if(index === -1){
-                createTableTab(id, item.node.text);
+                var schemaName = item.node.parent.parent.schema.schemaName;
+                createTableTab(id, item.node.text, schemaName);
                 openedTabs.push(id + '-table-tab');
               }
             } else if(item.node.nodeType === DatabaseNavNodeType.VIEW) {
@@ -1046,10 +1047,10 @@
             }
           }
 
-          function createTableTab(id, label) {
+          function createTableTab(id, label, schemaName) {
               var tabId = id + '-table-tab';
               tables[tabId] = new DatabaseTable(label, tabId);
-              tabs[tabId] = new TableTabUI(id, label);
+              tabs[tabId] = new TableTabUI(id, label, schemaName);
 
               tables[tabId].addColumnsAvailableEventListener(onColumnsAvailable);
               tables[tabId].addColumnHeadersAvailableEventListener(onColumnHeadersAvailable);

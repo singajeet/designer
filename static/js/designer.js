@@ -176,7 +176,7 @@ var Application = Class.create({
       name: 'layout',
       panels: [
         {type: 'top', size: 40, style: pstyle, content: 'top', resizable: false},
-        { type: 'left', size: 140, style: pstyle, content: 'left', resizable: true },
+        { type: 'left', size: 250, style: pstyle, content: 'left', resizable: true },
         { type: 'main', style: pstyle, content: 'main' },
         { type: 'right', size: 250, style: pstyle, content: 'right', resizable: true },
         { type: 'bottom', size: 40, style: pstyle, content: 'bottom', resizable: false },

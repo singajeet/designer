@@ -9,20 +9,28 @@
 var ColumnsPanelUI = Class.create({
 	id: null,
 	label: null,
+	schemaName: null,
 	layout: null,
 	columnsGrid: null,
 	tabs: null,
 	simplePanelsId: [],
 	constraintsGrid: null,
 	indexesGrid: null,
-	initialize: function(id, label) {
+	columnSelectedEventListeners: [],
+	complexTypeSchemaChangedEventListeners: [],
+	identityColumnSchemaChangedEventListeners: [],
+	initialize: function(id, label, schemaName) {
 		this.id = id;
 		this.label = label;
+		this.schemaName = schemaName;
 		this.layout = null;
 		this.columnsGrid = null;
 		this.tabs = null;
 		this.constraintsGrid = null;
 		this.indexesGrid = null;
+		this.columnSelectedEventListeners = [];
+		this.complexTypeSchemaChangedEventListeners = [];
+		this.identityColumnSchemaChangedEventListeners = [];
 		this.simplePanelsId = [
 			this.id + '-data-type-tab-content-simple-char-size-panel',
 			this.id + '-data-type-tab-content-simple-number-precision-scale-panel',
@@ -59,10 +67,10 @@ var ColumnsPanelUI = Class.create({
                 									editable: { type: 'text' }
             									},
 												{field: 'columnName', caption: 'Column Name', size: '100px', sortable: true,
-													editable: {type: 'text'}
+													editable: { type: 'text' }
 												},
 												{field: 'dataType', caption: 'Data Type', size: '80px', sortable: true,
-													editable: {type: 'select', 
+													editable: { type: 'select', 
 													items: [
 															'VARCHAR2',
 															'NUMBER',
@@ -112,16 +120,16 @@ var ColumnsPanelUI = Class.create({
 															]}
 												},
 												{field: 'size', caption: 'Size', size: '50px', sortable: true,
-													editable: {type: 'int'}
+													editable: { type: 'int' }
 												},
 												{field: 'notNull', caption: 'Not Null', size: '70px', style: 'text-align: center', sortable: true,
                 									editable: { type: 'checkbox', style: 'text-align: center' }
                 								},
 												{field: 'default', caption: 'Default', size: '70px', sortable: true,
-													editable: {type: 'text'}
+													editable: { type: 'text' }
 												},
 												{field: 'comments', caption: 'Comments', size: '100%', sortable: true,
-													editable: {type: 'text'}
+													editable: { type: 'text' }
 												}
 											],
 											menu: [
@@ -327,7 +335,6 @@ var ColumnsPanelUI = Class.create({
 						<div style='line-height: 30px;'>
 							<label for='` + this.id + `-data-type-tab-content-complex-schema-select'>Schema:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
 							<select id='` + this.id + `-data-type-tab-content-complex-schema-select' style='width: 250px;'>
-								<option>SYS</option>
 							</select>
 						</div>
 						<div style='line-height: 30px;'>
@@ -452,10 +459,35 @@ var ColumnsPanelUI = Class.create({
 				<div id='` + this.id + `-identity-column-tab-content' class='tab_content'>
 					<div style='line-height: 30px;'>
 						<label for='` + this.id + `-identity-column-tab-content-type-select'>Type:&nbsp;&nbsp;&nbsp;</label>
-						<select id='` + this.id + `-identity-column-tab-content-type-select' style='width: 250px;'>
+						<select id='` + this.id + `-identity-column-tab-content-type-select' style='width: 570px;'>
 							<option>None</option>
-							<option>Column Sequence</option>
 						</select>
+					</div>
+					<div id='` + this.id + `-identity-column-tab-content-details-panel' class='identity_column_panel'>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-identity-column-tab-content-details-panel-trigger-input'>Trigger:</label>
+							<input id='` + this.id + `-identity-column-tab-content-details-panel-trigger-input'
+									list='` + this.id + `-identity-column-tab-content-details-panel-trigger-list' style='margin-left: 68px; width: 500px;'/>
+							<datalist id='` + this.id + `-identity-column-tab-content-details-panel-trigger-list'>
+							</datalist>
+						</div>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-identity-column-tab-content-details-panel-sequence-schema-input'>Sequence Schema:</label>
+							<input id='` + this.id + `-identity-column-tab-content-details-panel-sequence-schema-input'
+									list='` + this.id + `-identity-column-tab-content-details-panel-sequence-schema-list' style='width: 500px;' />
+							<datalist id='` + this.id + `-identity-column-tab-content-details-panel-sequence-schema-list'>
+							</datalist>
+						</div>
+						<div style='line-height: 30px;'>
+							<label for='` + this.id + `-identity-column-tab-content-details-panel-sequence-input'>Sequence:</label>
+							<input id='` + this.id + `-identity-column-tab-content-details-panel-sequence-input'
+									list='` + this.id + `-identity-column-tab-content-details-panel-sequence-list' style='margin-left: 54px; width: 500px;' />
+							<datalist id='` + this.id + `-identity-column-tab-content-details-panel-sequence-list'>
+							</datalist>
+						</div>
+						<div style='line-height: 30px;'>
+							<input type='checkbox' id='` + this.id + `-identity-column-tab-content-details-panel-is-null-checkbox' checked>Check column is null before inserting value from sequence</input>
+						</div>
 					</div>
 				</div>
 			`;
@@ -695,6 +727,7 @@ var ColumnsPanelUI = Class.create({
 				records.forEach(function(recid) {
 					that.columnsGrid.set(recid, {schema: newValue});
 				});
+				that.fireComplexTypeSchemaChangedEvent(this.value);
 			});
 
 			//Virtual data type event handler
@@ -795,6 +828,65 @@ var ColumnsPanelUI = Class.create({
 				records.forEach(function(recid) {
 					that.columnsGrid.set(recid, {identityColumnType: newValue});
 				});
+
+				if(newValue === 'Column Sequence') {
+					$j('#' + that.id + '-identity-column-tab-content-details-panel').addClass('display_identity_column_panel');
+				} else {
+					$j('#' + that.id + '-identity-column-tab-content-details-panel').removeClass('display_identity_column_panel');
+				}
+			});
+
+			//Identity column trigger event handler
+			$j('#' + this.id + '-identity-column-tab-content-details-panel-trigger-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {identityColumnTrigger: newValue});
+				});
+			});
+
+			$j('#' + this.id + '-identity-column-tab-content-details-panel-trigger-input').on('click', function() {
+				this.value='';
+			});
+
+			//Identity column sequence schema event handler
+			$j('#' + this.id + '-identity-column-tab-content-details-panel-sequence-schema-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {identityColumnSequenceSchema: newValue});
+				});
+				that.fireIdentityColumnSchemaChangedEvent(this.value);
+			});
+
+			$j('#' + this.id + '-identity-column-tab-content-details-panel-sequence-schema-input').on('click', function() {
+				this.value='';
+			});
+
+			//Identity column sequence event handler
+			$j('#' + this.id + '-identity-column-tab-content-details-panel-sequence-input').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {identityColumnSequence: newValue});
+				});
+			});
+
+			$j('#' + this.id + '-identity-column-tab-content-details-panel-sequence-input').on('click', function() {
+				this.value='';
+			});
+
+			//Identity column is null event handler
+			$j('#' + this.id + '-identity-column-tab-content-details-panel-is-null-checkbox').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {identityColumnIsNull: newValue});
+				});
 			});
 		}
 	},
@@ -817,6 +909,7 @@ var ColumnsPanelUI = Class.create({
 	updateControls: function() {
 		var recid = this.columnsGrid.getSelection()[0];
 		var record = this.columnsGrid.get(recid);
+		var columnName = record['columnName'];
 		var dataType = record['dataType'];
 		var size = record['size'];
 		var precision = record['precision'];
@@ -848,6 +941,9 @@ var ColumnsPanelUI = Class.create({
 			$j('#' + this.id + '-lob-parameters-tab-content-cache-select').val(lobCache);
 		} else {
 			this.tabs.disable(this.id + '-lob-parameters-tab');
+			if(this.tabs.active === this.id + '-lob-parameters-tab') {
+				this.tabs.click(this.id + '-data-type-tab');
+			}
 		}
 
 		if(dataType === 'ANYDATA' || dataType === 'ANYDATASET' || dataType === 'ANYTYPE' || dataType === 'DBURITYPE'
@@ -887,6 +983,28 @@ var ColumnsPanelUI = Class.create({
 				$j('#' + this.id + '-data-type-tab-content-simple-timezone-precision-input').val(precision).trigger('change');
 			}
 		}
+
+		if(dataType === 'NUMBER') {
+			var found = false;
+			$j('#' + this.id + '-identity-column-tab-content-type-select option').each(function() {
+				if($j(this).val() === 'Column Sequence') {
+					found = true;
+				}
+			});
+			if(!found){
+				$j('#' + this.id + '-identity-column-tab-content-type-select').append('<option>Column Sequence</option>');
+			} else {
+				$j('#' + this.id + '-identity-column-tab-content-type-select').val('None').trigger('change');
+			}
+		} else {
+			$j('#' + this.id + '-identity-column-tab-content-type-select option').each(function() {
+				if($j(this).val() === 'Column Sequence') {
+					$j(this).remove();
+				}
+			}).trigger('change');
+		}
+
+		this.fireColumnSelectedEvent(columnName);
 	},
 	changeColumnsSubTab: function(id) {
 		w2ui[this.id + '-tabs'].tabs.forEach(function(tab) {
@@ -914,8 +1032,19 @@ var ColumnsPanelUI = Class.create({
 																					{field: 'otherColumns', caption: 'Other Columns', size: '100%'}
 																				]
 												});
+			var recid = this.columnsGrid.getSelection()[0];
+			var record = this.columnsGrid.get(recid);
+			var columnName = record['columnName'];
+			this.fireColumnSelectedEvent(columnName);
 		} else {
 			this.constraintsGrid.refresh();
+		}
+	},
+	isConstraintsGridCreated: function() {
+		if(this.constraintsGrid === null) {
+			return false;
+		} else {
+			return true;
 		}
 	},
 	getConstraintsGrid: function() {
@@ -936,8 +1065,19 @@ var ColumnsPanelUI = Class.create({
 																					{field: 'otherColumns', caption: 'Other Columns', size: '100%'}
 																				]
 												});
+			var recid = this.columnsGrid.getSelection()[0];
+			var record = this.columnsGrid.get(recid);
+			var columnName = record['columnName'];
+			this.fireColumnSelectedEvent(columnName);
 		} else {
 			this.indexesGrid.refresh();
+		}
+	},
+	isIndexesGridCreated: function() {
+		if(this.indexesGrid === null) {
+			return false;
+		} else {
+			return true;
 		}
 	},
 	getIndexesGrid: function() {
@@ -970,6 +1110,110 @@ var ColumnsPanelUI = Class.create({
 			$j('#' + this.simplePanelsId[6]).addClass('display_simple_panel');
 			$j('#' + this.id + '-data-type-tab-content-simple-timezone-precision-input').val('').trigger('change');
 		}
+	},
+	addColumnSelectedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.columnSelectedEventListeners.push(listener);
+		}
+	},
+	removeColumnSelectedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.columnSelectedEventListeners.indexOf(listener);
+			this.columnSelectedEventListeners.splice(index, 1);
+		}
+	},
+	fireColumnSelectedEvent: function(columnName) {
+		this.columnSelectedEventListeners.forEach(function(listener) {
+			listener(columnName);
+		});
+	},
+	showIdentityColumnPanel: function() {
+		$j('#' + this.id + '-identity-column-tab-content-type-select').val('Column Sequence').trigger('change');
+	},
+	setIdentityColumnTrigger: function(triggerName) {
+		$j('#' + this.id + '-identity-column-tab-content-details-panel-trigger-input').val(triggerName);
+	},
+	setIdentityColumnSequenceSchema: function(schemaName) {
+		$j('#' + this.id + '-identity-column-tab-content-details-panel-sequence-schema-input').val(schemaName);
+	},
+	setIdentityColumnSequence: function(sequenceName) {
+		$j('#' + this.id + '-identity-column-tab-content-details-panel-sequence-input').val(sequenceName);
+	},
+	populateComplexSchemaList: function(list) {
+		var that = this;
+		list.forEach(function(item) {
+			var selected = '';
+			if(item === 'SYS') {
+				selected = 'selected';
+			}
+			$j('#' + that.id + '-data-type-tab-content-complex-schema-select').append('<option ' + selected + '>' + item + '</option>');
+		});
+	},
+	populateComplexTypesList: function(list) {
+		var that = this;
+		$j('#' + this.id + '-data-type-tab-content-complex-column-type-select').empty();
+		list.forEach(function(item) {
+			var selected = '';
+			if(item === 'XMLTYPE') {
+				selected = 'selected';
+			}
+			$j('#' + that.id + '-data-type-tab-content-complex-column-type-select').append('<option ' + selected + '>' + item + '</option>');
+		});
+	},
+	populateTriggersList: function(list) {
+		var that = this;
+		list.forEach(function(item) {
+			$j('#' + that.id + '-identity-column-tab-content-details-panel-trigger-list').append('<option>' + item + '</option>');
+		});
+	},
+	populateSequenceSchemasList: function(list) {
+		var that = this;
+		list.forEach(function(item) {
+			var selected = '';
+			if(item === that.schemaName) {
+				selected = 'selected';
+			}
+			$j('#' + that.id + '-identity-column-tab-content-details-panel-sequence-schema-list').append('<option ' + selected + '>' + item + '</option>');
+		});
+	},
+	populateSequencesList: function(list) {
+		$j('#' + this.id + '-identity-column-tab-content-details-panel-sequence-list').empty();
+		var that = this;
+		list.forEach(function(item) {
+			$j('#' + that.id + '-identity-column-tab-content-details-panel-sequence-list').append('<option>' + item + '</option>');
+		});
+	},
+	addComplexTypeSchemaChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.complexTypeSchemaChangedEventListeners.push(listener);
+		}
+	},
+	removeComplexTypeSchemaChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.complexTypeSchemaChangedEventListeners.indexOf(listener);
+			this.complexTypeSchemaChangedEventListeners.splice(index, 1);
+		}
+	},
+	fireComplexTypeSchemaChangedEvent: function(value) {
+		this.complexTypeSchemaChangedEventListeners.forEach(function(listener) {
+			listener(value);
+		});
+	},
+	addIdentityColumnSchemaChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.identityColumnSchemaChangedEventListeners.push(listener);
+		}
+	},
+	removeIdentityColumnSchemaChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.identityColumnSchemaChangedEventListeners.indexOf(listener);
+			this.identityColumnSchemaChangedEventListeners.splice(index, 1);
+		}
+	},
+	fireIdentityColumnSchemaChangedEvent: function(value) {
+		this.identityColumnSchemaChangedEventListeners.forEach(function(listener) {
+			listener(value);
+		});
 	},
 	destroy: function() {
 		if(this.layout !== null) {
@@ -1014,12 +1258,22 @@ var ConstraintsPanelUI = Class.create({
 	layout: null,
 	constraintsGrid: null,
 	associationsGrid: null,
+	columnsList: [],
+	constraintSelectedEventListeners: [],
+	schemaChangedEventListeners: [],
+	tableChangedEventListeners: [],
+	refConstraintChangedEventListeners: [],
 	initialize: function(id,label) {
 		this.id = id;
 		this.label = label;
 		this.layout = null;
 		this.constraintsGrid = null;
 		this.associationsGrid = null;
+		this.columnsList = [];
+		this.constraintSelectedEventListeners = [];
+		this.schemaChangedEventListeners = [];
+		this.tableChangedEventListeners = [];
+		this.refConstraintChangedEventListeners = [];
 	},
 	createPanel: function() {
 		var that = this;
@@ -1041,11 +1295,23 @@ var ConstraintsPanelUI = Class.create({
 											      toolbar: true,
 											      lineNumbers: true
 											    },
+											reorderRows: true,
 											columns: [
-												{field: 'type', caption: 'Type', size: '150px'},
-												{field: 'name', caption: 'Name', size: '150px'},
-												{field: 'enabled', caption: 'Enabled', size: '100px'},
-												{field: 'deferrableState', caption: 'Deferrable State', size: '100%'}
+												{field: 'type', caption: 'Type', size: '150px', sortable: true},
+												{field: 'name', caption: 'Name', size: '150px', sortable: true,
+													editable: { type: 'text' }
+												},
+												{field: 'enabled', caption: 'Enabled', size: '100px', sortable: true,
+                									editable: { type: 'checkbox', style: 'text-align: center' }
+                								},
+												{field: 'deferrableState', caption: 'Deferrable State', size: '100%', sortable: true,
+													editable: { type: 'select', 
+													items: [
+														'Not Deferrable',
+														'Initially Immediate',
+														'Initially Deferred'
+													]}
+												}
 											],
 											toolbar: {
 												items: [
@@ -1059,7 +1325,38 @@ var ConstraintsPanelUI = Class.create({
 														]
 													},
 													{id: this.id + '-grid-toolbar-drop-constraint', type: 'button', caption: 'Drop', icon: 'delete_icon'}
-												]
+												],
+												onClick: function(event) {
+													var grid = w2ui[that.id + '-grid'];
+													if(event.target === that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-primary-key') {
+														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/primarykey.png" /> Primary Key', constraintType: 'P'});
+													} else if(event.target === that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-unique') {
+														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/key.png" /> Unique', constraintType: 'U'});
+													} else if(event.target === that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-foreign-key') {
+														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/foreignkey.png" /> Foreign Key', constraintType: 'R'});
+													} else if(event.target === that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-check') {
+														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/constraint.png" /> Check', constraintType: 'C'});
+													} else if(event.target === that.id + '-grid-toolbar-drop-constraint') {
+														var records = grid.getSelection();
+														records.forEach(function(record) {
+															grid.remove(record);
+														});
+													}
+												}
+											},
+											onSelect: function(event) {
+												var grid = this;
+												event.onComplete = function() {
+													var recid = event.recid;
+													var record = grid.get(recid);
+													that.changeConstraintPanel(record);
+												};
+											},
+											onRefresh: function(event) {
+												var recs = this.find({constraintType: 'P'});
+												if(recs.length > 0) {
+													this.toolbar.disable(that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-primary-key');
+												}
 											}
 										});
 			this.layout.content('main', this.constraintsGrid);
@@ -1106,7 +1403,7 @@ var ConstraintsPanelUI = Class.create({
 								</td>
 								<td>
 									<select id='` + this.id + `-primary-unique-constraint-panel-selected-columns-select' size='13' style='width: 100%;'>
-										<option>Column2</option>
+										
 									</select>
 								</td>
 								<td style='width: 40px;'>
@@ -1135,19 +1432,25 @@ var ConstraintsPanelUI = Class.create({
 							<td style='width: 50%; vertical-align: top;'>
 								<div>
 									<div>
-										<label for='` + this.id + `-foreign-constraint-panel-schema-select'>Schema:</label>
-										<select id='` + this.id + `-foreign-constraint-panel-schema-select' style='margin-left: 15px; width: 220px;'>
-										</select>
+										<label for='` + this.id + `-foreign-constraint-panel-schema-input'>Schema:</label>
+										<input id='` + this.id + `-foreign-constraint-panel-schema-input' autocomplete='off'
+												list='` + this.id + `-foreign-constraint-panel-schema-list' style='margin-left: 15px; width: 220px;' />
+										<datalist id='` + this.id + `-foreign-constraint-panel-schema-list'>
+										</datalist>
 									</div>
 									<div>
-										<label for='` + this.id + `-foreign-constraint-panel-table-select'>Table:</label>
-										<select id='` + this.id + `-foreign-constraint-panel-table-select' style='margin-left: 32px; width: 220px;'>
-										</select>
+										<label for='` + this.id + `-foreign-constraint-panel-table-input'>Table:</label>
+										<input id='` + this.id + `-foreign-constraint-panel-table-input' autocomplete='off'
+												list='` + this.id + `-foreign-constraint-panel-table-list' style='margin-left: 32px; width: 220px;' />
+										<datalist id='` + this.id + `-foreign-constraint-panel-table-list'>
+										</datalist>
 									</div>
 									<div>
-										<label for='` + this.id + `-foreign-constraint-panel-constraints-select'>Constraint:</label>
-										<select id='` + this.id + `-foreign-constraint-panel-constraints-select' style='margin-left: 1px; width: 220px;'>
-										</select>
+										<label for='` + this.id + `-foreign-constraint-panel-constraints-input'>Constraint:</label>
+										<input id='` + this.id + `-foreign-constraint-panel-constraints-input' autocomplete='off'
+												list='` + this.id + `-foreign-constraint-panel-constraints-list' style='margin-left: 1px; width: 220px;' />
+										<datalist id='` + this.id + `-foreign-constraint-panel-constraints-list'>
+										</datalist>
 									</div>
 									<div>
 										<label for='` + this.id + `-foreign-constraint-panel-on-delete-select'>On Delete:</label>
@@ -1176,6 +1479,130 @@ var ConstraintsPanelUI = Class.create({
 			`;
 			this.layout.content('bottom', bottomHtml);
 
+			//Populate Available Columns Select box
+			$j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').empty();
+
+			this.columnsList.forEach(function(column) {
+				$j('#' + that.id + '-primary-unique-constraint-panel-available-columns-select').append('<option>' + column + '</option>');
+			});
+
+			//Index name event handler
+			$j('#' + this.id + '-primary-unique-constraint-panel-using-index-select').on('change', function() {
+				var records = that.constraintsGrid.getSelection();
+				var newValue = this.value;
+				that.constraintsGrid.save();
+				records.forEach(function(recid) {
+					that.constraintsGrid.set(recid, {indexName: newValue});
+				});
+			});
+
+			//Move Right button event handler
+			$j('#' + this.id + '-primary-unique-constraint-panel-right-button').on('click', function() {
+				that.moveToSelectedList();
+			});
+
+			//Move All Right button event handler
+			$j('#' + this.id + '-primary-unique-constraint-panel-right-all-button').on('click', function() {
+				that.moveAllToSelectedList();
+			});
+
+			//Move Left button event handler
+			$j('#' + this.id + '-primary-unique-constraint-panel-left-button').on('click', function() {
+				that.moveToAvailableList();
+			});
+
+			//Move All Left button event handler
+			$j('#' + this.id + '-primary-unique-constraint-panel-left-all-button').on('click', function() {
+				that.moveAllToAvailableList();
+			});
+
+			//Move to Top button event handler
+			$j('#' + this.id + '-primary-unique-constraint-panel-first-button').on('click', function() {
+				that.moveToTop();
+			});
+
+			//Move up button event handler
+			$j('#' + this.id + '-primary-unique-constraint-panel-previous-button').on('click', function() {
+				that.moveUp();
+			});
+
+			//Move down button event handler
+			$j('#' + this.id + '-primary-unique-constraint-panel-next-button').on('click', function() {
+				that.moveDown();
+			});
+
+			//Move to bottom button event handler
+			$j('#' + this.id + '-primary-unique-constraint-panel-last-button').on('click', function() {
+				that.moveToBottom();
+			});
+
+			//Constraint Schema event handlers
+			$j('#' + this.id + '-foreign-constraint-panel-schema-input').on('change', function() {
+				var records = that.constraintsGrid.getSelection();
+				var newValue = this.value;
+				that.constraintsGrid.save();
+				records.forEach(function(recid) {
+					that.constraintsGrid.set(recid, {refOwner: newValue});
+				});
+				that.fireSchemaChangedEvent(newValue);
+			});
+
+			$j('#' + this.id + '-foreign-constraint-panel-schema-input').on('click', function() {
+				this.value = '';
+			});
+
+			//Constraint Table event handlers
+			$j('#' + this.id + '-foreign-constraint-panel-table-input').on('change', function() {
+				var records = that.constraintsGrid.getSelection();
+				var newValue = this.value;
+				that.constraintsGrid.save();
+				records.forEach(function(recid) {
+					that.constraintsGrid.set(recid, {refTable: newValue});
+				});
+				that.fireTableChangedEvent(newValue);
+			});
+
+			$j('#' + this.id + '-foreign-constraint-panel-table-input').on('click', function() {
+				this.value = '';
+			});
+
+			//Referenced Constraint event handlers
+			$j('#' + this.id + '-foreign-constraint-panel-constraints-input').on('change', function() {
+				var records = that.constraintsGrid.getSelection();
+				var newValue = this.value;
+				that.constraintsGrid.save();
+				records.forEach(function(recid) {
+					that.constraintsGrid.set(recid, {refConstraintName: newValue});
+				});
+				var record = that.constraintsGrid.get(records[0]);
+				var constraintName = record['name'];
+				that.fireRefConstraintChangedEvent(constraintName, newValue);
+			});
+
+			$j('#' + this.id + '-foreign-constraint-panel-constraints-input').on('click', function() {
+				this.value = '';
+			});
+
+			//Delete Rule event handler
+			$j('#' + this.id + '-foreign-constraint-panel-on-delete-select').on('change', function() {
+				var records = that.constraintsGrid.getSelection();
+				var newValue = this.value;
+				that.constraintsGrid.save();
+				records.forEach(function(recid) {
+					that.constraintsGrid.set(recid, {deleteRule: newValue});
+				});
+			});
+
+			//Check Condition event handler
+			$j('#' + this.id + '-check-constraint-panel-check-condition-input').on('change', function() {
+				var records = that.constraintsGrid.getSelection();
+				var newValue = this.value;
+				that.constraintsGrid.save();
+				records.forEach(function(recid) {
+					that.constraintsGrid.set(recid, {checkCondition: newValue});
+				});
+			});
+
 			//Need to call when foreign-key panel is shown
 			this.createAssociationsGrid();
 		}
@@ -1203,11 +1630,222 @@ var ConstraintsPanelUI = Class.create({
 																		      lineNumbers: false
 																		    },
 																		columns: [
-																			{field: 'localColumn', caption: 'Local Column', size: '150px'},
+																			{field: 'localColumn', caption: 'Local Column', size: '150px',
+																				editable: { type: 'select', 
+																				items: this.columnsList}
+																			},
 																			{field: 'referencedColumn', caption: 'Referenced Column', size: '100%'}
 																		]
 																	});
 		}
+	},
+	isAssociationsGridCreated: function() {
+		if(this.associationsGrid === null) {
+			return false;
+		} else {
+			return true;
+		}
+	},
+	getAssociationsGrid: function() {
+		return this.associationsGrid;
+	},
+	changeConstraintPanel: function(record) {
+		var constraintName = record['name'];
+		var constraintType = record['constraintType'];
+
+		var checkCondition = record['checkCondition'];
+
+		var refOwner = record['refOwner'];
+		var refTable = record['refTable'];
+		var refConstraintName = record['refConstraintName'];
+		var deleteRule = record['deleteRule'];
+		var indexName = record['indexName'];
+
+		this.fireConstraintSelectedEvent(constraintName, constraintType);
+
+		if(constraintType === 'P' || constraintType === 'U') {
+			$j('#' + this.id + '-foreign-constraint-panel').removeClass('display_constraints_panel');
+			$j('#' + this.id + '-check-constraint-panel').removeClass('display_constraints_panel');
+			$j('#' + this.id + '-primary-unique-constraint-panel').addClass('display_constraints_panel');
+
+			$j('#' + this.id + '-primary-unique-constraint-panel-using-index-select').empty();
+			$j('#' + this.id + '-primary-unique-constraint-panel-using-index-select').append('<option>' + indexName + '</option>');
+		} else if(constraintType === 'R') {
+			$j('#' + this.id + '-check-constraint-panel').removeClass('display_constraints_panel');
+			$j('#' + this.id + '-primary-unique-constraint-panel').removeClass('display_constraints_panel');
+			$j('#' + this.id + '-foreign-constraint-panel').addClass('display_constraints_panel');
+
+			$j('#' + this.id + '-foreign-constraint-panel-schema-input').val(refOwner).trigger('change');
+			$j('#' + this.id + '-foreign-constraint-panel-table-input').val(refTable).trigger('change');
+			$j('#' + this.id + '-foreign-constraint-panel-constraints-input').val(refConstraintName).trigger('change');
+			$j('#' + this.id + '-foreign-constraint-panel-on-delete-select').val(deleteRule);
+		} else if(constraintType === 'C') {
+			$j('#' + this.id + '-foreign-constraint-panel').removeClass('display_constraints_panel');
+			$j('#' + this.id + '-primary-unique-constraint-panel').removeClass('display_constraints_panel');
+			$j('#' + this.id + '-check-constraint-panel').addClass('display_constraints_panel');
+
+			$j('#' + this.id + '-check-constraint-panel-check-condition-input').val(checkCondition);
+		}
+	},
+	addConstraintSelectedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.constraintSelectedEventListeners.push(listener);
+		}
+	},
+	removeConstraintSelectedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.constraintSelectedEventListeners.indexOf(listener);
+			this.constraintSelectedEventListeners.splice(index, 1);
+		}
+	},
+	fireConstraintSelectedEvent: function(constraintName, constraintType) {
+		this.constraintSelectedEventListeners.forEach(function(listener) {
+			listener(constraintName, constraintType);
+		});
+	},
+	populateReferencedSchemasList: function(list) {
+		$j('#' + this.id + '-foreign-constraint-panel-schema-list').empty();
+
+		var that = this;
+		list.forEach(function(item) {
+			$j('#' + that.id + '-foreign-constraint-panel-schema-list').append('<option>' + item + '</option>');
+		});
+	},
+	populateReferencedTablesList: function(list) {
+		$j('#' + this.id + '-foreign-constraint-panel-table-list').empty();
+
+		var that = this;
+		list.forEach(function(item) {
+			$j('#' + that.id + '-foreign-constraint-panel-table-list').append('<option>' + item + '</option>');
+		});
+	},
+	populateReferencedConstraintsList: function(list) {
+		$j('#' + this.id + '-foreign-constraint-panel-constraints-list').empty();
+
+		var that = this;
+		list.forEach(function(item) {
+			$j('#' + that.id + '-foreign-constraint-panel-constraints-list').append('<option>' + item + '</option>');
+		});
+	},
+	addSchemaChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.schemaChangedEventListeners.push(listener);
+		}
+	},
+	removeSchemaChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.schemaChangedEventListeners.indexOf(listener);
+			this.schemaChangedEventListeners.splice(index, 1);
+		}
+	},
+	fireSchemaChangedEvent: function(schemaName) {
+		this.schemaChangedEventListeners.forEach(function(listener) {
+			listener(schemaName);
+		});
+	},
+	addTableChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.tableChangedEventListeners.push(listener);
+		}
+	},
+	removeTableChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.tableChangedEventListeners.indexOf(listener);
+			this.tableChangedEventListeners.splice(index, 1);
+		}
+	},
+	fireTableChangedEvent: function(tableName) {
+		this.tableChangedEventListeners.forEach(function(listener) {
+			listener(tableName);
+		});
+	},
+	addRefConstraintChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.refConstraintChangedEventListeners.push(listener);
+		}
+	},
+	removeRefConstraintChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.refConstraintChangedEventListeners.indexOf(listener);
+			this.refConstraintChangedEventListeners.splice(index, 1);
+		}
+	},
+	fireRefConstraintChangedEvent: function(constraintName, refConstraintName) {
+		this.refConstraintChangedEventListeners.forEach(function(listener) {
+			listener(constraintName, refConstraintName);
+		});
+	},
+	populateColumnsList: function(list) {
+		this.columnsList = list;
+	},
+	moveToSelectedList: function() {
+		var selectedItem = $j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').children('option:selected');
+		if(selectedItem.length > 0) {
+			$j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').append(selectedItem[0].outerHTML);
+			selectedItem.remove();
+		}
+	},
+	moveAllToSelectedList: function() {
+		var that = this;
+		$j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').children().each(function() {
+			var html = $j(this)[0].outerHTML;
+			$j('#' + that.id + '-primary-unique-constraint-panel-selected-columns-select').append(html);
+			$j(this).remove();
+		});
+	},
+	moveToAvailableList: function() {
+		var selectedItem = $j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').children('option:selected');
+		if(selectedItem.length > 0) {
+			$j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').append(selectedItem[0].outerHTML);
+			selectedItem.remove();
+		}
+	},
+	moveAllToAvailableList: function() {
+		var that = this;
+		$j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').children().each(function() {
+			var html = $j(this)[0].outerHTML;
+			$j('#' + that.id + '-primary-unique-constraint-panel-available-columns-select').append(html);
+			$j(this).remove();
+		});
+	},
+	moveToTop: function() {
+		var selectedItem = $j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').children('option:selected');
+		if(selectedItem.length > 0) {
+			$j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').children().first().before(selectedItem);
+		}
+	},
+	moveUp: function() {
+		var selectedItem = $j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').children('option:selected');
+		if(selectedItem.length > 0) {
+			selectedItem.prev().before(selectedItem);
+		}
+	},
+	moveDown: function() {
+		var selectedItem = $j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').children('option:selected');
+		if(selectedItem.length > 0) {
+			selectedItem.next().after(selectedItem);
+		}
+	},
+	moveToBottom: function() {
+		var selectedItem = $j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').children('option:selected');
+		if(selectedItem.length > 0) {
+			$j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').children().last().after(selectedItem);
+		}
+	},
+	populateConstraintColumns: function(list) {
+		$j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').empty();
+		var that = this;
+		this.columnsList.forEach(function(column) {
+			var index = list.indexOf(column);
+			if(index < 0) {
+				$j('#' + that.id + '-primary-unique-constraint-panel-available-columns-select').append('<option>' + column + '</option>');
+			}
+		});
+
+		$j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').empty();
+		list.forEach(function(item) {
+			$j('#' + that.id + '-primary-unique-constraint-panel-selected-columns-select').append('<option>' + item + '</option>');
+		});
 	},
 	destroy: function() {
 		if(this.layout !== null) {
@@ -1611,6 +2249,15 @@ var IndexesPanelUI = Class.create({
 	},
 	getPanel: function() {
 		return this.layout;
+	},
+	populateIndexesList: function(list) {
+		$j('#' + this.id + '-indexes-list').empty();
+
+		list.forEach(function(item) {
+			var indexName = item['indexName'];
+			var indexType = item['indexType'];
+			$j('#' + this.id + '-indexes-list').append('<option type="' + indexType + '">' + indexName + '</option>');
+		});
 	},
 	destroy: function() {
 		if(this.layout !== null) {

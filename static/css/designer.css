@@ -787,6 +787,15 @@
     display: block !important;
 }
 
+.identity_column_panel {
+    line-height: 30px;
+    display: none;
+}
+
+.display_identity_column_panel {
+    display: block !important;
+}
+
 .tab_content {
     padding: 10px 2px;
     height: 84%;

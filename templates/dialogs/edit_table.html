@@ -9,6 +9,7 @@
 				var queryString = window.location.search;
 				var params = new URLSearchParams(queryString);
 				var tableName = params.get('name');
+				var schemaName = params.get('schemaName');
 				var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
 
 				$j("#table-edit-layout").w2layout({
@@ -36,7 +37,7 @@
 						<table>
 							<tr>
 								<td>Schema:</td>
-								<td><input id='table-edit-text-schema-name' size='80px' disabled /></td>
+								<td><input id='table-edit-text-schema-name' size='80px' value='` + schemaName + `' disabled /></td>
 							</tr>
 							<tr>
 								<td>Name:</td>
@@ -54,8 +55,17 @@
 				`;
 				w2ui["table-edit-layout"].content('top', topHtml);
 
-				var columnsPanel = new ColumnsPanelUI('table-edit-sidebar-columns-panel', tableName);
+				var columnsPanel = new ColumnsPanelUI('table-edit-sidebar-columns-panel', tableName, schemaName);
+				columnsPanel.addColumnSelectedEventListener(onColumnSelected);
+				columnsPanel.addComplexTypeSchemaChangedEventListener(onComplexTypeSchemaChanged);
+				columnsPanel.addIdentityColumnSchemaChangedEventListener(onIdentityColumnSchemaChanged);
+
 				var constraintsPanel = new ConstraintsPanelUI('table-edit-sidebar-constraints-panel', tableName);
+				constraintsPanel.addConstraintSelectedEventListener(onConstraintSelected);
+				constraintsPanel.addSchemaChangedEventListener(onConstraintSchemaChanged);
+				constraintsPanel.addTableChangedEventListener(onConstraintTableChanged);
+				constraintsPanel.addRefConstraintChangedEventListener(onRefConstraintChanged);
+
 				var indexesPanel = new IndexesPanelUI('table-edit-sidebar-indexes-panel', tableName);
 				var storagePanel = new StoragePanelUI('table-edit-sidebar-storage-panel', tableName);
 				var commentsPanel = new CommentsPanelUI('table-edit-sidebar-comments-panel', tableName);
@@ -63,6 +73,19 @@
 
 				var dbTable = new DatabaseEditableTable(tableName);
 				dbTable.addColumnsAvailableEventListener(onColumnsAvailable);
+				dbTable.addColumnConstraintsAvailableEventListener(onColumnConstraintsAvailable);
+				dbTable.addColumnIndexesAvailableEventListener(onColumnIndexesAvailable);
+				dbTable.addIdentityColumnDetailsAvailableEventListener(onIdentityColumnDetailsAvailable);
+				dbTable.addTriggersListAvailableEventListener(onTriggersListAvailable);
+				dbTable.addSchemasListAvailableEventListener(onSchemasListAvailable);
+				dbTable.addSequencesListAvailableEventListener(onSequencesListAvailable);
+				dbTable.addTypesListAvailableEventListener(onTypesListAvailable);
+				dbTable.addConstraintsAvailableEventListener(onConstraintsAvailable);
+				dbTable.addTablesListAvailableEventListener(onTablesListAvailable);
+				dbTable.addRefConstraintsListAvailableEventListener(onRefConstraintsListAvailable);
+				dbTable.addColumnsListAvailableEventListener(onColumnsListAvailable);
+				dbTable.addAssociationAvailableEventListener(onAssociationAvailable);
+				dbTable.addConstraintColumnsAvailableEventListener(onConstraintColumnsAvailable);
 
 				w2ui["table-edit-layout"].content('left', $j().w2sidebar({
 					name: 'table-edit-sidebar',
@@ -84,7 +107,11 @@
 
 						if(id === 'table-edit-sidebar-constraints') {
 							if(!constraintsPanel.isPanelCreated()) {
-								constraintsPanel.createPanel();
+								dbTable.getColumnsList();
+								// constraintsPanel.createPanel();
+								// dbTable.getConstraints();
+								// constraintsPanel.getConstraintsGrid().lock('Reading Constraints...', true);
+								// dbTable.getSchemasList('constraintsPanel');
 							} else {
 								constraintsPanel.refresh();
 							}
@@ -123,12 +150,141 @@
 					columnsPanel.createPanel();
 					dbTable.getColumns();
 					columnsPanel.getColumnsGrid().lock('Reading Columns...', true);
+					dbTable.getTriggersList();
+					dbTable.getSchemasList('columnPanel');
+					dbTable.getSequencesList(schemaName);
+					dbTable.getTypesList('SYS');
+				}
+
+				function onColumnSelected(columnName) {
+					if(columnsPanel.isConstraintsGridCreated()) {
+						dbTable.getColumnConstraints(columnName);
+						columnsPanel.getConstraintsGrid().lock('Reading Constraints...', true);
+					}
+					if(columnsPanel.isIndexesGridCreated()) {
+						dbTable.getColumnIndexes(columnName);
+						columnsPanel.getIndexesGrid().lock('Reading Indexes...', true);
+					}
+					dbTable.getIdentityColumnDetails(columnName);
+				}
+
+				function onColumnConstraintsAvailable(result) {
+					columnsPanel.getConstraintsGrid().records = result;
+					columnsPanel.getConstraintsGrid().refresh();
+					columnsPanel.getConstraintsGrid().unlock();
+				}
+
+				function onColumnIndexesAvailable(result) {
+					columnsPanel.getIndexesGrid().records = result;
+					columnsPanel.getIndexesGrid().refresh();
+					columnsPanel.getIndexesGrid().unlock();
 				}
 
 				function onColumnsAvailable(result) {
 					columnsPanel.getColumnsGrid().records = result;
 					columnsPanel.getColumnsGrid().refresh();
 					columnsPanel.getColumnsGrid().unlock();
+					columnsPanel.getColumnsGrid().select(1);
+				}
+
+				function onIdentityColumnDetailsAvailable(result) {
+					if(result.length > 0) {
+						columnsPanel.showIdentityColumnPanel();
+						var triggerName = result[0]['triggerName'];
+						var sequenceName = result[0]['sequenceName'];
+						columnsPanel.setIdentityColumnTrigger(triggerName);
+						if(sequenceName.indexOf('.') > 0) {
+							var schemaName = sequenceName.substr(0, sequenceName.indexOf('.'));
+							columnsPanel.setIdentityColumnSequenceSchema(schemaName);
+							sequenceName = sequenceName.substr(sequenceName.indexOf('.') + 1);
+							columnsPanel.setIdentityColumnSequence(sequenceName);
+						} else {
+							columnsPanel.setIdentityColumnSequence(sequenceName);
+						}
+					}
+				}
+
+				function onTriggersListAvailable(result) {
+					columnsPanel.populateTriggersList(result);
+				}
+
+				function onSchemasListAvailable(result, source) {
+					if(source === 'columnPanel') {
+						columnsPanel.populateComplexSchemaList(result);
+						columnsPanel.populateSequenceSchemasList(result);
+					} else if(source === 'constraintsPanel') {
+						constraintsPanel.populateReferencedSchemasList(result);
+					}
+				}
+
+				function onSequencesListAvailable(result) {
+					columnsPanel.populateSequencesList(result);
+				}
+
+				function onTypesListAvailable(result) {
+					columnsPanel.populateComplexTypesList(result);
+				}
+
+				function onComplexTypeSchemaChanged(schemaName) {
+					dbTable.getTypesList(schemaName);
+				}
+
+				function onIdentityColumnSchemaChanged(schemaName) {
+					dbTable.getSequencesList(schemaName);
+				}
+
+				function onConstraintsAvailable(result) {
+					constraintsPanel.getConstraintsGrid().records = result;
+					constraintsPanel.getConstraintsGrid().refresh();
+					constraintsPanel.getConstraintsGrid().unlock();
+					constraintsPanel.getConstraintsGrid().select(1);
+				}
+
+				function onConstraintSelected(constraintName, constraintType) {
+					if(constraintType === 'P' || constraintType === 'U') {
+						dbTable.getConstraintColumns(constraintName);
+					}
+				}
+
+				function onConstraintSchemaChanged(schemaName) {
+					dbTable.getTablesList(schemaName);
+				}
+
+				function onConstraintTableChanged(tableName) {
+					dbTable.getRefConstraintsList(tableName);
+				}
+
+				function onRefConstraintChanged(constraintName, refConstraintName) {
+					dbTable.getAssociation(constraintName, refConstraintName);
+					constraintsPanel.getAssociationsGrid().lock('Reading associations...', true);
+				}
+
+				function onTablesListAvailable(result) {
+					constraintsPanel.populateReferencedTablesList(result);
+				}
+
+				function onRefConstraintsListAvailable(result) {
+					constraintsPanel.populateReferencedConstraintsList(result);
+				}
+
+				function onColumnsListAvailable(result) {
+					constraintsPanel.populateColumnsList(result);
+					constraintsPanel.createPanel();
+					dbTable.getConstraints();
+					constraintsPanel.getConstraintsGrid().lock('Reading Constraints...', true);
+					dbTable.getSchemasList('constraintsPanel');
+				}
+
+				function onAssociationAvailable(result) {
+					if(constraintsPanel.isAssociationsGridCreated()) {
+						constraintsPanel.getAssociationsGrid().records = result;
+						constraintsPanel.getAssociationsGrid().refresh();
+						constraintsPanel.getAssociationsGrid().unlock();
+					}
+				}
+
+				function onConstraintColumnsAvailable(result) {
+					constraintsPanel.populateConstraintColumns(result);
 				}
 
 				function destroy() {

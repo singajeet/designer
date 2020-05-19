@@ -1032,6 +1032,317 @@ class DatabaseTableServer(Namespace):
                                  'schema': result[19]})
         emit('columns_result_to_edit', result_array, namespace=self._namespace_url)
 
+    def on_get_column_constraints(self, props):
+        """For internal use only: will be called when 'get_column_constraints' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        table_name = props['tableName']
+        column_name = props['columnName']
+        query = """
+                SELECT
+                    ROWNUM,
+                    a.constraint_name,
+                    decode(a.constraint_type,
+                            'P', '<img src="/static/icons/primarykey.png" /> Primary Key',
+                            'R', '<img src="/static/icons/foreignkey.png" /> Foreign Key',
+                            'U', '<img src="/static/icons/key.png" /> Unique',
+                            'C', '<img src="/static/icons/constraint.png" /> Check',
+                            a.constraint_type) AS constraint_type
+                FROM
+                    SYS.user_constraints a,
+                    SYS.user_cons_columns b
+                WHERE
+                    a.constraint_name = b.constraint_name
+                    AND a.table_name = b.table_name
+                    AND a.table_name='%s'
+                    AND b.column_name='%s'
+                """ % (table_name, column_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'constraintName': result[1],
+                                 'constraintType': result[2]
+                                 })
+        emit('column_constraints_result', result_array, namespace=self._namespace_url)
+
+    def on_get_column_indexes(self, props):
+        """For internal use only: will be called when 'get_column_indexes' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        table_name = props['tableName']
+        column_name = props['columnName']
+        query = """
+                SELECT
+                    ROWNUM,
+                    a.index_name,
+                    decode(a.uniqueness,
+                            'UNIQUE', 'Unique',
+                            'NONUNIQUE', 'Non-Unique',
+                            a.uniqueness) AS index_type
+                FROM
+                    SYS.user_indexes a,
+                    SYS.user_ind_columns b
+                WHERE
+                    a.index_name = b.index_name
+                    AND a.table_name = b.table_name
+                    AND a.table_name='%s'
+                    AND b.column_name='%s'
+                """ % (table_name, column_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'indexName': result[1],
+                                 'indexType': result[2]
+                                 })
+        emit('column_indexes_result', result_array, namespace=self._namespace_url)
+
+    def on_get_identity_column_details(self, props):
+        """For internal use only: will be called when 'get_identity_column_details' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        table_name = props['tableName']
+        column_name = props['columnName']
+        query = """
+                SELECT /*OracleDictionaryQueries.ALL_TABLE_COLSEQ_TRIGGERS_QUERY*/
+                       S.NAME AS TRG,
+                       SUBSTR(
+                            TRIM(S.TEXT), INSTR(TRIM(S.TEXT), 'SELECT ') + 7, 
+                            LENGTH(SUBSTR(TRIM(S.TEXT), INSTR(TRIM(S.TEXT), 'SELECT ') + 7)) - 
+                            LENGTH(SUBSTR(TRIM(S.TEXT), INSTR(TRIM(S.TEXT), '.NEXTVAL ')))
+                            ) AS SEQ
+                FROM   SYS.ALL_SOURCE S
+                WHERE  S.OWNER = SYS_CONTEXT( 'userenv', 'current_schema' ) 
+                AND    S.TYPE = 'TRIGGER'
+                AND EXISTS (SELECT 1
+                            FROM   SYS.ALL_TRIGGERS T
+                            WHERE  T.OWNER = S.OWNER
+                            AND    T.TABLE_NAME = '%s' 
+                            AND    T.TRIGGER_NAME = S.NAME
+                            AND    T.TABLE_OWNER = S.OWNER
+                            AND    T.BASE_OBJECT_TYPE = 'TABLE'
+                            AND    T.TRIGGER_TYPE LIKE '%%EACH ROW'
+                            AND    T.TRIGGERING_EVENT LIKE '%%INSERT%%'
+                            AND EXISTS (SELECT 1
+                                        FROM   SYS.ALL_SOURCE S2
+                                        WHERE  S2.OWNER = S.OWNER
+                                        AND    S2.NAME = S.NAME
+                                        AND    S2.TYPE = S2.TYPE
+                                        AND    S2.TEXT LIKE '%%COLUMN_SEQUENCES%%'
+                                        )
+                             )
+                AND S.TEXT LIKE '%%NEXTVAL%%'
+                AND S.TEXT LIKE '%%:NEW.%s%%'
+                ORDER BY S.NAME, S.LINE
+                """ % (table_name, column_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'triggerName': result[0],
+                                 'sequenceName': result[1]
+                                 })
+        emit('identity_column_details_result', result_array, namespace=self._namespace_url)
+
+    def on_get_sequences_list(self, schema_name):
+        """For internal use only: will be called when 'get_sequences_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT sequence_name FROM sys.all_sequences WHERE sequence_owner='" + schema_name + "'")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('sequences_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_triggers_list(self):
+        """For internal use only: will be called when 'get_triggers_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT trigger_name FROM sys.user_triggers")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('triggers_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_schemas_list(self):
+        """For internal use only: will be called when 'get_schemas_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT username FROM SYS.all_users")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('schemas_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_types_list(self, schema_name):
+        """For internal use only: will be called when 'get_types_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT type_name FROM SYS.all_types WHERE owner='" + schema_name + "'")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('types_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_constraints_to_edit(self, table_name):
+        """For internal use only: will be called when 'get_constraints_to_edit' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    CASE a.constraint_type
+                        WHEN 'P' THEN '<img src="/static/icons/primarykey.png" /> Primary Key'
+                        WHEN 'R' THEN '<img src="/static/icons/foreignkey.png" /> Foreign Key'
+                        WHEN 'U' THEN '<img src="/static/icons/key.png" /> Unique'
+                        WHEN 'C' THEN '<img src="/static/icons/constraint.png" /> Check'
+                    END AS constraint_type,
+                    a.constraint_name AS name,
+                    decode(a.status, 'ENABLED', 'true', 'false') AS enabled,
+                    decode(a.deferrable,
+                            'INITIALLY IMMEDIATE', 'Initially Immediate',
+                            'NOT DEFERRABLE', 'Not Deferrable',
+                            'INITIALLY DEFERRED', 'Initially Deferred',
+                            a.deferrable) as deferrable_state,
+                    a.constraint_type,
+                    a.search_condition AS check_condition,
+                    a.r_owner,
+                    b.table_name,
+                    a.r_constraint_name,
+                    decode(a.delete_rule, 'NO ACTION', 'No Action', 'CASCADE', 'Cascade', 'SET NULL', 'Set Null', a.delete_rule) AS delete_rule,
+                    a.index_name
+                FROM
+                    SYS.user_constraints a,
+                    SYS.user_constraints b
+                WHERE
+                    a.r_constraint_name = b.constraint_name (+)
+                    AND a.table_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'type': result[1],
+                                 'name': result[2],
+                                 'enabled': json.loads(result[3]),
+                                 'deferrableState': result[4],
+                                 'constraintType': result[5],
+                                 'checkCondition': result[6],
+                                 'refOwner': result[7],
+                                 'refTable': result[8],
+                                 'refConstraintName': result[9],
+                                 'deleteRule': result[10],
+                                 'indexName': result[11]
+                                 })
+        emit('constraints_result_to_edit', result_array, namespace=self._namespace_url)
+
+    def on_get_tables_list(self, schema_name):
+        """For internal use only: will be called when 'get_tables_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT table_name FROM SYS.all_tables WHERE owner='" + schema_name + "'")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('tables_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_ref_constraints_list(self, table_name):
+        """For internal use only: will be called when 'get_ref_constraints_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("""SELECT constraint_name
+                            FROM SYS.all_constraints
+                            WHERE table_name='""" + table_name + "' " + """
+                            AND constraint_type in ('P', 'U')""")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('ref_constraints_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_columns_list(self, table_name):
+        """For internal use only: will be called when 'get_ref_columns_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("""SELECT column_name
+                            FROM SYS.user_tab_columns
+                            WHERE table_name='""" + table_name + "'")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('columns_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_association(self, props):
+        """For internal use only: will be called when 'get_association' event will be emitted
+        """
+        constraint_name = props['constraintName']
+        ref_constraint_name = props['refConstraintName']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT column_name FROM SYS.all_cons_columns WHERE constraint_name='" + constraint_name + "'")
+        local_columns = []
+        for result in cursor:
+            local_columns.append(result[0])
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT column_name FROM SYS.all_cons_columns WHERE constraint_name='" + ref_constraint_name + "'")
+        ref_columns = []
+        for result in cursor:
+            ref_columns.append(result[0])
+        result_array = [{'recid': 1,
+                         'localColumn': local_columns[0],
+                         'referencedColumn': ref_columns[0]}]
+        for i in range(1, ref_columns.__len__()):
+            result_array.append({'recid': i + 1,
+                                 'localColumn': '',
+                                 'referencedColumn': ref_columns[i]})
+        emit('association_result', result_array, namespace=self._namespace_url)
+
+    def on_get_constraint_columns(self, constraint_name):
+        """For internal use only: will be called when 'get_constraint_columns' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT column_name FROM SYS.all_cons_columns WHERE constraint_name='" + constraint_name + "'")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('constraint_columns_result', result_array, namespace=self._namespace_url)
+
+    def on_get_indexes_list(self, table_name):
+        """For internal use only: will be called when 'get_indexes_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    index_name,
+                    decode(uniqueness,
+                        'UNIQUE', 'Unique',
+                        'NONUNIQUE', 'Non-Unique',
+                        'BITMAP', 'Bitmap',
+                        'DOMAIN', 'Domian', uniqueness) as index_type
+                FROM
+                    SYS.user_indexes
+                WHERE
+                    table_name='%s'
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'indexName': result[0],
+                                 'indexType': result[1]})
+        emit('indexes_list_result', result_array, namespace=self._namespace_url)
+
 
 class DatabaseViewServer(Namespace):
     """Class to interact with the database view available under schema
