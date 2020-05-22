@@ -23,6 +23,11 @@ var DatabaseEditableTable = Class.create({
 	associationAvailableEventListeners: [],
 	constraintColumnsAvailableEventListeners: [],
 	indexesListAvailableEventListeners: [],
+	indexExpressionAvailableEventListeners: [],
+	indexTypesListAvailableEventListeners: [],
+	tablespacesListAvailableEventListeners: [],
+	tableStorageAvailableEventListeners: [],
+	tableTypeAvailableEventListeners: [],
 	initialize: function(tableName) {
 		this.tableName = tableName;
 		this.socket = io('/oracle_db_table');
@@ -41,6 +46,11 @@ var DatabaseEditableTable = Class.create({
 		this.associationAvailableEventListeners = [];
 		this.constraintColumnsAvailableEventListeners = [];
 		this.indexesListAvailableEventListeners = [];
+		this.indexExpressionAvailableEventListeners = [];
+		this.indexTypesListAvailableEventListeners = [];
+		this.tablespacesListAvailableEventListeners = [];
+		this.tableStorageAvailableEventListeners = [];
+		this.tableTypeAvailableEventListeners = [];
 	},
 	addColumnsAvailableEventListener: function(listener) {
 		if(listener !== null && listener !== undefined) {
@@ -229,9 +239,9 @@ var DatabaseEditableTable = Class.create({
 			this.columnsListAvailableEventListeners.splice(index, 1);
 		}
 	},
-	fireColumnsListAvailableEvent: function(result) {
+	fireColumnsListAvailableEvent: function(result, source) {
 		this.columnsListAvailableEventListeners.forEach(function(listener) {
-			listener(result);
+			listener(result, source);
 		});
 	},
 	addAssociationAvailableEventListener: function(listener) {
@@ -279,6 +289,86 @@ var DatabaseEditableTable = Class.create({
 	},
 	fireIndexesListAvailableEvent: function(result) {
 		this.indexesListAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addIndexExpressionAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.indexExpressionAvailableEventListeners.push(listener);
+		}
+	},
+	removeIndexExpressionAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.indexExpressionAvailableEventListeners.indexOf(listener);
+			this.indexExpressionAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireIndexExpressionAvailableEvent: function(result) {
+		this.indexExpressionAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addIndexTypesListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.indexTypesListAvailableEventListeners.push(listener);
+		}
+	},
+	removeIndexTypesListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.indexTypesListAvailableEventListeners.indexOf(listener);
+			this.indexTypesListAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireIndexTypesListAvailableEvent: function(result) {
+		this.indexTypesListAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addTablespacesListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.tablespacesListAvailableEventListeners.push(listener);
+		}
+	},
+	removeTablespacesListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.tablespacesListAvailableEventListeners.indexOf(listener);
+			this.tablespacesListAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireTablespacesListAvailableEvent: function(result, source) {
+		this.tablespacesListAvailableEventListeners.forEach(function(listener) {
+			listener(result, source);
+		});
+	},
+	addTableStorageAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.tableStorageAvailableEventListeners.push(listener);
+		}
+	},
+	removeTableStorageAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.tableStorageAvailableEventListeners.indexOf(listener);
+			this.tableStorageAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireTableStorageAvailableEvent: function(result) {
+		this.tableStorageAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addTableTypeAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.tableTypeAvailableEventListeners.push(listener);
+		}
+	},
+	removeTableTypeAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.tableTypeAvailableEventListeners.indexOf(listener);
+			this.tableTypeAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireTableTypeAvailableEvent: function(result) {
+		this.tableTypeAvailableEventListeners.forEach(function(listener) {
 			listener(result);
 		});
 	},
@@ -362,10 +452,10 @@ var DatabaseEditableTable = Class.create({
 	    });
 	    this.socket.emit('get_ref_constraints_list', tableName);
 	},
-	getColumnsList: function() {
+	getColumnsList: function(source) {
 		var that = this;
 	    this.socket.on('columns_list_result', function(result){
-	      that.fireColumnsListAvailableEvent(result);
+	      that.fireColumnsListAvailableEvent(result, source);
 	    });
 	    this.socket.emit('get_columns_list', this.tableName);
 	},
@@ -390,5 +480,40 @@ var DatabaseEditableTable = Class.create({
 	      that.fireIndexesListAvailableEvent(result);
 	    });
 	    this.socket.emit('get_indexes_list', this.tableName);
+	},
+	getIndexExpression: function(indexName) {
+		var that = this;
+	    this.socket.on('index_expression_result', function(result){
+	      that.fireIndexExpressionAvailableEvent(result);
+	    });
+	    this.socket.emit('get_index_expression', indexName);
+	},
+	getIndexTypesList: function(schemaName) {
+		var that = this;
+	    this.socket.on('index_types_list_result', function(result){
+	      that.fireIndexTypesListAvailableEvent(result);
+	    });
+	    this.socket.emit('get_index_types_list', schemaName);
+	},
+	getTablespacesList: function(source) {
+		var that = this;
+	    this.socket.on('tablespaces_list_result', function(result){
+	      that.fireTablespacesListAvailableEvent(result, source);
+	    });
+	    this.socket.emit('get_tablespaces_list');
+	},
+	getTableStorage: function() {
+		var that = this;
+	    this.socket.on('table_storge_result', function(result){
+	      that.fireTableStorageAvailableEvent(result);
+	    });
+	    this.socket.emit('get_table_storage', this.tableName);
+	},
+	getTableType: function() {
+		var that = this;
+	    this.socket.on('table_type_result', function(result){
+	      that.fireTableTypeAvailableEvent(result);
+	    });
+	    this.socket.emit('get_table_type', this.tableName);
 	}
 });

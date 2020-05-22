@@ -1326,22 +1326,220 @@ class DatabaseTableServer(Namespace):
         query = """
                 SELECT
                     index_name,
-                    decode(uniqueness,
-                        'UNIQUE', 'Unique',
-                        'NONUNIQUE', 'Non-Unique',
-                        'BITMAP', 'Bitmap',
-                        'DOMAIN', 'Domian', uniqueness) as index_type
+                    CASE
+                        WHEN index_type IN ('NORMAL', 'NORMAL/REV', 'IOT - TOP', 'IOT') THEN
+                            decode(uniqueness,
+                                'UNIQUE', 'Unique',
+                                'NONUNIQUE', 'Non-Unique',
+                                uniqueness)
+                        ELSE
+                            decode(index_type,
+                                'BITMAP', 'Bitmap',
+                                'DOMAIN', 'Domain', index_type)
+                    END as index_type,
+                    ityp_owner,
+                    ityp_name,
+                    parameters,
+                    decode(compression,
+                        'ENABLED', 'Select',
+                        'DISABLED', 'None',
+                        compression) AS key_compression,
+                    prefix_length,
+                    decode(degree, 'DEFAULT', 'Default', '1', 'None', 'Select') AS parallel_degree,
+                    degree AS degree,
+                    CASE
+                        WHEN INSTR(index_type, 'REV') > 0 THEN 'Reverse'
+                        ELSE 'No Reverse'
+                    END AS reverse,
+                    tablespace_name,
+                    pct_free,
+                    decode(logging, 'YES', 'On', 'Off') AS logging,
+                    ini_trans,
+                    buffer_pool,
+                    freelists,
+                    freelist_groups,
+                    initial_extent,
+                    next_extent,
+                    min_extents,
+                    decode(max_extents, 2147483645, null, max_extents) AS max_extents,
+                    decode(max_extents, 2147483645, 'true', 'false') as unlimited,
+                    pct_increase
                 FROM
                     SYS.user_indexes
+                WHERE
+                    table_name='%s'
+                    AND index_type != 'LOB'
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'indexName': result[0],
+                                 'indexType': result[1],
+                                 'iTypeOwner': result[2],
+                                 'iTypeName': result[3],
+                                 'parameters': result[4],
+                                 'keyCompression': result[5],
+                                 'prefixLength': result[6],
+                                 'parallelDegree': result[7],
+                                 'degree': result[8],
+                                 'reverse': result[9],
+                                 'tablespaceName': result[10],
+                                 'pctFree': result[11],
+                                 'logging': result[12],
+                                 'initrans': result[13],
+                                 'bufferMode': result[14],
+                                 'freeLists': result[15],
+                                 'freeListGroups': result[16],
+                                 'initialExtent': result[17],
+                                 'nextExtent': result[18],
+                                 'minExtent': result[19],
+                                 'maxExtent': result[20],
+                                 'unlimited': json.loads(result[21]),
+                                 'pctIncrease': result[22]
+                                 })
+        emit('indexes_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_index_expression(self, index_name):
+        """For internal use only: will be called when 'get_index_expression' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM,
+                    column_name,
+                    descend
+                FROM
+                    SYS.user_ind_columns
+                WHERE
+                    index_name='%s'
+                """ % index_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'expression': result[1],
+                                 'order': result[2]})
+        emit('index_expression_result', result_array, namespace=self._namespace_url)
+
+    def on_get_index_types_list(self, schema_name):
+        """For internal use only: will be called when 'get_index_types_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    indextype_name
+                FROM
+                    SYS.all_indextypes
+                WHERE
+                    implementation_schema='%s'
+                """ % schema_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('index_types_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_tablespaces_list(self):
+        """For internal use only: will be called when 'get_tablespace_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT tablespace_name FROM SYS.user_tablespaces")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('tablespaces_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_table_storage(self, table_name):
+        """For internal use only: will be called when 'get_table_storage' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    decode(degree, 'DEFAULT', 'Default', '1', 'None', 'Select') AS parallel_degree,
+                    TRIM(degree) AS degree,
+                    tablespace_name,
+                    pct_free,
+                    pct_used,
+                    decode(logging, 'YES', 'On', 'Off') AS logging,
+                    ini_trans,
+                    buffer_pool,
+                    freelists,
+                    freelist_groups,
+                    initial_extent,
+                    next_extent,
+                    min_extents,
+                    decode(max_extents, 2147483645, null, max_extents) AS max_extents,
+                    decode(max_extents, 2147483645, 'true', 'false') as unlimited,
+                    pct_increase
+                FROM
+                    SYS.user_tables
                 WHERE
                     table_name='%s'
                 """ % table_name
         cursor.execute(query)
         result_array = []
         for result in cursor:
-            result_array.append({'indexName': result[0],
-                                 'indexType': result[1]})
-        emit('indexes_list_result', result_array, namespace=self._namespace_url)
+            result_array.append({'parallelDegree': result[0],
+                                 'degree': result[1],
+                                 'tablespaceName': result[2],
+                                 'pctFree': result[3],
+                                 'pctUsed': result[4],
+                                 'logging': result[5],
+                                 'initrans': result[6],
+                                 'bufferMode': result[7],
+                                 'freeLists': result[8],
+                                 'freeListGroups': result[9],
+                                 'initialExtent': result[10],
+                                 'nextExtent': result[11],
+                                 'minExtent': result[12],
+                                 'maxExtent': result[13],
+                                 'unlimited': json.loads(result[14]),
+                                 'pctIncrease': result[15]})
+        emit('table_storge_result', result_array, namespace=self._namespace_url)
+
+    def on_get_table_type(self, table_name):
+        """For internal use only: will be called when 'get_table_type' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    CASE
+                        WHEN temporary = 'Y' AND duration IS NULL THEN 'Temporary (Transaction)'
+                        WHEN temporary = 'Y' AND duration IS NOT NULL THEN 'Temporary (Session)'
+                        WHEN iot_type IS NOT NULL THEN 'Index Organized'
+                        WHEN external_tab IS NOT NULL THEN 'External'
+                        WHEN partitioned = 'YES' THEN 'Partitioned'
+                        WHEN nested = 'YES' THEN 'Nested'
+                        ELSE 'Normal'
+                    END AS table_type
+                FROM
+                    (SELECT
+                        a.temporary,
+                        a.duration,
+                        a.iot_type,
+                        a.partitioned,
+                        a.nested,
+                        ( SELECT
+                            1
+                          FROM
+                            SYS.all_external_tables e
+                          WHERE
+                            e.table_name = a.table_name
+                        ) AS external_tab
+                    FROM SYS.user_tables a
+                    WHERE
+                        a.table_name = '%s')
+                """ % table_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('table_type_result', result_array, namespace=self._namespace_url)
 
 
 class DatabaseViewServer(Namespace):

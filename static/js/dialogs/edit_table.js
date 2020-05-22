@@ -1878,13 +1878,25 @@ var ConstraintsPanelUI = Class.create({
 var IndexesPanelUI = Class.create({
 	id: null,
 	label: null,
+	schemaName: null,
 	layout: null,
 	expressionsGrid: null,
-	initialize: function(id, label) {
+	indexSelectedEventListeners: [],
+	indexTypeSchemaChangedEventListeners: [],
+	columnsList: [],
+	newIndexCounter: 1,
+	tablespacesList: [],
+	initialize: function(id, label, schemaName) {
 		this.id = id;
 		this.label = label;
+		this.schemaName = schemaName;
 		this.layout = null;
 		this.expressionsGrid = null;
+		this.indexSelectedEventListeners = [];
+		this.indexTypeSchemaChangedEventListeners = [];
+		this.columnsList = [];
+		this.newIndexCounter = 1;
+		this.tablespacesList = [];
 	},
 	createPanel: function() {
 		var that = this;
@@ -1938,14 +1950,18 @@ var IndexesPanelUI = Class.create({
 				<div id='` + this.id + `-expressions-grid' class='index_expression_grid'></div> <!-- or height: 53% -->
 				<div id='` + this.id + `-domain-index-type-panel' class='index_domain_panel'>
 					<div style='line-height: 30px;'>
-						<label for='` + this.id + `-domain-index-type-schema-select'>Index Type Schema:</label>
-						<select id='` + this.id + `-domain-index-type-schema-select' style='width: 266px;'>
-						</select>
+						<label for='` + this.id + `-domain-index-type-schema-input'>Index Type Schema:</label>
+						<input id='` + this.id + `-domain-index-type-schema-input' autocomplete='off'
+								list='` + this.id + `-domain-index-type-schema-list' style='width: 266px;' />
+						<datalist id='` + this.id + `-domain-index-type-schema-list'>
+						</datalist>
 					</div>
 					<div style='line-height: 30px;'>
-						<label for='` + this.id + `-domain-index-type-select'>Index Type:</label>
-						<select id='` + this.id + `-domain-index-type-select' style='margin-left: 53px; width: 245px;'>
-						</select>
+						<label for='` + this.id + `-domain-index-type-input'>Index Type:</label>
+						<input id='` + this.id + `-domain-index-type-input' autocomplete='off'
+								list='` + this.id + `-domain-index-type-list' style='margin-left: 53px; width: 245px;' />
+						<datalist id='` + this.id + `-domain-index-type-list'>
+						</datalist>
 						<a href='#' onclick="
 											$j(this).w2overlay({
 												openAbove: true,
@@ -2212,6 +2228,155 @@ var IndexesPanelUI = Class.create({
 										}
 									}
 								});
+
+						var selectedOption = $j('#' + that.id + '-indexes-list')[0].selectedOptions[0];
+						var indexName = selectedOption.value;
+						var keyCompression = selectedOption.getAttribute('keyCompression');
+						var prefixLength = selectedOption.getAttribute('prefixLength');
+						var parallelDegree = selectedOption.getAttribute('parallelDegree');
+						var degree = selectedOption.getAttribute('degree');
+						var reverse = selectedOption.getAttribute('reverse');
+						var tablespaceName = selectedOption.getAttribute('tablespaceName');
+						var pctFree = selectedOption.getAttribute('pctFree');
+						var logging = selectedOption.getAttribute('logging');
+						var initrans = selectedOption.getAttribute('initrans');
+						var bufferMode = selectedOption.getAttribute('bufferMode');
+						var freeLists = selectedOption.getAttribute('freeLists');
+						var freeListGroups = selectedOption.getAttribute('freeListGroups');
+						var initialExtent = selectedOption.getAttribute('initialExtent');
+						var nextExtent = selectedOption.getAttribute('nextExtent');
+						var minExtent = selectedOption.getAttribute('minExtent');
+						var maxExtent = selectedOption.getAttribute('maxExtent');
+						var unlimited = selectedOption.getAttribute('unlimited');
+						var pctIncrease = selectedOption.getAttribute('pctIncrease');
+
+						if(keyCompression !== 'null'){
+							$j('#' + that.id + '-index-advance-key-compression-select').val(keyCompression);
+						} else {
+							$j('#' + that.id + '-index-advance-key-compression-select').val('None');
+						}
+						if(prefixLength !== 'null') {
+							$j('#' + that.id + '-index-advance-key-compression-prefix-length-input').val(prefixLength);
+						} else {
+							$j('#' + that.id + '-index-advance-key-compression-prefix-length-input').val('');
+						}
+						if(parallelDegree !== 'null') {
+							$j('#' + that.id + '-index-advance-parallel-degree-select').val(parallelDegree);
+						} else {
+							$j('#' + that.id + '-index-advance-parallel-degree-select').val('None');
+						}
+						if(degree !== 'null') {
+							$j('#' + that.id + '-index-advance-parallel-degree-input').val(degree);
+						} else {
+							$j('#' + that.id + '-index-advance-parallel-degree-input').val('');
+						}
+						if(reverse !== 'null') {
+							$j('#' + that.id + '-index-advance-reverse-select').val(reverse);
+						} else {
+							$j('#' + that.id + '-index-advance-reverse-select').val('No Reverse');
+						}
+
+						$j('#' + that.id + '-index-advance-tablespace-select').empty();
+						that.tablespacesList.forEach(function(item) {
+							$j('#' + that.id + '-index-advance-tablespace-select').append('<option>' + item + '</option>');
+						});
+
+						if(tablespaceName !== 'null') {
+							$j('#' + that.id + '-index-advance-tablespace-select').val(tablespaceName);
+						} else {
+							$j('#' + that.id + '-index-advance-tablespace-select').val('');
+						}
+						if(pctFree !== 'null') {
+							$j('#' + that.id + '-index-advance-percent-free-input').val(pctFree);
+						} else {
+							$j('#' + that.id + '-index-advance-percent-free-input').val('');
+						}
+						$j('#' + that.id + '-index-advance-percent-used-input').val('');
+						if(logging !== 'null') {
+							$j('#' + that.id + '-index-advance-logging-select').val(logging);
+						} else {
+							$j('#' + that.id + '-index-advance-logging-select').val('Off');
+						}
+						if(initrans !== 'null') {
+							$j('#' + that.id + '-index-advance-initrans-input').val(initrans);
+						} else {
+							$j('#' + that.id + '-index-advance-initrans-input').val('');
+						}
+						if(bufferMode !== 'null') {
+							$j('#' + that.id + '-index-advance-buffer-mode-select').val(bufferMode);
+						} else {
+							$j('#' + that.id + '-index-advance-buffer-mode-select').val('DEFAULT');
+						}
+						if(freeLists !== 'null') {
+							$j('#' + that.id + '-index-advance-freelists-input').val(freeLists);
+						} else {
+							$j('#' + that.id + '-index-advance-freelists-input').val('');
+						}
+						if(freeListGroups !== 'null') {
+							$j('#' + that.id + '-index-advance-freelist-groups-input').val(freeListGroups);
+						} else {
+							$j('#' + that.id + '-index-advance-freelist-groups-input').val('');
+						}
+
+						if(initialExtent !== 'null') {
+							var result = that.calcUnit(initialExtent);
+							var number = result.substr(0, result.indexOf(' '));
+							var unit = result.substr(result.indexOf(' ') + 1);
+							$j('#' + that.id + '-index-advance-initial-extent-input').val(number);
+							$j('#' + that.id + '-index-advance-initial-extent-select').val(unit);
+						} else {
+							$j('#' + that.id + '-index-advance-initial-extent-input').val('');
+							$j('#' + that.id + '-index-advance-initial-extent-select').val(' ');
+						}
+
+						if(nextExtent !== 'null') {
+							var result = that.calcUnit(nextExtent);
+							var number = result.substr(0, result.indexOf(' '));
+							var unit = result.substr(result.indexOf(' ') + 1);
+							$j('#' + that.id + '-index-advance-next-extent-input').val(number);
+							$j('#' + that.id + '-index-advance-next-extent-select').val(unit);
+						} else {
+							$j('#' + that.id + '-index-advance-next-extent-input').val('');
+							$j('#' + that.id + '-index-advance-next-extent-select').val(' ');
+						}
+
+						if(minExtent !== 'null') {
+							var result = that.calcUnit(minExtent);
+							var number = result.substr(0, result.indexOf(' '));
+							var unit = result.substr(result.indexOf(' ') + 1);
+							$j('#' + that.id + '-index-advance-min-extent-input').val(number);
+							$j('#' + that.id + '-index-advance-min-extent-select').val(unit);
+						} else {
+							$j('#' + that.id + '-index-advance-min-extent-input').val('');
+							$j('#' + that.id + '-index-advance-min-extent-select').val(' ');
+						}
+
+						if(maxExtent !== 'null') {
+							var result = that.calcUnit(maxExtent);
+							var number = result.substr(0, result.indexOf(' '));
+							var unit = result.substr(result.indexOf(' ') + 1);
+							$j('#' + that.id + '-index-advance-max-extent-input').val(number);
+							$j('#' + that.id + '-index-advance-max-extent-select').val(unit);
+						} else {
+							$j('#' + that.id + '-index-advance-max-extent-input').val('');
+							$j('#' + that.id + '-index-advance-max-extent-select').val(' ');
+						}
+
+						$j('#' + that.id + '-index-advance-max-extent-checkbox').prop('checked', JSON.parse(unlimited));
+
+						if(pctIncrease !== 'null') {
+							$j('#' + that.id + '-index-advance-percent-increase-input').val(pctIncrease);
+						} else {
+							$j('#' + that.id + '-index-advance-percent-increase-input').val('');
+						}
+
+						$j('#' + that.id + '-index-advance-schema-select').empty();
+						$j('#' + that.id + '-domain-index-type-schema-list').children().each(function() {
+							$j('#' + that.id + '-index-advance-schema-select').append('<option>' + this.value + '</option>');
+						});
+
+						$j('#' + that.id + '-index-advance-name-input').val(indexName);
+						$j('#' + that.id + '-index-advance-schema-select').val(that.schemaName);
 					},
 					onClose: function(event) {
 						w2ui[that.id + '-index-advance-tabs'].destroy();
@@ -2220,24 +2385,97 @@ var IndexesPanelUI = Class.create({
 			});
 
 			this.expressionsGrid = $j('#' + this.id + '-expressions-grid').w2grid({
-											name: this.id + '-grid',
+											name: this.id + '-expressions-grid',
 											header: 'Expressions',
 											show: { header: true,
 											      toolbar: true,
 											      lineNumbers: true
 											    },
+											reorderRows: true,
 											columns: [
-												{field: 'expression', caption: 'Expression', size: '250px'},
-												{field: 'order', caption: 'Order', size: '100%'}
+												{field: 'expression', caption: 'Expression', size: '250px',
+													editable: { type: 'select', items: this.columnsList }
+												},
+												{field: 'order', caption: 'Order', size: '100%',
+													editable: { type: 'select', items: ['ASC', 'DESC', 'None'] }
+												}
 											],
 											toolbar: {
 												items: [
 													{type: 'break'},
 													{id: this.id + '-grid-toolbar-add-expression', type: 'button', caption: 'Add', icon: 'add_icon'},
 													{id: this.id + '-grid-toolbar-delete-expression', type: 'button', caption: 'Delete', icon: 'delete_icon'}
-												]
+												],
+												onClick: function(event) {
+													var grid = w2ui[that.id + '-expressions-grid'];
+													if(event.target === that.id + '-grid-toolbar-add-expression') {
+														grid.add({recid: grid.records.length + 1, expression: that.columnsList[0], order: 'ASC'})
+													} else if(event.target === that.id + '-grid-toolbar-delete-expression') {
+														var records = grid.getSelection();
+														records.forEach(function(record) {
+															grid.remove(record);
+														});
+													}
+												}
 											}
 										});
+
+			$j('#' + this.id + '-indexes-list').on('click', function() {
+				var indexName = this.value;
+				var selectedOption = $j(this)[0].selectedOptions[0];
+				var indexType = selectedOption.getAttribute('type');
+
+				$j('#' + that.id + '-index-name').val(indexName);
+				$j('#' + that.id + '-index-type-select').val(indexType).trigger('change');
+
+				if(indexType === 'Domain') {
+					var iTypeOwner = selectedOption.getAttribute('itype_owner');
+					var iTypeName = selectedOption.getAttribute('itype_name');
+					var parameters = selectedOption.getAttribute('parameters');
+
+					if(parameters === 'null') {
+						parameters = '';
+					}
+
+					$j('#' + that.id + '-domain-index-type-schema-input').val(iTypeOwner).trigger('change');
+					$j('#' + that.id + '-domain-index-type-input').val(iTypeName);
+					$j('#' + that.id + '-domain-index-type-parameters-input').val(parameters);
+				}
+				that.fireIndexSelectedEvent(indexName);
+			});
+
+			//Index Type Schema event handlers
+			$j('#' + this.id + '-domain-index-type-schema-input').on('change', function() {
+				that.fireIndexTypeSchemaChangedEvent(this.value);
+			});
+
+			$j('#' + this.id + '-domain-index-type-schema-input').on('click', function() {
+				this.value = '';
+			});
+
+			//Index Type event handlers
+			$j('#' + this.id + '-domain-index-type-input').on('change', function() {
+				
+			});
+
+			$j('#' + this.id + '-domain-index-type-input').on('click', function() {
+				this.value = '';
+			});
+
+			//Index type parameters event handlers
+			$j('#' + this.id + '-domain-index-type-parameters-input').on('change', function() {
+				
+			});
+
+			//Index add button event handler
+			$j('#' + this.id + '-index-add-button').on('click', function() {
+				that.addNewIndex();
+			});
+
+			//Index drop button event handler
+			$j('#' + this.id + '-index-drop-button').on('click', function() {
+				that.dropIndexes();
+			});
 		}
 	},
 	isPanelCreated: function() {
@@ -2247,17 +2485,155 @@ var IndexesPanelUI = Class.create({
 			return true;
 		}
 	},
+	isExpressionsGridCreated: function() {
+		if(this.expressionsGrid === null) {
+			return false;
+		} else {
+			return true;
+		}
+	},
+	getExpressionsGrid: function() {
+		return this.expressionsGrid;
+	},
 	getPanel: function() {
 		return this.layout;
 	},
+	selectIndex: function(index) {
+		$j('#' + this.id + '-indexes-list')[0].selectedIndex = index;
+		$j('#' + this.id + '-indexes-list').trigger('click');
+	},
 	populateIndexesList: function(list) {
 		$j('#' + this.id + '-indexes-list').empty();
-
+		var that = this;
 		list.forEach(function(item) {
 			var indexName = item['indexName'];
 			var indexType = item['indexType'];
-			$j('#' + this.id + '-indexes-list').append('<option type="' + indexType + '">' + indexName + '</option>');
+			var iTypeOwner = item['iTypeOwner'];
+			var iTypeName = item['iTypeName'];
+			var parameters = item['parameters'];
+			var keyCompression = item['keyCompression'];
+			var prefixLength = item['prefixLength'];
+			var parallelDegree = item['parallelDegree'];
+			var degree = item['degree'];
+			var reverse = item['reverse'];
+			var tablespaceName = item['tablespaceName'];
+			var pctFree = item['pctFree'];
+			var logging = item['logging'];
+			var initrans = item['initrans'];
+			var bufferMode = item['bufferMode'];
+			var freeLists = item['freeLists'];
+			var freeListGroups = item['freeListGroups'];
+			var initialExtent = item['initialExtent'];
+			var nextExtent = item['nextExtent'];
+			var minExtent = item['minExtent'];
+			var maxExtent = item['maxExtent'];
+			var unlimited = item['unlimited'];
+			var pctIncrease = item['pctIncrease'];
+
+			$j('#' + that.id + '-indexes-list').append('<option ' 
+														+ 'type="' + indexType + '" '
+														+ 'itype_owner="' + iTypeOwner + '" '
+														+ 'itype_name="' + iTypeName + '" '
+														+ 'parameters="' + parameters + '" '
+														+ 'keyCompression="' + keyCompression + '" '
+														+ 'prefixLength="' + prefixLength + '" '
+														+ 'parallelDegree="' + parallelDegree + '" '
+														+ 'degree="' + degree + '" '
+														+ 'reverse="' + reverse + '" '
+														+ 'tablespaceName="' + tablespaceName + '" '
+														+ 'pctFree="' + pctFree + '" '
+														+ 'logging="' + logging + '" '
+														+ 'initrans="' + initrans + '" '
+														+ 'bufferMode="' + bufferMode + '" '
+														+ 'freeLists="' + freeLists + '" '
+														+ 'freeListGroups="' + freeListGroups + '" '
+														+ 'initialExtent="' + initialExtent + '" '
+														+ 'nextExtent="' + nextExtent + '" '
+														+ 'minExtent="' + minExtent + '" '
+														+ 'maxExtent="' + maxExtent + '" '
+														+ 'unlimited="' + unlimited + '" '
+														+ 'pctIncrease="' + pctIncrease + '" '
+														+ '>' + indexName + '</option>');
 		});
+	},
+	addIndexSelectedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.indexSelectedEventListeners.push(listener);
+		}
+	},
+	removeIndexSelectedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.indexSelectedEventListeners.indexOf(listener);
+			this.indexSelectedEventListeners.splice(index, 1);
+		}
+	},
+	fireIndexSelectedEvent: function(indexName) {
+		this.indexSelectedEventListeners.forEach(function(listener) {
+			listener(indexName);
+		});
+	},
+	addIndexTypeSchemaChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.indexTypeSchemaChangedEventListeners.push(listener);
+		}
+	},
+	removeIndexTypeSchemaChangedEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.indexTypeSchemaChangedEventListeners.indexOf(listener);
+			this.indexTypeSchemaChangedEventListeners.splice(index, 1);
+		}
+	},
+	fireIndexTypeSchemaChangedEvent: function(schemaName) {
+		this.indexTypeSchemaChangedEventListeners.forEach(function(listener) {
+			listener(schemaName);
+		});
+	},
+	populateIndexTypeSchemasList: function(list) {
+		$j('#' + this.id + '-domain-index-type-schema-list').empty();
+
+		var that = this;
+		list.forEach(function(item) {
+			$j('#' + that.id + '-domain-index-type-schema-list').append('<option>' + item + '</option>');
+		});
+	},
+	populateIndexTypesList: function(list) {
+		$j('#' + this.id + '-domain-index-type-list').empty();
+
+		var that = this;
+		list.forEach(function(item) {
+			$j('#' + that.id + '-domain-index-type-list').append('<option>' + item + '</option>');
+		});
+	},
+	addNewIndex: function() {
+		var newIndexName = this.label + '_INDEX' + this.newIndexCounter++;
+		$j('#' + this.id + '-indexes-list').append('<option type="Non-Unique">' + newIndexName + '</option>');
+
+		var newItemIndex = $j('#' + this.id + '-indexes-list').children().length;
+		this.selectIndex(newItemIndex - 1);
+
+		this.expressionsGrid.clear();
+
+		$j('#' + this.id + '-domain-index-type-schema-input').val('SYS').trigger('change');
+		$j('#' + this.id + '-domain-index-type-input').val('');
+		$j('#' + this.id + '-domain-index-type-parameters-input').val('');
+	},
+	dropIndexes: function() {
+
+	},
+	populateColumnsList: function(list) {
+		this.columnsList = list;
+	},
+	calcUnit: function(value) { 
+		var units = [' ', 'K', 'M', 'G', 'T']; 
+		var uIndex = 0; 
+		while(value >= 1024) { 
+			value = value/1024; 
+			uIndex++;
+		} 
+		return value + ' ' + units[uIndex];
+	},
+	populateTablespacesList: function(list) {
+		this.tablespacesList = list;
 	},
 	destroy: function() {
 		if(this.layout !== null) {
@@ -2285,10 +2661,12 @@ var StoragePanelUI = Class.create({
 	id: null,
 	label: null,
 	layout: null,
+	record: {},
 	initialize: function(id, label) {
 		this.id = id;
 		this.label = label;
 		this.layout = null;
+		this.record = {};
 	},
 	createPanel: function() {
 		if(this.layout === null) {
@@ -2451,6 +2829,142 @@ var StoragePanelUI = Class.create({
 	},
 	getPanel: function() {
 		return this.layout;
+	},
+	populateTableStorage: function(result) {
+		this.record = result[0];
+
+		var parallelDegree = this.record['parallelDegree'];
+		var degree = this.record['degree'];
+		var tablespaceName = this.record['tablespaceName'];
+		var pctFree = this.record['pctFree'];
+		var pctUsed = this.record['pctUsed'];
+		var logging = this.record['logging'];
+		var initrans = this.record['initrans'];
+		var bufferMode = this.record['bufferMode'];
+		var freeLists = this.record['freeLists'];
+		var freeListGroups = this.record['freeListGroups'];
+		var initialExtent = this.record['initialExtent'];
+		var nextExtent = this.record['nextExtent'];
+		var minExtent = this.record['minExtent'];
+		var maxExtent = this.record['maxExtent'];
+		var unlimited = this.record['unlimited'];
+		var pctIncrease = this.record['pctIncrease'];
+
+		if(parallelDegree !== 'null' && parallelDegree !== null) {
+			$j('#' + this.id + '-parallel-degree-select').val(parallelDegree);
+		} else {
+			$j('#' + this.id + '-parallel-degree-select').val(' ');
+		}
+		if(degree !== 'null' && degree !== null) {
+			$j('#' + this.id + '-parallel-degree-input').val(degree);
+		} else {
+			$j('#' + this.id + '-parallel-degree-input').val('');
+		}
+		if(tablespaceName !== 'null' && tablespaceName !== null) {
+			$j('#' + this.id + '-tablespace-select').val(tablespaceName);
+		} else {
+			$j('#' + this.id + '-tablespace-select').val('');
+		}
+		if(pctFree !== 'null' && pctFree !== null) {
+			$j('#' + this.id + '-percent-free-input').val(pctFree);
+		} else {
+			$j('#' + this.id + '-percent-free-input').val('');
+		}
+		if(pctUsed !== 'null' && pctUsed !== null) {
+			$j('#' + this.id + '-percent-used-input').val(pctUsed);
+		} else {
+			$j('#' + this.id + '-percent-used-input').val('');
+		}
+		if(logging !== 'null' && logging !== null) {
+			$j('#' + this.id + '-logging-select').val(logging);
+		} else {
+			$j('#' + this.id + '-logging-select').val('');
+		}
+		if(initrans !== 'null' && initrans !== null) {
+			$j('#' + this.id + '-initrans-input').val(initrans);
+		} else {
+			$j('#' + this.id + '-initrans-input').val('');
+		}
+		if(bufferMode !== 'null' && bufferMode !== null) {
+			$j('#' + this.id + '-buffer-mode-select').val(bufferMode);
+		} else {
+			$j('#' + this.id + '-buffer-mode-select').val('');
+		}
+		if(freeLists !== 'null' && freeLists !== null) {
+			$j('#' + this.id + '-freelists-input').val(freeLists);
+		} else {
+			$j('#' + this.id + '-freelists-input').val('');
+		}
+		if(freeListGroups !== 'null' && freeListGroups !== null) {
+			$j('#' + this.id + '-freelist-groups-input').val(freeListGroups);
+		} else {
+			$j('#' + this.id + '-freelist-groups-input').val('');
+		}
+		if(initialExtent !== 'null' && initialExtent !== null) {
+			var result = this.calcUnit(initialExtent);
+			var number = result.substr(0, result.indexOf(' '));
+			var unit = result.substr(result.indexOf(' ') + 1);
+			$j('#' + this.id + '-initial-extent-input').val(number);
+			$j('#' + this.id + '-initial-extent-select').val(unit);
+		} else {
+			$j('#' + this.id + '-initial-extent-input').val('');
+			$j('#' + this.id + '-initial-extent-select').val(' ');
+		}
+		if(nextExtent !== 'null' && nextExtent !== null) {
+			var result = this.calcUnit(nextExtent);
+			var number = result.substr(0, result.indexOf(' '));
+			var unit = result.substr(result.indexOf(' ') + 1);
+			$j('#' + this.id + '-next-extent-input').val(number);
+			$j('#' + this.id + '-next-extent-select').val(unit);
+		} else {
+			$j('#' + this.id + '-next-extent-input').val('');
+			$j('#' + this.id + '-next-extent-select').val(' ');
+		}
+		if(minExtent !== 'null' && minExtent !== null) {
+			var result = this.calcUnit(minExtent);
+			var number = result.substr(0, result.indexOf(' '));
+			var unit = result.substr(result.indexOf(' ') + 1);
+			$j('#' + this.id + '-min-extent-input').val(number);
+			$j('#' + this.id + '-min-extent-select').val(unit);
+		} else {
+			$j('#' + this.id + '-min-extent-input').val('');
+			$j('#' + this.id + '-min-extent-select').val(' ');
+		}
+		if(maxExtent !== 'null' && maxExtent !== null) {
+			var result = this.calcUnit(maxExtent);
+			var number = result.substr(0, result.indexOf(' '));
+			var unit = result.substr(result.indexOf(' ') + 1);
+			$j('#' + this.id + '-max-extent-input').val(number);
+			$j('#' + this.id + '-max-extent-select').val(unit);
+		} else {
+			$j('#' + this.id + '-max-extent-input').val('');
+			$j('#' + this.id + '-max-extent-select').val(' ');
+		}
+		if(unlimited !== 'null') {
+			$j('#' + this.id + '-max-extent-checkbox').prop('checked', JSON.parse(unlimited));
+		}
+		if(pctIncrease !== 'null' && pctIncrease !== null) {
+			$j('#' + this.id + '-percent-increase-input').val(pctIncrease);
+		} else {
+			$j('#' + this.id + '-percent-increase-input').val('');
+		}
+	},
+	calcUnit: function(value) { 
+		var units = [' ', 'K', 'M', 'G', 'T']; 
+		var uIndex = 0; 
+		while(value >= 1024) { 
+			value = value/1024; 
+			uIndex++;
+		} 
+		return value + ' ' + units[uIndex];
+	},
+	populateTablespacesList: function(list) {
+		$j('#' + this.id + '-tablespace-select').empty();
+
+		var that = this;
+		list.forEach(function(item) {
+			$j('#' + that.id + '-tablespace-select').append('<option>' + item + '</option>');
+		});
 	},
 	destroy: function() {
 		if(this.layout !== null) {
