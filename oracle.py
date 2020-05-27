@@ -116,7 +116,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT table_name FROM sys.user_tables")
+        cursor.execute("SELECT table_name FROM sys.user_tables ORDER BY table_name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -127,7 +127,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT view_name FROM sys.user_views")
+        cursor.execute("SELECT view_name FROM sys.user_views ORDER BY view_name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -138,7 +138,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT index_name FROM sys.user_indexes")
+        cursor.execute("SELECT index_name FROM sys.user_indexes ORDER BY index_name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -149,7 +149,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT mview_name FROM sys.user_mviews")
+        cursor.execute("SELECT mview_name FROM sys.user_mviews ORDER BY mview_name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -166,6 +166,7 @@ class DatabaseSchemaServer(Namespace):
                     SYS.user_objects
                 WHERE
                     object_type='PROCEDURE'
+                ORDER BY object_name
                 """
         cursor = db_conn.cursor()
         cursor.execute(query)
@@ -185,6 +186,7 @@ class DatabaseSchemaServer(Namespace):
                     SYS.user_objects
                 WHERE
                     object_type='FUNCTION'
+                ORDER BY object_name
                 """
         cursor = db_conn.cursor()
         cursor.execute(query)
@@ -204,6 +206,7 @@ class DatabaseSchemaServer(Namespace):
                         SYS.user_objects
                     WHERE
                         object_type='PACKAGE'
+                ORDER BY object_name
                     """
         cursor = db_conn.cursor()
         cursor.execute(query)
@@ -217,7 +220,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT sequence_name FROM sys.user_sequences")
+        cursor.execute("SELECT sequence_name FROM sys.user_sequences ORDER BY sequence_name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -228,7 +231,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT synonym_name FROM sys.user_synonyms")
+        cursor.execute("SELECT synonym_name FROM sys.user_synonyms ORDER BY synonym_name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -239,7 +242,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT synonym_name FROM sys.all_synonyms")
+        cursor.execute("SELECT synonym_name FROM sys.all_synonyms ORDER BY synonym_name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -250,7 +253,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT trigger_name FROM sys.user_triggers")
+        cursor.execute("SELECT trigger_name FROM sys.user_triggers ORDER BY trigger_name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -261,7 +264,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT type_name FROM sys.user_types")
+        cursor.execute("SELECT type_name FROM sys.user_types ORDER BY type_name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -272,7 +275,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT name FROM sys.user_queues")
+        cursor.execute("SELECT name FROM sys.user_queues ORDER BY name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -283,7 +286,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT db_link FROM sys.user_db_links")
+        cursor.execute("SELECT db_link FROM sys.user_db_links ORDER BY db_link")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -294,7 +297,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT db_link FROM sys.all_db_links WHERE owner='PUBLIC'")
+        cursor.execute("SELECT db_link FROM sys.all_db_links WHERE owner='PUBLIC' ORDER BY db_link")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -305,7 +308,7 @@ class DatabaseSchemaServer(Namespace):
         """
         db_conn = self._db_connection.get_connection()
         cursor = db_conn.cursor()
-        cursor.execute("SELECT directory_name FROM sys.all_directories")
+        cursor.execute("SELECT directory_name FROM sys.all_directories ORDER BY directory_name")
         result_array = []
         for result in cursor:
             result_array.append(result[0])
@@ -982,7 +985,19 @@ class DatabaseTableServer(Namespace):
                     f.pctversion,
                     decode(f.retention, 900, 'true', 'false') AS retention,
                     g.virtual_column,
-                    b.data_type_owner AS schema
+                    b.data_type_owner AS schema,
+                    CASE
+                        WHEN b.column_name = d.column_name THEN d.constraint_name
+                        ELSE ''
+                    END AS constraint_name,
+                    CASE
+                        WHEN b.column_name = d.column_name THEN c.index_name
+                        ELSE ''
+                    END AS index_name,
+                    CASE
+                        WHEN b.column_name = d.column_name THEN 'EXISTING'
+                        ELSE ''
+                    END AS pk_type
                 FROM
                     SYS.user_tables a,
                     SYS.user_tab_columns b,
@@ -1029,7 +1044,10 @@ class DatabaseTableServer(Namespace):
                                  'lobPctVersion': result[16],
                                  'lobRetention': json.loads(result[17]),
                                  'virtual': result[18],
-                                 'schema': result[19]})
+                                 'schema': result[19],
+                                 'pkConstraintName': result[20],
+                                 'pkIndexName': result[21],
+                                 'pkType': result[22]})
         emit('columns_result_to_edit', result_array, namespace=self._namespace_url)
 
     def on_get_column_constraints(self, props):
@@ -1540,6 +1558,17 @@ class DatabaseTableServer(Namespace):
         for result in cursor:
             result_array.append(result[0])
         emit('table_type_result', result_array, namespace=self._namespace_url)
+
+    def on_get_table_comments(self, table_name):
+        """For internal use only: will be called when 'get_table_comments' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT comments FROM SYS.user_tab_comments WHERE table_name='" + table_name + "'")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('table_comments_result', result_array, namespace=self._namespace_url)
 
 
 class DatabaseViewServer(Namespace):

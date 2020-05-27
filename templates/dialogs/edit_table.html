@@ -105,6 +105,7 @@
 				dbTable.addIndexTypesListAvailableEventListener(onIndexTypesListAvailable);
 				dbTable.addTablespacesListAvailableEventListener(onTablespacesListAvailable);
 				dbTable.addTableStorageAvailableEventListener(onTableStorageAvailable);
+				dbTable.addTableCommentsAvailableEventListener(onTableCommentsAvailable);
 
 				w2ui["table-edit-layout"].content('left', $j().w2sidebar({
 					name: 'table-edit-sidebar',
@@ -154,14 +155,19 @@
 						} if(id === 'table-edit-sidebar-comments') {
 							if(!commentsPanel.isPanelCreated()) {
 								commentsPanel.createPanel();
+								dbTable.getTableComments();
 							} else {
 								commentsPanel.refresh();
 							}
 						} if(id === 'table-edit-sidebar-ddl') {
 							if(!ddlPanel.isPanelCreated()) {
 								ddlPanel.createPanel();
+								var ddl = columnsPanel.getChanges();
+								ddlPanel.setDDL(ddl);
 							} else {
 								ddlPanel.refresh();
+								var ddl = columnsPanel.getChanges();
+								ddlPanel.setDDL(ddl);
 							}
 						} else if(id === 'table-edit-sidebar-columns') {
 							columnsPanel.refresh();
@@ -211,10 +217,11 @@
 				}
 
 				function onColumnsAvailable(result) {
-					columnsPanel.getColumnsGrid().records = result;
-					columnsPanel.getColumnsGrid().refresh();
-					columnsPanel.getColumnsGrid().unlock();
-					columnsPanel.getColumnsGrid().select(1);
+					// columnsPanel.getColumnsGrid().records = result;
+					// columnsPanel.getColumnsGrid().refresh();
+					// columnsPanel.getColumnsGrid().unlock();
+					// columnsPanel.getColumnsGrid().select(1);
+					columnsPanel.loadData(result);
 				}
 
 				function onIdentityColumnDetailsAvailable(result) {
@@ -361,6 +368,10 @@
 
 				function onTableStorageAvailable(result) {
 					storagePanel.populateTableStorage(result);
+				}
+
+				function onTableCommentsAvailable(result) {
+					commentsPanel.populateTableComments(result);
 				}
 
 				function destroy() {

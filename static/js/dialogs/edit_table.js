@@ -19,6 +19,9 @@ var ColumnsPanelUI = Class.create({
 	columnSelectedEventListeners: [],
 	complexTypeSchemaChangedEventListeners: [],
 	identityColumnSchemaChangedEventListeners: [],
+	orignalData: [],
+	complexDataType: [],
+	removedColumns: [],
 	initialize: function(id, label, schemaName) {
 		this.id = id;
 		this.label = label;
@@ -31,6 +34,9 @@ var ColumnsPanelUI = Class.create({
 		this.columnSelectedEventListeners = [];
 		this.complexTypeSchemaChangedEventListeners = [];
 		this.identityColumnSchemaChangedEventListeners = [];
+		this.orignalData = [];
+		this.complexDataType = [];
+		this.removedColumns = [];
 		this.simplePanelsId = [
 			this.id + '-data-type-tab-content-simple-char-size-panel',
 			this.id + '-data-type-tab-content-simple-number-precision-scale-panel',
@@ -147,11 +153,13 @@ var ColumnsPanelUI = Class.create({
 												onClick: function(event) {
 													var grid = w2ui[that.id + '-grid'];
 													if(event.target === that.id + '-grid-toolbar-add-column') {
-														grid.add({recid: grid.records.length + 1});
+														grid.add({recid: grid.records.length + 1, columnName: 'COLUMN1', dataType: 'VARCHAR2', size: '20', mode: 'NEW', pkConstraintName: null, pkIndexName: null, columnType: 'simple', pkType: null, pk: null});
 													} else if(event.target === that.id + '-grid-toolbar-drop-column') {
-														var records = grid.getSelection();
-														records.forEach(function(record) {
-															grid.remove(record);
+														var recids = grid.getSelection();
+														recids.forEach(function(recid) {
+															var record = grid.get(recid);
+															that.removedColumns.push(record['columnName']);
+															grid.remove(recid);
 														});
 													} else if(event.target === that.id + '-grid-toolbar-copy-column') {
 														grid.save();
@@ -160,6 +168,7 @@ var ColumnsPanelUI = Class.create({
 															var record = grid.get(recid);
 															var newRecord = Object.clone(record);
 															newRecord['recid'] = grid.records.length + 1;
+															newRecord['mode'] = 'COPIED';
 															grid.add(newRecord);
 														});
 													}
@@ -174,6 +183,17 @@ var ColumnsPanelUI = Class.create({
 														this.set(recid, {pk: '<img src="/static/icons/primarykey.png" />'});
 													} else {
 														this.set(recid, {pk: ''});
+													}
+
+													var record = this.get(recid);
+													if(record['pkType'] === 'EXISTING') {
+														record['pkType'] = 'REMOVE_EXISTING';
+													} else if(record['pkType'] === 'REMOVE_EXISTING') {
+														record['pkType'] = 'EXISTING';
+													} else if(record['pkType'] === null) {
+														record['pkType'] = 'NEW';
+													} else if(record['pkType'] === 'NEW') {
+														record['pkType'] = null;
 													}
 												}
 											},
@@ -448,7 +468,7 @@ var ColumnsPanelUI = Class.create({
 									<select id='` + this.id + `-lob-parameters-tab-content-cache-select' style='margin-left: 83px; width: 173px;'>
 										<option>--Not Specified--</option>
 										<option>CACHE</option>
-										<option>NO CACHE</option>
+										<option>NOCACHE</option>
 										<option>CACHE READS</option>
 									</select>
 								</div>
@@ -526,7 +546,7 @@ var ColumnsPanelUI = Class.create({
 					var records = that.columnsGrid.getSelection();
 					that.columnsGrid.save();
 					records.forEach(function(recid) {
-						that.columnsGrid.set(recid, {dataType: newValue, columnType: 'simple', size: newSize});
+						that.columnsGrid.set(recid, {dataType: newValue, columnType: 'simple', size: newSize, virtual: 'NO'});
 					});
 				} else if(this.id === that.id + '-data-type-tab-content-selector-complex-radio') {
 					$j('#' + that.id + '-data-type-tab-content-simple-panel').removeClass('display_data_type_panel');
@@ -534,10 +554,11 @@ var ColumnsPanelUI = Class.create({
 					$j('#' + that.id + '-data-type-tab-content-complex-panel').addClass('display_data_type_panel');
 
 					var newValue = $j('#' + that.id + '-data-type-tab-content-complex-column-type-select').val();
+					var newSchemaValue = $j('#' + that.id + '-data-type-tab-content-complex-schema-select').val();
 					var records = that.columnsGrid.getSelection();
 					that.columnsGrid.save();
 					records.forEach(function(recid) {
-						that.columnsGrid.set(recid, {dataType: newValue, columnType: 'complex', size: ''});
+						that.columnsGrid.set(recid, {dataType: newValue, columnType: 'complex', size: '', schema: newSchemaValue, virtual: 'NO'});
 					});
 				} else {
 					$j('#' + that.id + '-data-type-tab-content-simple-panel').removeClass('display_data_type_panel');
@@ -547,7 +568,7 @@ var ColumnsPanelUI = Class.create({
 					var records = that.columnsGrid.getSelection();
 					that.columnsGrid.save();
 					records.forEach(function(recid) {
-						that.columnsGrid.set(recid, {dataType: '<img src="/static/icons/function.png" />--Derived--', columnType: 'virtual', size: ''});
+						that.columnsGrid.set(recid, {dataType: '<img src="/static/icons/function.png" />--Derived--', columnType: 'virtual', size: '', virtual: 'YES'});
 					});
 				}
 			});
@@ -746,7 +767,17 @@ var ColumnsPanelUI = Class.create({
 				var newValue = this.value;
 				that.columnsGrid.save();
 				records.forEach(function(recid) {
-					that.columnsGrid.set(recid, {expression: newValue});
+					that.columnsGrid.set(recid, {expression: newValue, default: newValue});
+				});
+			});
+
+			//LOB Storage Enabled event handler
+			$j('#' + this.id + '-lob-parameters-tab-content-define-check').on('change', function() {
+				var records = that.columnsGrid.getSelection();
+				var newValue = this.value;
+				that.columnsGrid.save();
+				records.forEach(function(recid) {
+					that.columnsGrid.set(recid, {lobStorageEnabled: newValue});
 				});
 			});
 
@@ -906,17 +937,27 @@ var ColumnsPanelUI = Class.create({
 	getTabs: function() {
 		return this.tabs;
 	},
+	loadData: function(data) {
+		var that = this;
+		data.forEach(function(record) {
+			var copy = Object.clone(record);
+			that.orignalData.push(copy);
+		});
+		this.columnsGrid.records = data;
+		this.columnsGrid.refresh();
+		this.columnsGrid.unlock();
+		this.columnsGrid.select(1);
+	},
 	updateControls: function() {
 		var recid = this.columnsGrid.getSelection()[0];
 		var record = this.columnsGrid.get(recid);
 		var columnName = record['columnName'];
 		var dataType = record['dataType'];
 		var size = record['size'];
-		var precision = record['precision'];
 		var scale = record['scale'];
 		var unit = record['unit'];
 		var virtual = record['virtual'];
-		var virtualExpression = record['default'];
+		var virtualExpression = record['expression'] !== null ? record['expression'] : record['default'];
 		var schema = record['schema'];
 
 		var lobSegmentName = record['lobSegmentName'];
@@ -946,8 +987,7 @@ var ColumnsPanelUI = Class.create({
 			}
 		}
 
-		if(dataType === 'ANYDATA' || dataType === 'ANYDATASET' || dataType === 'ANYTYPE' || dataType === 'DBURITYPE'
-			|| dataType === 'HTTPURITYPE' || dataType === 'XDBURITYPE' || dataType === 'ANYDATA' || dataType === 'XMLTYPE') {
+		if(this.complexDataType.indexOf(dataType) >= 0) {
 			$j('#' + this.id + '-data-type-tab-content-selector-complex-radio').prop('checked', true).trigger('click');
 			$j('#' + this.id + '-data-type-tab-content-complex-column-type-select').val(dataType).trigger('change');
 			$j('#' + this.id + '-data-type-tab-content-complex-schema-select').val(schema);
@@ -966,21 +1006,21 @@ var ColumnsPanelUI = Class.create({
 				$j('#' + this.id + '-data-type-tab-content-simple-char-unit-select').val(unit);
 			} else if(dataType === 'NUMBER' || dataType === 'DEC' 
 				|| dataType === 'DECIMAL' || dataType === 'NUMERIC') {
-				$j('#' + this.id + '-data-type-tab-content-simple-number-precision-input').val(precision).trigger('change');
-				$j('#' + this.id + '-data-type-tab-content-simple-number-scale-input').val(scale);
+				$j('#' + this.id + '-data-type-tab-content-simple-number-precision-input').val(size).trigger('change');
+				$j('#' + this.id + '-data-type-tab-content-simple-number-scale-input').val(scale).trigger('change');
 			} else if(dataType === 'NATIONAL CHAR' || dataType === 'NATIONAL CHAR VARYING' 
 				|| dataType === 'NATIONAL CHARACTER' || dataType === 'NATIONAL CHARACTER VARYING'
 				|| dataType === 'NCHAR' || dataType === 'NCHAR VARYING' || dataType === 'NVARCHAR2'
 				|| dataType === 'RAW' || dataType === 'UROWID') {
 				$j('#' + this.id + '-data-type-tab-content-simple-char-size-only-input').val(size).trigger('change');
 			} else if(dataType === 'FLOAT') {
-				$j('#' + this.id + '-data-type-tab-content-simple-number-precision-only-input').val(precision).trigger('change');
+				$j('#' + this.id + '-data-type-tab-content-simple-number-precision-only-input').val(size).trigger('change');
 			} else if(dataType === 'INTERVAL DAY') {
-				$j('#' + this.id + '-data-type-tab-content-simple-interval-day-precision-input').val(precision).trigger('change');
+				$j('#' + this.id + '-data-type-tab-content-simple-interval-day-precision-input').val(size).trigger('change');
 			} else if(dataType === 'INTERVAL YEAR') {
-				$j('#' + this.id + '-data-type-tab-content-simple-interval-year-precision-input').val(precision).trigger('change');
+				$j('#' + this.id + '-data-type-tab-content-simple-interval-year-precision-input').val(size).trigger('change');
 			} else if(dataType === 'TIMESTAMP') {
-				$j('#' + this.id + '-data-type-tab-content-simple-timezone-precision-input').val(precision).trigger('change');
+				$j('#' + this.id + '-data-type-tab-content-simple-timezone-precision-input').val(size).trigger('change');
 			}
 		}
 
@@ -1090,10 +1130,13 @@ var ColumnsPanelUI = Class.create({
 
 		if(dataType === 'CHAR') {
 			$j('#' + this.simplePanelsId[0]).addClass('display_simple_panel');
+			//First change trigger with empty and then with value
+			$j('#' + this.id + '-data-type-tab-content-simple-char-size-input').val('').trigger('change');
 			$j('#' + this.id + '-data-type-tab-content-simple-char-size-input').val('20').trigger('change');
 		} else if(dataType === 'NUMBER') {
 			$j('#' + this.simplePanelsId[1]).addClass('display_simple_panel');
 			$j('#' + this.id + '-data-type-tab-content-simple-number-precision-input').val('').trigger('change');
+			$j('#' + this.id + '-data-type-tab-content-simple-number-scale-input').val('').trigger('change');
 		} else if(dataType === 'CHAR_SIZE_ONLY') {
 			$j('#' + this.simplePanelsId[2]).addClass('display_simple_panel');
 			$j('#' + this.id + '-data-type-tab-content-simple-char-size-only-input').val('').trigger('change');
@@ -1152,12 +1195,14 @@ var ColumnsPanelUI = Class.create({
 	populateComplexTypesList: function(list) {
 		var that = this;
 		$j('#' + this.id + '-data-type-tab-content-complex-column-type-select').empty();
+		this.complexDataType.clear();
 		list.forEach(function(item) {
 			var selected = '';
 			if(item === 'XMLTYPE') {
 				selected = 'selected';
 			}
 			$j('#' + that.id + '-data-type-tab-content-complex-column-type-select').append('<option ' + selected + '>' + item + '</option>');
+			that.complexDataType.push(item);
 		});
 	},
 	populateTriggersList: function(list) {
@@ -1214,6 +1259,363 @@ var ColumnsPanelUI = Class.create({
 		this.identityColumnSchemaChangedEventListeners.forEach(function(listener) {
 			listener(value);
 		});
+	},
+	getOrignalRecord: function(recid) {
+		var recordToReturn = null;
+		this.orignalData.forEach(function(record) {
+			if(record['recid'] === recid) {
+				recordToReturn = record;
+			}
+		});
+		return recordToReturn;
+	},
+	getChanges: function() {
+		var that = this;
+		var deltaChanges = [];
+		//this.orignalData.forEach(function(originalRecord) {
+		this.columnsGrid.records.forEach(function(gridRecord) {
+			//var recid = originalRecord['recid'];
+			var recid = gridRecord['recid'];
+			//var gridRecord = that.columnsGrid.get(recid);
+			var originalRecord = that.getOrignalRecord(recid);
+			if(originalRecord !== null) {
+				var changedRecord = {};
+
+				changedRecord['recid'] = recid;
+				changedRecord['mode'] = gridRecord['mode'];
+				changedRecord['pkConstraintName'] = originalRecord['pkConstraintName'];
+				changedRecord['pkIndexName'] = originalRecord['pkIndexName'];
+				changedRecord['columnType'] = gridRecord['columnType'];
+				changedRecord['virtual'] = gridRecord['virtual'];
+				changedRecord['pkType'] = gridRecord['pkType'];
+
+				changedRecord['pk'] = gridRecord['pk'] !== originalRecord['pk'] ? gridRecord['pk'] : null;
+
+				changedRecord['columnName'] = gridRecord['columnName'] !== originalRecord['columnName'] ? gridRecord['columnName'] : null;
+				changedRecord['originalColumnName'] = originalRecord['columnName'];
+				
+				changedRecord['dataType'] = gridRecord['dataType'] !== originalRecord['dataType'] ? gridRecord['dataType'] : null;
+				changedRecord['originalDataType'] = originalRecord['dataType'];
+
+				changedRecord['size'] = parseInt(gridRecord['size']) !== parseInt(originalRecord['size']) ? (Number.isNaN(parseInt(gridRecord['size'])) ? null : parseInt(gridRecord['size'])) : null;
+				changedRecord['notNull'] = gridRecord['notNull'] !== originalRecord['notNull'] ? gridRecord['notNull'] : null;
+				changedRecord['default'] = gridRecord['default'] !== originalRecord['default'] ? gridRecord['default'] : null;
+				changedRecord['comments'] = gridRecord['comments'] !== originalRecord['comments'] ? gridRecord['comments'] : null;
+				changedRecord['scale'] = parseInt(gridRecord['scale']) !== parseInt(originalRecord['scale']) ? (Number.isNaN(parseInt(gridRecord['scale'])) ? null : parseInt(gridRecord['scale'])) : null;
+				
+				changedRecord['unit'] = gridRecord['unit'] !== originalRecord['unit'] ? gridRecord['unit'] : null;
+				changedRecord['originalUnit'] = originalRecord['unit'];
+
+				changedRecord['schema'] = gridRecord['schema'] !== originalRecord['schema'] ? gridRecord['schema'] : null;
+				changedRecord['expression'] = gridRecord['expression'] !== originalRecord['expression'] ? gridRecord['expression'] : null;
+
+				changedRecord['lobStorageEnabled'] = gridRecord['lobStorageEnabled'];
+				changedRecord['lobSegmentName'] = gridRecord['lobSegmentName'] !== originalRecord['lobSegmentName'] ? gridRecord['lobSegmentName'] : null;
+				changedRecord['lobStorageInRow'] = gridRecord['lobStorageInRow'] !== originalRecord['lobStorageInRow'] ? gridRecord['lobStorageInRow'] : null;
+				changedRecord['lobChunk'] = gridRecord['lobChunk'] !== originalRecord['lobChunk'] ? gridRecord['lobChunk'] : null;
+				changedRecord['lobPctVersion'] = gridRecord['lobPctVersion'] !== originalRecord['lobPctVersion'] ? gridRecord['lobPctVersion'] : null;
+				changedRecord['lobFreePools'] = gridRecord['lobFreePools'] !== originalRecord['lobFreePools'] ? gridRecord['lobFreePools'] : null;
+				changedRecord['lobRetention'] = gridRecord['lobRetention'] !== originalRecord['lobRetention'] ? gridRecord['lobRetention'] : null;
+				changedRecord['lobCache'] = gridRecord['lobCache'] !== originalRecord['lobCache'] ? gridRecord['lobCache'] : null;
+
+				changedRecord['identityColumnType'] = gridRecord['identityColumnType'] !== originalRecord['identityColumnType'] ? gridRecord['identityColumnType'] : null;
+				changedRecord['identityColumnTrigger'] = gridRecord['identityColumnTrigger'] !== originalRecord['identityColumnTrigger'] ? gridRecord['identityColumnTrigger'] : null;
+				changedRecord['identityColumnSequenceSchema'] = gridRecord['identityColumnSequenceSchema'] !== originalRecord['identityColumnSequenceSchema'] ? gridRecord['identityColumnSequenceSchema'] : null;
+				changedRecord['identityColumnSequence'] = gridRecord['identityColumnSequence'] !== originalRecord['identityColumnSequence'] ? gridRecord['identityColumnSequence'] : null;
+				changedRecord['identityColumnIsNull'] = gridRecord['identityColumnIsNull'] !== originalRecord['identityColumnIsNull'] ? gridRecord['identityColumnIsNull'] : null;
+
+				deltaChanges.push(changedRecord);
+			} else {
+				deltaChanges.push(gridRecord);
+			}
+		});
+		var ddl = '';
+		ddl += this.getRemovedColumns();
+		ddl += this.getColumnRenameChanges(deltaChanges);
+		ddl += this.getColumnChanges(deltaChanges);
+		ddl += this.getPrimaryKeyChanges(deltaChanges);
+		return ddl.replace(/^\n+/g,'');
+	},
+	getRemovedColumns: function() {
+		var ddl = '';
+		var that = this;
+		this.removedColumns.forEach(function(column) {
+			ddl += '\n\nALTER TABLE ' + that.label;
+			ddl += '\nDROP COLUMN ' + column;
+		});
+
+		return ddl;
+	},
+	getColumnRenameChanges: function(deltaChanges) {
+		var ddl = '';
+		var that = this;
+
+		deltaChanges.forEach(function(record) {
+			if(record['columnName'] !== null && record['mode'] !== 'NEW' && record['mode'] !== 'COPIED') {
+				ddl += '\n\nALTER TABLE ' + that.label + ' RENAME COLUMN ' + record['originalColumnName'] + ' TO ' + record['columnName'] + ';';
+			}
+		});
+
+		return ddl;
+	},
+	getColumnChanges: function(deltaChanges) {
+		var that = this;
+		var ddl = '';
+
+		deltaChanges.forEach(function(record) {
+			var changesInRecord = false;
+
+			if(record['dataType'] !== null || (record['size'] !== null && record['size'] !== '') || (record['scale'] !== null && record['scale'] !== '')
+				|| record['unit'] !== null || (record['default'] !== null && record['default'] !== '') || record['notNull'] !== null) {
+				changesInRecord = true;
+			}
+
+			if(changesInRecord === true) {
+				var columnChange = record['columnName'] !== null ? record['columnName'] : record['originalColumnName'];
+
+				if(record['dataType'] !== null || record['size'] !== null || record['scale'] !== null
+					|| record['unit'] !== null || record['expression'] !== null) {
+					
+					var dataType = record['dataType'] !== null ? record['dataType'] : record['originalDataType'];
+					
+					if(record['columnType'] === 'simple') {
+						columnChange += ' ' + dataType;
+					} else if(record['columnType'] === 'complex') {
+						columnChange += ' ' + record['schema'] + '.' + dataType;
+					} else if(record['columnType'] === 'virtual' || record['virtual'] === 'YES') {
+						if(dataType !== null && dataType.indexOf('--Derived') < 0) {
+							columnChange += ' ' + dataType + ' AS ( ' + record['expression'] + ' ) VIRTUAL';
+						} else {
+							columnChange += ' AS ( ' + record['expression'] + ' ) VIRTUAL';
+						}
+					}
+						
+					if(record['columnType'] === 'simple') {
+						if(dataType === 'CHAR' || dataType === 'CHAR VARYING' 
+							|| dataType === 'CHARACTER' || dataType === 'CHARACTER VARYING'
+							|| dataType === 'VARCHAR' || dataType === 'VARCHAR2') {
+
+							var unit = (record['unit'] !== null ? record['unit'] : record['originalUnit']);
+
+							if(record['size'] !== null && record['size'] !== undefined) {
+								columnChange += '(' + record['size'];
+							}
+							if(record['size'] !== null && record['size'] !== undefined && unit !== null && unit !== undefined) {
+								columnChange +=  ' ' + unit;
+							}
+							if(record['size'] !== null && record['size'] !== undefined) {
+								columnChange += ')';
+							}
+
+						} else if(dataType === 'NUMBER' || dataType === 'DEC' 
+							|| dataType === 'DECIMAL' || dataType === 'NUMERIC') {
+
+							if(record['size'] !== null && record['size'] !== undefined) {
+								columnChange += '(' + record['size'];
+							}
+							if(record['size'] !== null && record['size'] !== undefined && record['scale'] !== null && record['scale'] !== undefined) {
+								columnChange +=  ', ' + record['scale'];
+							}
+							if(record['size'] !== null && record['size'] !== undefined) {
+								columnChange += ')';
+							}
+							
+						} else if(dataType === 'NATIONAL CHAR' || dataType === 'NATIONAL CHAR VARYING' 
+							|| dataType === 'NATIONAL CHARACTER' || dataType === 'NATIONAL CHARACTER VARYING'
+							|| dataType === 'NCHAR' || dataType === 'NCHAR VARYING' || dataType === 'NVARCHAR2'
+							|| dataType === 'RAW' || dataType === 'UROWID') {
+							
+							if(record['size'] !== null && record['size'] !== undefined) {
+								columnChange += '(' + record['size'] + ')';
+							}
+
+						} else if(dataType === 'FLOAT') {
+
+							if(record['size'] !== null && record['size'] !== undefined) {
+								columnChange += '(' + record['size'] + ')';
+							}
+							
+						} else if(dataType === 'INTERVAL DAY') {
+
+							if(record['size'] !== null && record['size'] !== undefined) {
+								columnChange += '(' + record['size'] +')';
+							}
+
+							if(record['scale'] !== null && record['scale'] !== undefined) {
+								columnChange += ' TO SECOND(' + record['scale'] + ')';
+							} else {
+								columnChange += ' TO SECOND';
+							}
+							
+						} else if(dataType === 'INTERVAL YEAR') {
+							
+							if(record['size'] !== null && record['size'] !== undefined) {
+								columnChange += '(' + record['size'] + ') TO MONTH';
+							} else {
+								columnChange += ' TO MONTH';
+							}
+
+						} else if(dataType === 'TIMESTAMP') {
+							
+							if(record['size'] !== null && record['size'] !== undefined) {
+								columnChange += '(' + record['size'] + ')';
+							}
+							if(record['unit'] !== null && record['unit'] !== undefined) {
+								columnChange +=  ' WITH ' + record['unit'];
+							}
+
+						}
+					}
+				}
+
+				if(record['default'] !== null && record['default'] !== undefined && record['columnType'] !== 'virtual') {
+					columnChange += ' DEFAULT ' + record['default'];
+				}
+
+				if(record['notNull'] !== null && record['notNull'] !== undefined) {
+					if(record['notNull'] === true) {
+						columnChange += ' NOT NULL';
+					} else if(record['notNull'] === false) {
+						columnChange += ' NULL';
+					}
+				}
+
+				if(record['mode'] === 'NEW' || record['mode'] === 'COPIED') {
+					ddl += '\n\nALTER TABLE ' + that.label;
+					ddl += '\nADD (' + columnChange + ');';
+				} else if(record['columnType'] !== 'virtual') {
+					if(ddl === '') {
+						ddl += '\n\nALTER TABLE ' + that.label;
+						ddl += '\nMODIFY (' + columnChange + ');';
+					} else {
+						ddl += '\n\nALTER TABLE ' + that.label;
+						ddl += '\nMODIFY (' + columnChange + ');';
+					}
+				} else {
+					ddl += '\n\nALTER TABLE ' + that.label;
+					ddl += '\nDROP COLUMN ' + (record['columnName'] !== null ? record['columnName'] : record['originalColumnName']) + ';';
+
+					ddl += '\n\nALTER TABLE ' + that.label;
+					ddl += '\nADD (' + columnChange + ');';
+				}
+
+				if(record['lobStorageEnabled'] === 'on') {
+					ddl += '\n\nALTER TABLE ' + that.label + ' MOVE';
+					ddl += '\nLOB (' + (record['columnName'] !== null ? record['columnName'] : record['originalColumnName']) + ')';
+					ddl += ' STORE AS ' + record['lobSegmentName'];
+
+					var bracketsRequired = (record['lobStorageInRow'] !== null && record['lobStorageInRow'] !== undefined) ||
+											(record['lobChunk'] !== null && record['lobChunk'] !== undefined) ||
+											(record['lobPctVersion'] !== null && record['lobPctVersion'] !== undefined) ||
+											(record['lobFreePools'] !== null && record['lobFreePools'] !== undefined) ||
+											(record['lobRetention'] !== null && record['lobRetention'] !== undefined) ||
+											(record['lobCache'] !== null && record['lobCache'] !== undefined);
+					if(bracketsRequired) {
+						ddl += '\n(';
+					}
+
+					if(record['lobStorageInRow'] === 'Enabled') {
+						ddl += '\n\tENABLE STORAGE IN ROW';
+					}
+					if(record['lobStorageInRow'] === 'Disabled') {
+						ddl += '\n\tDISABLE STORAGE IN ROW';
+					}
+					if(record['lobChunk'] !== null && record['lobChunk'] !== undefined) {
+						ddl += '\n\tCHUNK ' + record['lobChunk'];
+					}
+					if(record['lobPctVersion'] !== null && record['lobPctVersion'] !== undefined) {
+						ddl += '\n\tPCTVERSION ' + record['lobPctVersion'];
+					}
+					if(record['lobFreePools'] !== null && record['lobFreePools'] !== undefined) {
+						ddl += '\n\tFREEPOOLS ' + record['lobFreePools'];
+					}
+					if(record['lobRetention'] === 'on') {
+						ddl += '\n\tRETENTION';
+					}
+					if(record['lobCache'] !== null && record['lobCache'] !== undefined) {
+						ddl += '\n\t' + record['lobCache'];
+					}
+
+					if(bracketsRequired) {
+						ddl += '\n)';
+					}
+					ddl += ';';
+				}
+			}
+		});
+
+		return ddl;
+	},
+	getPrimaryKeyChanges: function(deltaChanges) {
+		var changesInPK = false;
+		var pkConstraintName = null;
+		var pkIndexName = null;
+		var ddl = '';
+		var that = this;
+		//Check if any changes made for primary key
+		//and get the primary key constraint if available
+		deltaChanges.forEach(function(record) {
+			if(record['pkType'] === 'NEW' || record['pkType'] === 'REMOVE_EXISTING') {
+				changesInPK = true;
+			}
+			if(record['pkConstraintName'] !== null) {
+				pkConstraintName = record['pkConstraintName'];
+			}
+			if(record['pkIndexName'] !== null) {
+				pkIndexName = record['pkIndexName'];
+			}
+		});
+
+		//if changes are made for the primary key
+		if(changesInPK === true) {
+			//Drop the existing primary key constraint if available
+			if(pkConstraintName !== null) {
+				ddl += '\n\nALTER TABLE ' + this.label;
+				ddl += '\nDROP CONSTRAINT ' + pkConstraintName + ';';
+			}
+
+			//Get all the columns marked for primary key
+			var pkColumns = '';
+			deltaChanges.forEach(function(changedRecord) {
+				//Since Primary Key changes are not at the column level
+				//but are at the table level, the delta changes will not
+				//have full information about the PK changes. So we have
+				//to fetch this info from the table (columnsGrid)
+				var record = that.columnsGrid.get(changedRecord['recid']);
+				if(record['pk'] !== null && record['pk'] !== '') {
+					if(pkColumns === '') {
+						pkColumns += record['columnName'];
+					} else {
+						pkColumns += ',\n' + record['columnName'];
+					}
+				}
+			});
+			//if columns are marked for primary key
+			//create DDL for same
+			if(pkColumns !== '') {
+				ddl += '\n\n';
+				ddl += 'ALTER TABLE ' + this.label;
+				ddl += '\nADD CONSTRAINT ';
+				if(pkConstraintName !== null) {
+					ddl += pkConstraintName + ' PRIMARY KEY';
+				} else {
+					ddl += this.label + '_PK PRIMARY KEY';
+				}
+				ddl += '\n(\n';
+				ddl += pkColumns;
+				ddl += '\n)';
+				if(pkIndexName !== null) {
+					ddl += '\nUSING INDEX';
+					ddl += '\n(';
+					ddl += '\n\tCREATE UNIQUE INDEX ' + pkIndexName + '1 ON ' + this.label + ' ';
+					ddl += '(' + pkColumns.replace(/,\n/g, ' ASC, ') + ' ASC' + ')';
+					ddl += '\n)';
+				}
+				ddl += '\nENABLE;';
+			}
+		}
+
+		return ddl;
 	},
 	destroy: function() {
 		if(this.layout !== null) {
@@ -3026,6 +3428,9 @@ var CommentsPanelUI = Class.create({
 	getPanel: function() {
 		return this.layout;
 	},
+	populateTableComments: function(result) {
+		$j('#' + this.id + '-comments-input').val(result[0]);
+	},
 	destroy: function() {
 		if(this.layout !== null) {
 			this.layout.destroy();
@@ -3047,10 +3452,12 @@ var DDLPanelUI = Class.create({
 	id: null,
 	label: null,
 	layout: null,
+	sqlEditor: null,
 	initialize: function(id, label) {
 		this.id = id;
 		this.label = label;
 		this.layout = null;
+		this.sqlEditor = null;
 	},
 	createPanel: function() {
 		if(this.layout === null) {
@@ -3073,7 +3480,7 @@ var DDLPanelUI = Class.create({
 							<input id='` + this.id + `-ddl-create-radio' type='radio'>Create</input>
 							<input id='` + this.id + `-ddl-update-radio' type='radio' checked style='margin-left: 30px;'>Update (for current edit)</input>
 						</div>
-						<textarea id='` + this.id + `-ddl-input' style='height: 479px; width: 638px;' />
+						<div id='` + this.id + `-ddl-input' style='height: 479px; width: 638px;'></div>
 						<div style='line-height: 30px;'>
 							<button id='` + this.id + `-save-button' style='float: right;'>Save...</button>
 						</div>
@@ -3081,6 +3488,11 @@ var DDLPanelUI = Class.create({
 				</div>
 			`;
 			this.layout.content('main', mainHtml);
+
+			this.sqlEditor = ace.edit(this.id + '-ddl-input');
+			this.sqlEditor.setTheme('ace/theme/sqlserver');
+			this.sqlEditor.session.setMode('ace/mode/sqlserver');
+			this.sqlEditor.setReadOnly(true);
 		}
 	},
 	isPanelCreated: function() {
@@ -3093,9 +3505,15 @@ var DDLPanelUI = Class.create({
 	getPanel: function() {
 		return this.layout;
 	},
+	setDDL: function(ddl) {
+		this.sqlEditor.setValue(ddl);
+	},
 	destroy: function() {
 		if(this.layout !== null) {
 			this.layout.destroy();
+		}
+		if(this.sqlEditor !== null) {
+			this.sqlEditor.destroy();
 		}
 	},
 	refresh: function() {

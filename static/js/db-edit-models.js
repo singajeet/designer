@@ -28,6 +28,7 @@ var DatabaseEditableTable = Class.create({
 	tablespacesListAvailableEventListeners: [],
 	tableStorageAvailableEventListeners: [],
 	tableTypeAvailableEventListeners: [],
+	tableCommentsAvailableEventListeners: [],
 	initialize: function(tableName) {
 		this.tableName = tableName;
 		this.socket = io('/oracle_db_table');
@@ -51,6 +52,7 @@ var DatabaseEditableTable = Class.create({
 		this.tablespacesListAvailableEventListeners = [];
 		this.tableStorageAvailableEventListeners = [];
 		this.tableTypeAvailableEventListeners = [];
+		this.tableCommentsAvailableEventListeners = [];
 	},
 	addColumnsAvailableEventListener: function(listener) {
 		if(listener !== null && listener !== undefined) {
@@ -372,6 +374,22 @@ var DatabaseEditableTable = Class.create({
 			listener(result);
 		});
 	},
+	addTableCommentsAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.tableCommentsAvailableEventListeners.push(listener);
+		}
+	},
+	removeTableCommentsAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.tableCommentsAvailableEventListeners.indexOf(listener);
+			this.tableCommentsAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireTableCommentsAvailableEvent: function(result) {
+		this.tableCommentsAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
 	getColumns: function() {
 		var that = this;
 	    this.socket.on('columns_result_to_edit', function(result){
@@ -515,5 +533,12 @@ var DatabaseEditableTable = Class.create({
 	      that.fireTableTypeAvailableEvent(result);
 	    });
 	    this.socket.emit('get_table_type', this.tableName);
+	},
+	getTableComments: function() {
+		var that = this;
+	    this.socket.on('table_comments_result', function(result){
+	      that.fireTableCommentsAvailableEvent(result);
+	    });
+	    this.socket.emit('get_table_comments', this.tableName);
 	}
 });
