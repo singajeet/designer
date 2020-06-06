@@ -1,0 +1,32 @@
+
+.list-view-wrap {
+	height: 100%;
+	width: 100%;
+	overflow-x: hidden;
+	overflow-y: auto;
+	border: 1px solid rgb(223, 223, 223);
+	padding: 2px;
+	background-color: #f2f2f2
+}
+
+.list-view-item {
+	width: 100%;
+	margin: 2px;
+	border: 1px solid #c5c5c5;
+	padding: 10px;
+	overflow-y: hidden;
+	background-image: linear-gradient(#f9f9f9,#e4e4e4);
+}
+
+.list-view-item:hover {
+	background-image: linear-gradient(#f9f9f9, #c3daff);
+}
+
+.list-view-item-selected {
+	background-image: linear-gradient(#f9f9f9, #adcafa);
+}
+
+.list-view-item-pre {
+	/*height: 50px;*/
+	margin-top: -2px;
+}

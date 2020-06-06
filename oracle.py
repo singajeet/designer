@@ -356,6 +356,8 @@ class DatabaseTableServer(Namespace):
                             THEN a.data_type || '(' || a.data_precision || ', ' || a.data_scale || ')'
                         WHEN a.data_type IN ('NUMBER', 'DEC', 'DECIMAL', 'NUMERIC') AND a.data_precision IS NOT NULL AND a.data_scale IS NULL
                             THEN a.data_type || '(' || a.data_precision || ')'
+                        WHEN a.data_type IN ('NATIONAL CHAR', 'NATIONAL CHAR VARYING', 'NATIONAL CHARACTER', 'NATIONAL CHARACTER VARYING', 'NCHAR', 'NCHAR VARYING', 'NVARCHAR2', 'RAW', 'UROWID') AND a.char_length IS NOT NULL
+                            THEN a.data_type || '(' || a.char_length || ' CHAR)'
                         ELSE a.data_type
                     END AS data_type,
                     a.nullable,
@@ -969,6 +971,8 @@ class DatabaseTableServer(Namespace):
                             THEN b.data_length
                         WHEN b.data_type IN ('NUMBER', 'DEC', 'DECIMAL', 'NUMERIC')
                             THEN b.data_precision
+                        WHEN b.data_type IN ('NATIONAL CHAR', 'NATIONAL CHAR VARYING', 'NATIONAL CHARACTER', 'NATIONAL CHARACTER VARYING', 'NCHAR', 'NCHAR VARYING', 'NVARCHAR2', 'RAW', 'UROWID')
+                            THEN b.char_length
                         ELSE CAST(NULL AS NUMBER)
                     END AS data_length,
                     decode(b.nullable, 'N', 'true', 'Y', 'false', b.nullable) AS not_null,
@@ -997,7 +1001,11 @@ class DatabaseTableServer(Namespace):
                     CASE
                         WHEN b.column_name = d.column_name THEN 'EXISTING'
                         ELSE ''
-                    END AS pk_type
+                    END AS pk_type,
+                    CASE 
+                        WHEN f.segment_name IS NOT NULL THEN 'true'
+                        ELSE 'false'
+                    END AS lob_storage_enabled
                 FROM
                     SYS.user_tables a,
                     SYS.user_tab_columns b,
@@ -1047,7 +1055,8 @@ class DatabaseTableServer(Namespace):
                                  'schema': result[19],
                                  'pkConstraintName': result[20],
                                  'pkIndexName': result[21],
-                                 'pkType': result[22]})
+                                 'pkType': result[22],
+                                 'lobStorageEnabled': json.loads(result[23])})
         emit('columns_result_to_edit', result_array, namespace=self._namespace_url)
 
     def on_get_column_constraints(self, props):
@@ -1236,7 +1245,8 @@ class DatabaseTableServer(Namespace):
                     b.table_name,
                     a.r_constraint_name,
                     decode(a.delete_rule, 'NO ACTION', 'No Action', 'CASCADE', 'Cascade', 'SET NULL', 'Set Null', a.delete_rule) AS delete_rule,
-                    a.index_name
+                    a.index_name,
+                    a.constraint_name AS constraintName
                 FROM
                     SYS.user_constraints a,
                     SYS.user_constraints b
@@ -1258,7 +1268,8 @@ class DatabaseTableServer(Namespace):
                                  'refTable': result[8],
                                  'refConstraintName': result[9],
                                  'deleteRule': result[10],
-                                 'indexName': result[11]
+                                 'indexName': result[11],
+                                 'constraintName': result[12]
                                  })
         emit('constraints_result_to_edit', result_array, namespace=self._namespace_url)
 
@@ -3256,3 +3267,45 @@ class DatabaseQueueServer(Namespace):
                                  'NONDURABLE': result[9],
                                  'QUEUE_TO_QUEUE': result[10]})
         emit('subscribers_result', result_array, namespace=self._namespace_url)
+
+
+class DatabaseSQLServer(Namespace):
+    """Class to interact with the database and execute the
+        SQL provided using various methods
+    """
+
+    _socket_io = None
+    _schema_name = None
+    _schema = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabaseSQLServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db_sql')
+        self._namespace_url = '/oracle_db_sql'
+        self._socket_io = socket_io
+        self._schema = schema
+        self._db_connection = self._schema.get_connection()
+        self._schema_name = self._schema.get_schema_name()
+        socket_io.on_namespace(self)
+
+    def on_execute_sql(self, sql):
+        """For internal use only: will be called when 'execute_sql' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        sql = sql.rstrip(';')
+        try:
+            cursor.execute(sql)
+            emit('execute_sql_success', 'ok', namespace=self._namespace_url)
+        except Exception as err:
+            emit('execute_sql_error', str(err), namespace=self._namespace_url)
+            print('Error while executing SQL: ' + sql)
+            print(err)

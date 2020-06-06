@@ -19,7 +19,7 @@ var ColumnsPanelUI = Class.create({
 	columnSelectedEventListeners: [],
 	complexTypeSchemaChangedEventListeners: [],
 	identityColumnSchemaChangedEventListeners: [],
-	orignalData: [],
+	originalData: [],
 	complexDataType: [],
 	removedColumns: [],
 	initialize: function(id, label, schemaName) {
@@ -34,7 +34,7 @@ var ColumnsPanelUI = Class.create({
 		this.columnSelectedEventListeners = [];
 		this.complexTypeSchemaChangedEventListeners = [];
 		this.identityColumnSchemaChangedEventListeners = [];
-		this.orignalData = [];
+		this.originalData = [];
 		this.complexDataType = [];
 		this.removedColumns = [];
 		this.simplePanelsId = [
@@ -774,7 +774,7 @@ var ColumnsPanelUI = Class.create({
 			//LOB Storage Enabled event handler
 			$j('#' + this.id + '-lob-parameters-tab-content-define-check').on('change', function() {
 				var records = that.columnsGrid.getSelection();
-				var newValue = this.value;
+				var newValue = this.checked;
 				that.columnsGrid.save();
 				records.forEach(function(recid) {
 					that.columnsGrid.set(recid, {lobStorageEnabled: newValue});
@@ -834,7 +834,7 @@ var ColumnsPanelUI = Class.create({
 			//LOB retention event handler
 			$j('#' + this.id + '-lob-parameters-tab-content-retention').on('change', function() {
 				var records = that.columnsGrid.getSelection();
-				var newValue = this.value;
+				var newValue = this.checked;
 				that.columnsGrid.save();
 				records.forEach(function(recid) {
 					that.columnsGrid.set(recid, {lobRetention: newValue});
@@ -862,6 +862,11 @@ var ColumnsPanelUI = Class.create({
 
 				if(newValue === 'Column Sequence') {
 					$j('#' + that.id + '-identity-column-tab-content-details-panel').addClass('display_identity_column_panel');
+
+					$j('#' + that.id + '-identity-column-tab-content-details-panel-trigger-input').val(that.label + '_TRG').trigger('change');
+					$j('#' + that.id + '-identity-column-tab-content-details-panel-sequence-schema-input').val(that.schemaName).trigger('change');
+					$j('#' + that.id + '-identity-column-tab-content-details-panel-sequence-input').val(that.label + '_SEQ').trigger('change');
+					$j('#' + that.id + '-identity-column-tab-content-details-panel-is-null-checkbox').prop('checked', true).trigger('change');
 				} else {
 					$j('#' + that.id + '-identity-column-tab-content-details-panel').removeClass('display_identity_column_panel');
 				}
@@ -913,7 +918,7 @@ var ColumnsPanelUI = Class.create({
 			//Identity column is null event handler
 			$j('#' + this.id + '-identity-column-tab-content-details-panel-is-null-checkbox').on('change', function() {
 				var records = that.columnsGrid.getSelection();
-				var newValue = this.value;
+				var newValue = this.checked;
 				that.columnsGrid.save();
 				records.forEach(function(recid) {
 					that.columnsGrid.set(recid, {identityColumnIsNull: newValue});
@@ -941,7 +946,7 @@ var ColumnsPanelUI = Class.create({
 		var that = this;
 		data.forEach(function(record) {
 			var copy = Object.clone(record);
-			that.orignalData.push(copy);
+			that.originalData.push(copy);
 		});
 		this.columnsGrid.records = data;
 		this.columnsGrid.refresh();
@@ -957,9 +962,10 @@ var ColumnsPanelUI = Class.create({
 		var scale = record['scale'];
 		var unit = record['unit'];
 		var virtual = record['virtual'];
-		var virtualExpression = record['expression'] !== null ? record['expression'] : record['default'];
+		var virtualExpression = record['expression'] !== null && record['expression'] !== undefined ? record['expression'] : record['default'];
 		var schema = record['schema'];
 
+		var lobStorageEnabled = record['lobStorageEnabled'];
 		var lobSegmentName = record['lobSegmentName'];
 		var lobStorageInRow = record['lobStorageInRow'];
 		var lobChunk = record['lobChunk'];
@@ -970,7 +976,12 @@ var ColumnsPanelUI = Class.create({
 
 		if(dataType === 'BLOB' || dataType === 'CLOB' || dataType === 'NCLOB') {
 			this.tabs.enable(this.id + '-lob-parameters-tab');
-			$j('#' + this.id + '-lob-parameters-tab-content-define-check').prop('checked', true);
+			$j('#' + this.id + '-lob-parameters-tab-content-define-check').prop('checked', lobStorageEnabled);
+			if(lobStorageEnabled === true) {
+				$j('#' + this.id + '-lob-parameters-tab-content-define-check').prop('disabled', true);
+			} else {
+				$j('#' + this.id + '-lob-parameters-tab-content-define-check').prop('disabled', false);
+			}
 			$j('#' + this.id + '-lob-parameters-tab-content-segment-name-input').val(lobSegmentName);
 			$j('#' + this.id + '-lob-parameters-tab-content-storage-in-row-select').val(lobStorageInRow);
 			$j('#' + this.id + '-lob-parameters-tab-content-chunk-input').val(lobChunk);
@@ -1172,6 +1183,12 @@ var ColumnsPanelUI = Class.create({
 	},
 	showIdentityColumnPanel: function() {
 		$j('#' + this.id + '-identity-column-tab-content-type-select').val('Column Sequence').trigger('change');
+		var records = this.columnsGrid.getSelection();
+		this.columnsGrid.save();
+		var that = this;
+		records.forEach(function(recid) {
+			that.columnsGrid.set(recid, {identityColumnTriggerAction: 'EXISTING'});
+		});
 	},
 	setIdentityColumnTrigger: function(triggerName) {
 		$j('#' + this.id + '-identity-column-tab-content-details-panel-trigger-input').val(triggerName);
@@ -1260,9 +1277,9 @@ var ColumnsPanelUI = Class.create({
 			listener(value);
 		});
 	},
-	getOrignalRecord: function(recid) {
+	getOriginalRecord: function(recid) {
 		var recordToReturn = null;
-		this.orignalData.forEach(function(record) {
+		this.originalData.forEach(function(record) {
 			if(record['recid'] === recid) {
 				recordToReturn = record;
 			}
@@ -1272,12 +1289,12 @@ var ColumnsPanelUI = Class.create({
 	getChanges: function() {
 		var that = this;
 		var deltaChanges = [];
-		//this.orignalData.forEach(function(originalRecord) {
+		//this.originalData.forEach(function(originalRecord) {
 		this.columnsGrid.records.forEach(function(gridRecord) {
 			//var recid = originalRecord['recid'];
 			var recid = gridRecord['recid'];
 			//var gridRecord = that.columnsGrid.get(recid);
-			var originalRecord = that.getOrignalRecord(recid);
+			var originalRecord = that.getOriginalRecord(recid);
 			if(originalRecord !== null) {
 				var changedRecord = {};
 
@@ -1309,7 +1326,7 @@ var ColumnsPanelUI = Class.create({
 				changedRecord['schema'] = gridRecord['schema'] !== originalRecord['schema'] ? gridRecord['schema'] : null;
 				changedRecord['expression'] = gridRecord['expression'] !== originalRecord['expression'] ? gridRecord['expression'] : null;
 
-				changedRecord['lobStorageEnabled'] = gridRecord['lobStorageEnabled'];
+				changedRecord['lobStorageEnabled'] = gridRecord['lobStorageEnabled'] !== originalRecord['lobStorageEnabled'] ? gridRecord['lobStorageEnabled'] : null;
 				changedRecord['lobSegmentName'] = gridRecord['lobSegmentName'] !== originalRecord['lobSegmentName'] ? gridRecord['lobSegmentName'] : null;
 				changedRecord['lobStorageInRow'] = gridRecord['lobStorageInRow'] !== originalRecord['lobStorageInRow'] ? gridRecord['lobStorageInRow'] : null;
 				changedRecord['lobChunk'] = gridRecord['lobChunk'] !== originalRecord['lobChunk'] ? gridRecord['lobChunk'] : null;
@@ -1318,51 +1335,57 @@ var ColumnsPanelUI = Class.create({
 				changedRecord['lobRetention'] = gridRecord['lobRetention'] !== originalRecord['lobRetention'] ? gridRecord['lobRetention'] : null;
 				changedRecord['lobCache'] = gridRecord['lobCache'] !== originalRecord['lobCache'] ? gridRecord['lobCache'] : null;
 
-				changedRecord['identityColumnType'] = gridRecord['identityColumnType'] !== originalRecord['identityColumnType'] ? gridRecord['identityColumnType'] : null;
-				changedRecord['identityColumnTrigger'] = gridRecord['identityColumnTrigger'] !== originalRecord['identityColumnTrigger'] ? gridRecord['identityColumnTrigger'] : null;
-				changedRecord['identityColumnSequenceSchema'] = gridRecord['identityColumnSequenceSchema'] !== originalRecord['identityColumnSequenceSchema'] ? gridRecord['identityColumnSequenceSchema'] : null;
-				changedRecord['identityColumnSequence'] = gridRecord['identityColumnSequence'] !== originalRecord['identityColumnSequence'] ? gridRecord['identityColumnSequence'] : null;
-				changedRecord['identityColumnIsNull'] = gridRecord['identityColumnIsNull'] !== originalRecord['identityColumnIsNull'] ? gridRecord['identityColumnIsNull'] : null;
+				changedRecord['identityColumnTriggerAction'] = gridRecord['identityColumnTriggerAction'];
+				changedRecord['identityColumnType'] = gridRecord['identityColumnType'];
+				changedRecord['identityColumnTrigger'] = gridRecord['identityColumnTrigger'];
+				changedRecord['identityColumnSequenceSchema'] = gridRecord['identityColumnSequenceSchema'];
+				changedRecord['identityColumnSequence'] = gridRecord['identityColumnSequence'];
+				changedRecord['identityColumnIsNull'] = gridRecord['identityColumnIsNull'];
 
 				deltaChanges.push(changedRecord);
 			} else {
 				deltaChanges.push(gridRecord);
 			}
 		});
-		var ddl = '';
-		ddl += this.getRemovedColumns();
-		ddl += this.getColumnRenameChanges(deltaChanges);
-		ddl += this.getColumnChanges(deltaChanges);
-		ddl += this.getPrimaryKeyChanges(deltaChanges);
-		return ddl.replace(/^\n+/g,'');
+		var ddlArray = [];
+		ddlArray = ddlArray.concat(this.getRemovedColumns());
+		ddlArray = ddlArray.concat(this.getColumnRenameChanges(deltaChanges));
+		ddlArray = ddlArray.concat(this.getColumnChanges(deltaChanges));
+		ddlArray = ddlArray.concat(this.getPrimaryKeyChanges(deltaChanges));
+		return ddlArray;
 	},
 	getRemovedColumns: function() {
-		var ddl = '';
+		var ddlArray = [];
 		var that = this;
 		this.removedColumns.forEach(function(column) {
-			ddl += '\n\nALTER TABLE ' + that.label;
+			var ddl = '';
+			ddl += 'ALTER TABLE ' + that.label;
 			ddl += '\nDROP COLUMN ' + column;
+			ddlArray.push(ddl);
 		});
 
-		return ddl;
+		return ddlArray;
 	},
 	getColumnRenameChanges: function(deltaChanges) {
-		var ddl = '';
 		var that = this;
-
+		var ddlArray = [];
 		deltaChanges.forEach(function(record) {
 			if(record['columnName'] !== null && record['mode'] !== 'NEW' && record['mode'] !== 'COPIED') {
-				ddl += '\n\nALTER TABLE ' + that.label + ' RENAME COLUMN ' + record['originalColumnName'] + ' TO ' + record['columnName'] + ';';
+				var ddl = '';
+				ddl += 'ALTER TABLE ' + that.label + ' RENAME COLUMN ' + record['originalColumnName'] + ' TO ' + record['columnName'] + ';';
+				ddlArray.push(ddl);
 			}
 		});
 
-		return ddl;
+		return ddlArray;
 	},
 	getColumnChanges: function(deltaChanges) {
 		var that = this;
-		var ddl = '';
+		var ddlArray = [];
+		var identityColumnChangesApplied = false;
 
 		deltaChanges.forEach(function(record) {
+			var ddl = '';
 			var changesInRecord = false;
 
 			if(record['dataType'] !== null || (record['size'] !== null && record['size'] !== '') || (record['scale'] !== null && record['scale'] !== '')
@@ -1481,26 +1504,29 @@ var ColumnsPanelUI = Class.create({
 				}
 
 				if(record['mode'] === 'NEW' || record['mode'] === 'COPIED') {
-					ddl += '\n\nALTER TABLE ' + that.label;
+					ddl += 'ALTER TABLE ' + that.label;
 					ddl += '\nADD (' + columnChange + ');';
+					ddlArray.push(ddl);
+					ddl = '';
 				} else if(record['columnType'] !== 'virtual') {
-					if(ddl === '') {
-						ddl += '\n\nALTER TABLE ' + that.label;
-						ddl += '\nMODIFY (' + columnChange + ');';
-					} else {
-						ddl += '\n\nALTER TABLE ' + that.label;
-						ddl += '\nMODIFY (' + columnChange + ');';
-					}
+					ddl += 'ALTER TABLE ' + that.label;
+					ddl += '\nMODIFY (' + columnChange + ');';
+					ddlArray.push(ddl);
+					ddl = '';
 				} else {
-					ddl += '\n\nALTER TABLE ' + that.label;
+					ddl += 'ALTER TABLE ' + that.label;
 					ddl += '\nDROP COLUMN ' + (record['columnName'] !== null ? record['columnName'] : record['originalColumnName']) + ';';
+					ddlArray.push(ddl);
+					ddl = '';
 
-					ddl += '\n\nALTER TABLE ' + that.label;
+					ddl += 'ALTER TABLE ' + that.label;
 					ddl += '\nADD (' + columnChange + ');';
+					ddlArray.push(ddl);
+					ddl = '';
 				}
 
-				if(record['lobStorageEnabled'] === 'on') {
-					ddl += '\n\nALTER TABLE ' + that.label + ' MOVE';
+				if(record['lobStorageEnabled'] === true) {
+					ddl += 'ALTER TABLE ' + that.label + ' MOVE';
 					ddl += '\nLOB (' + (record['columnName'] !== null ? record['columnName'] : record['originalColumnName']) + ')';
 					ddl += ' STORE AS ' + record['lobSegmentName'];
 
@@ -1529,7 +1555,7 @@ var ColumnsPanelUI = Class.create({
 					if(record['lobFreePools'] !== null && record['lobFreePools'] !== undefined) {
 						ddl += '\n\tFREEPOOLS ' + record['lobFreePools'];
 					}
-					if(record['lobRetention'] === 'on') {
+					if(record['lobRetention'] === true) {
 						ddl += '\n\tRETENTION';
 					}
 					if(record['lobCache'] !== null && record['lobCache'] !== undefined) {
@@ -1540,17 +1566,50 @@ var ColumnsPanelUI = Class.create({
 						ddl += '\n)';
 					}
 					ddl += ';';
+					ddlArray.push(ddl);
+					ddl = '';
+				}
+			}
+
+			if(record['identityColumnTriggerAction'] === null || record['identityColumnTriggerAction'] === undefined) {
+				if(record['identityColumnType'] === 'Column Sequence' && identityColumnChangesApplied === false) {
+					identityColumnChangesApplied = true;
+					var colName = record['columnName'] !== null ? record['columnName'] : record['originalColumnName'];
+
+					ddl += 'CREATE SEQUENCE ' + record['identityColumnSequence'] + ';';
+					ddlArray.push(ddl);
+					ddl = '';
+
+					ddl += 'CREATE TRIGGER ' + record['identityColumnTrigger'];
+					ddl += '\nBEFORE INSERT ON ' + that.label;
+					ddl += '\nFOR EACH ROW';
+					ddl += '\nBEGIN';
+					ddl += '\n\t<<COLUMN_SEQUENCES>>';
+					ddl += '\n\tBEGIN';
+					ddl += '\n\t\tIF INSERTING';
+					if(record['identityColumnIsNull'] === true) {
+						ddl += ' AND :NEW.' + colName + ' IS NULL';
+					}
+					ddl += ' THEN';
+					ddl += '\n\t\t\tSELECT ' + record['identityColumnSequence'] + '.NEXTVAL INTO :NEW.' + colName + ' FROM SYS.DUAL;';
+					ddl += '\n\t\tEND IF;'
+					ddl += '\n\tEND COLUMN_SEQUENCES;';
+					ddl += '\nEND;'
+					ddl += '\n;';
+					ddlArray.push(ddl);
+					ddl = '';
 				}
 			}
 		});
 
-		return ddl;
+		return ddlArray;
 	},
 	getPrimaryKeyChanges: function(deltaChanges) {
 		var changesInPK = false;
 		var pkConstraintName = null;
 		var pkIndexName = null;
 		var ddl = '';
+		var ddlArray = [];
 		var that = this;
 		//Check if any changes made for primary key
 		//and get the primary key constraint if available
@@ -1570,8 +1629,10 @@ var ColumnsPanelUI = Class.create({
 		if(changesInPK === true) {
 			//Drop the existing primary key constraint if available
 			if(pkConstraintName !== null) {
-				ddl += '\n\nALTER TABLE ' + this.label;
+				ddl += 'ALTER TABLE ' + this.label;
 				ddl += '\nDROP CONSTRAINT ' + pkConstraintName + ';';
+				ddlArray.push(ddl);
+				ddl = '';
 			}
 
 			//Get all the columns marked for primary key
@@ -1593,7 +1654,6 @@ var ColumnsPanelUI = Class.create({
 			//if columns are marked for primary key
 			//create DDL for same
 			if(pkColumns !== '') {
-				ddl += '\n\n';
 				ddl += 'ALTER TABLE ' + this.label;
 				ddl += '\nADD CONSTRAINT ';
 				if(pkConstraintName !== null) {
@@ -1612,10 +1672,12 @@ var ColumnsPanelUI = Class.create({
 					ddl += '\n)';
 				}
 				ddl += '\nENABLE;';
+				ddlArray.push(ddl);
+				ddl = '';
 			}
 		}
 
-		return ddl;
+		return ddlArray;
 	},
 	destroy: function() {
 		if(this.layout !== null) {
@@ -1661,10 +1723,12 @@ var ConstraintsPanelUI = Class.create({
 	constraintsGrid: null,
 	associationsGrid: null,
 	columnsList: [],
+	originalData: [],
 	constraintSelectedEventListeners: [],
 	schemaChangedEventListeners: [],
 	tableChangedEventListeners: [],
 	refConstraintChangedEventListeners: [],
+	constraintColumnsDict: {},
 	initialize: function(id,label) {
 		this.id = id;
 		this.label = label;
@@ -1672,10 +1736,12 @@ var ConstraintsPanelUI = Class.create({
 		this.constraintsGrid = null;
 		this.associationsGrid = null;
 		this.columnsList = [];
+		this.originalData = [];
 		this.constraintSelectedEventListeners = [];
 		this.schemaChangedEventListeners = [];
 		this.tableChangedEventListeners = [];
 		this.refConstraintChangedEventListeners = [];
+		this.constraintColumnsDict = {};
 	},
 	createPanel: function() {
 		var that = this;
@@ -1977,7 +2043,7 @@ var ConstraintsPanelUI = Class.create({
 					that.constraintsGrid.set(recid, {refConstraintName: newValue});
 				});
 				var record = that.constraintsGrid.get(records[0]);
-				var constraintName = record['name'];
+				var constraintName = record['constraintName'];
 				that.fireRefConstraintChangedEvent(constraintName, newValue);
 			});
 
@@ -2022,6 +2088,17 @@ var ConstraintsPanelUI = Class.create({
 	getConstraintsGrid: function() {
 		return this.constraintsGrid;
 	},
+	loadData: function(data) {
+		var that = this;
+		data.forEach(function(record) {
+			var copy = Object.clone(record);
+			that.originalData.push(copy);
+		});
+		this.constraintsGrid.records = data;
+		this.constraintsGrid.refresh();
+		this.constraintsGrid.unlock();
+		this.constraintsGrid.select(1);
+	},
 	createAssociationsGrid: function() {
 		if(this.associationsGrid === null) {
 			this.associationsGrid = $j('#' + this.id + '-foreign-constraint-panel-associations-grid').w2grid({
@@ -2052,7 +2129,7 @@ var ConstraintsPanelUI = Class.create({
 		return this.associationsGrid;
 	},
 	changeConstraintPanel: function(record) {
-		var constraintName = record['name'];
+		var constraintName = record['constraintName'];
 		var constraintType = record['constraintType'];
 
 		var checkCondition = record['checkCondition'];
@@ -2184,6 +2261,17 @@ var ConstraintsPanelUI = Class.create({
 		var selectedItem = $j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').children('option:selected');
 		if(selectedItem.length > 0) {
 			$j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').append(selectedItem[0].outerHTML);
+			
+			var records = this.constraintsGrid.getSelection();
+			var that = this;
+			records.forEach(function(recid) {
+				if(that.constraintColumnsDict[recid] !== null && that.constraintColumnsDict[recid] !== undefined) {
+					that.constraintColumnsDict[recid].push(selectedItem[0].value);
+				} else {
+					that.constraintColumnsDict[recid] = [selectedItem[0].value];
+				}
+			});
+
 			selectedItem.remove();
 		}
 	},
@@ -2192,6 +2280,16 @@ var ConstraintsPanelUI = Class.create({
 		$j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').children().each(function() {
 			var html = $j(this)[0].outerHTML;
 			$j('#' + that.id + '-primary-unique-constraint-panel-selected-columns-select').append(html);
+
+			var records = that.constraintsGrid.getSelection();
+			records.forEach(function(recid) {
+				if(that.constraintColumnsDict[recid] !== null && that.constraintColumnsDict[recid] !== undefined) {
+					that.constraintColumnsDict[recid].push($j(this)[0].value);
+				} else {
+					that.constraintColumnsDict[recid] = [$j(this)[0].value];
+				}
+			});
+
 			$j(this).remove();
 		});
 	},
@@ -2245,9 +2343,174 @@ var ConstraintsPanelUI = Class.create({
 		});
 
 		$j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').empty();
+		var columns = [];
 		list.forEach(function(item) {
 			$j('#' + that.id + '-primary-unique-constraint-panel-selected-columns-select').append('<option>' + item + '</option>');
+			columns.push(item);
 		});
+
+		var records = this.constraintsGrid.getSelection();
+		records.forEach(function(recid) {
+			that.constraintColumnsDict[recid] = columns;
+		});
+	},
+	getOriginalRecord: function(recid) {
+		var recordToReturn = null;
+		this.originalData.forEach(function(record) {
+			if(record['recid'] === recid) {
+				recordToReturn = record;
+			}
+		});
+		return recordToReturn;
+	},
+	getChanges: function() {
+		var that = this;
+		var deltaChanges = [];
+		this.constraintsGrid.records.forEach(function(gridRecord) {
+			var recid = gridRecord['recid'];
+			var originalRecord = that.getOriginalRecord(recid);
+			
+			if(originalRecord !== null) {
+				var changedRecord = {};
+
+				changedRecord['recid'] = recid;
+				changedRecord['name'] = originalRecord['name'] !== gridRecord['name'] ? gridRecord['name'] : null;
+				changedRecord['originalName'] = originalRecord['name'];
+				changedRecord['enabled'] = originalRecord['enabled'] !== gridRecord['enabled'] ? gridRecord['enabled'] : null;
+				changedRecord['deferrableState'] = originalRecord['deferrableState'] !== gridRecord['deferrableState'] ? gridRecord['deferrableState'] : null;
+				changedRecord['constraintType'] = originalRecord['constraintType'];
+				
+				changedRecord['checkCondition'] = originalRecord['checkCondition'] !== gridRecord['checkCondition'] ? gridRecord['checkCondition'] : null;
+				changedRecord['refOwner'] = originalRecord['refOwner'] !== gridRecord['refOwner'] ? gridRecord['refOwner'] : null;
+				changedRecord['refTable'] = originalRecord['refTable'] !== gridRecord['refTable'] ? gridRecord['refTable'] : null;
+				changedRecord['refConstraintName'] = originalRecord['refConstraintName'] !== gridRecord['refConstraintName'] ? gridRecord['refConstraintName'] : null;
+				changedRecord['deleteRule'] = originalRecord['deleteRule'] !== gridRecord['deleteRule'] ? gridRecord['deleteRule'] : null;
+				changedRecord['indexName'] = originalRecord['indexName'] !== gridRecord['indexName'] ? gridRecord['indexName'] : null;
+				changedRecord['originalIndexName'] = originalRecord['indexName'] !== null && originalRecord['indexName'] !== undefined ? originalRecord['indexName'] : null;
+				changedRecord['constraintColumns'] = gridRecord['constraintColumns'];
+
+				deltaChanges.push(changedRecord);
+			} else {
+				deltaChanges.push(gridRecord);
+			}
+		});
+		var ddlArray = [];
+		ddlArray = ddlArray.concat(this.getConstraintNameChanges(deltaChanges));
+		ddlArray = ddlArray.concat(this.getConstraintEnabledDisabledChanges(deltaChanges));
+		ddlArray = ddlArray.concat(this.getConstraintChanges(deltaChanges));
+		return ddlArray;
+	},
+	getConstraintNameChanges: function(deltaChanges) {
+		var that = this;
+		var ddlArray = [];
+		deltaChanges.forEach(function(record) {
+			if(record['name'] !== null) {
+				var ddl = '';
+				ddl += 'ALTER TABLE ' + that.label;
+				ddl += '\nRENAME CONSTRAINT ' + record['originalName'] + ' TO ' + record['name'] + ';';
+				ddlArray.push(ddl);
+			}
+		});
+
+		return ddlArray;
+	},
+	getConstraintEnabledDisabledChanges: function(deltaChanges) {
+		var that = this;
+		var ddlArray = [];
+		deltaChanges.forEach(function(record) {
+			if(record['enabled'] !== null) {
+				var ddl = '';
+				ddl += 'ALTER TABLE ' + that.label;
+				ddl += '\nMODIFY CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']);
+				if(record['enabled'] === true) {
+					ddl += ' ENABLE;'; 
+				} else {
+					ddl += ' DISABLE;';
+				}
+				ddlArray.push(ddl);
+			}
+		});
+
+		return ddlArray;
+	},
+	getConstraintChanges: function(deltaChanges) {
+		var that = this;
+		var ddlArray = [];
+		deltaChanges.forEach(function(record) {
+			if(record['deferrableState'] !== null) {
+				var ddl = '';
+				ddl += 'ALTER TABLE ' + that.label;
+				ddl += '\nDROP CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']) + ';';
+				ddlArray.push(ddl);
+				ddl = '';
+
+				if(record['constraintType'] === 'P') {
+					ddl += 'ALTER TABLE ' + that.label;
+					ddl += '\nADD CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']) + ' PRIMARY KEY';
+					ddl += '\n(';
+					var recid = record['recid'];
+					if(that.constraintColumnsDict[recid] !== null && that.constraintColumnsDict[recid] !== undefined) {
+						var constraintColumns = that.constraintColumnsDict[recid];
+						if(constraintColumns.length > 0) {
+							var columns = '';
+							constraintColumns.forEach(function(column) {
+								if(columns === '') {
+									columns += '\n\t' + column;
+								} else {
+									columns += ',\n\t' + column;
+								}
+							});
+							ddl += columns;
+						}
+					}
+					ddl += '\n)';
+					//Apply DEFERRABLE keyword with selected option
+					if(record['deferrableState'] === 'Initially Immediate') {
+						ddl += '\nDEFERRABLE INITIALLY IMMEDIATE';
+					} else if(record['deferrableState'] === 'Initially Deferred') {
+						ddl += '\nDEFERRABLE INITIALLY DEFERRED';
+					}
+					//Apply Index if applicable
+					if(record['indexName'] !== null || record['originalIndexName'] !== null) {
+						ddl += '\nUSING INDEX';
+						ddl += '\n(';
+						ddl += '\n\tCREATE INDEX ' + (record['indexName'] !== null ? record['indexName'] : record['originalIndexName']) + '1';
+						ddl += ' ON ' + that.label + '(';
+						var recid = record['recid'];
+						if(that.constraintColumnsDict[recid] !== null && that.constraintColumnsDict[recid] !== undefined) {
+							var constraintColumns = that.constraintColumnsDict[recid];
+							if(constraintColumns.length > 0) {
+								var columns = '';
+								constraintColumns.forEach(function(column) {
+									if(columns === '') {
+										columns += column + ' ASC';
+									} else {
+										columns += ',' + column + ' ASC';
+									}
+								});
+								ddl += columns;
+							}
+						}
+						ddl += ')';
+						ddl += '\n)';
+					}
+					//Apply ENABLE or DISABLE keyword
+					if(record['enabled'] === null) {
+						ddl += '\nENABLE;';
+					} else {
+						if(record['enabled'] === true) {
+							ddl += '\nENABLE;';
+						} else {
+							ddl += '\nDISABLE;';
+						}
+					}
+					ddlArray.push(ddl);
+					ddl = '';
+				}
+			}
+		});
+
+		return ddlArray;
 	},
 	destroy: function() {
 		if(this.layout !== null) {
@@ -3453,13 +3716,16 @@ var DDLPanelUI = Class.create({
 	label: null,
 	layout: null,
 	sqlEditor: null,
+	list: null,
 	initialize: function(id, label) {
 		this.id = id;
 		this.label = label;
 		this.layout = null;
 		this.sqlEditor = null;
+		this.list = null;
 	},
-	createPanel: function() {
+	createPanel: function(items) {
+		var that = this;
 		if(this.layout === null) {
 			var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
 			this.layout = $j('#' + this.id).w2layout({
@@ -3477,10 +3743,12 @@ var DDLPanelUI = Class.create({
 							<label for='` + this.id + `-ddl-input'>SQL Statement(s):</label>
 						</div>
 						<div style='line-height: 30px;'>
-							<input id='` + this.id + `-ddl-create-radio' type='radio'>Create</input>
-							<input id='` + this.id + `-ddl-update-radio' type='radio' checked style='margin-left: 30px;'>Update (for current edit)</input>
+							<input id='` + this.id + `-ddl-create-radio' name='` + this.id + `-ddl-view-type-radio' type='radio'>Create</input>
+							<input id='` + this.id + `-ddl-update-radio' name='` + this.id + `-ddl-view-type-radio' type='radio' checked style='margin-left: 30px;'>Update (for current edit)</input>
+							<input id='` + this.id + `-ddl-update-list-view-radio' name='` + this.id + `-ddl-view-type-radio' type='radio' style='margin-left: 30px;'>List View (for current edit)</input>
 						</div>
-						<div id='` + this.id + `-ddl-input' style='height: 479px; width: 638px;'></div>
+						<div id='` + this.id + `-ddl-input' class='ddl_view display_ddl_view'></div>
+						<div id='` + this.id + `-list-view' class='ddl_view'></div>
 						<div style='line-height: 30px;'>
 							<button id='` + this.id + `-save-button' style='float: right;'>Save...</button>
 						</div>
@@ -3493,6 +3761,22 @@ var DDLPanelUI = Class.create({
 			this.sqlEditor.setTheme('ace/theme/sqlserver');
 			this.sqlEditor.session.setMode('ace/mode/sqlserver');
 			this.sqlEditor.setReadOnly(true);
+
+			this.list = new ListView(this.id + '-list-view', items);
+
+			$j('[name=' + this.id + '-ddl-view-type-radio]').on('click', function() {
+				if(this.id === that.id + '-ddl-update-radio') {
+					$j('#' + that.id + '-list-view').removeClass('display_ddl_view');
+					$j('#' + that.id + '-ddl-input').addClass('display_ddl_view');
+					that.sqlEditor.resize();
+				} else if(this.id === that.id + '-ddl-update-list-view-radio') {
+					$j('#' + that.id + '-ddl-input').removeClass('display_ddl_view');
+					$j('#' + that.id + '-list-view').addClass('display_ddl_view');
+				} else if(this.id === that.id + '-ddl-create-radio') {
+					$j('#' + that.id + '-ddl-input').removeClass('display_ddl_view');
+					$j('#' + that.id + '-list-view').removeClass('display_ddl_view');
+				}
+			});
 		}
 	},
 	isPanelCreated: function() {
@@ -3516,7 +3800,7 @@ var DDLPanelUI = Class.create({
 			this.sqlEditor.destroy();
 		}
 	},
-	refresh: function() {
-
+	refresh: function(items) {
+		this.list.refresh(items);
 	}
 });

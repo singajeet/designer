@@ -750,6 +750,46 @@
     vertical-align: middle;
 }
 
+.bi_icon {
+    content: url('/static/icons/graph.png');
+}
+
+.predefined_reports_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.predefined_reports_folder_icon::after {
+    content: url('/static/icons/profiler_saved_session.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
+}
+
+.predefined_report_icon {
+    content: url('/static/icons/profiler_saved_session.png');
+}
+
+.custom_reports_folder_icon {
+    background: url('/static/icons/folder.png');
+    background-repeat: no-repeat;
+}
+
+.custom_reports_folder_icon::after {
+    content: url('/static/icons/threshold.png');
+    position: relative;
+    top: 4px;
+    left: 4px;
+}
+
+.custom_report_icon {
+    content: url('/static/icons/threshold.png');
+}
+
+.warehouse_catlog_icon {
+    content: url('/static/icons/catalog.png');
+}
+
 .sidebar_panel {
     width: 100%;
     height: 100%;
@@ -825,6 +865,16 @@ div.menu {
     margin-top: 7px;
     margin-left: 5px;
     margin-right: -5px;
+}
+
+.ddl_view {
+    height: 479px;
+    width: 638px;
+    display: none;
+}
+
+.display_ddl_view {
+    display: block !important;
 }
 
 /********************************* Collapsible CSS ***********************************/
@@ -936,4 +986,9 @@ div.menu {
 
 .display_index_advance_tab_panel {
     display: block !important;
+}
+
+.imagebacked {
+    padding-left: 20px; /* image-width */
+    background-repeat: no-repeat;
 }

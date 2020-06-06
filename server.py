@@ -4,6 +4,7 @@ from oracle import DatabaseConnectionServer, DatabaseSchemaServer, DatabaseTable
 from oracle import DatabaseViewServer, DatabaseIndexServer, DatabaseMaterializedViewServer
 from oracle import DatabasePLSQLServer, DatabaseSequenceServer, DatabaseSynonymServer
 from oracle import DatabaseLinkServer, DatabaseDirectoryServer, DatabaseQueueServer
+from oracle import DatabaseSQLServer
 from engineio.payload import Payload
 
 
@@ -16,6 +17,11 @@ socketio = SocketIO(app, async_mode=None)
 @app.route('/edit-table')
 def edit_table():
 	return render_template('dialogs/edit_table.html')
+
+
+@app.route('/warehouse-config-wizard')
+def warehouse_config_wizard():
+    return render_template('dialogs/warehouse-config-wizard.html')
 
 
 @app.route('/')
@@ -36,6 +42,7 @@ def start_app():
     dblink = DatabaseLinkServer(socketio, ds)
     ddir = DatabaseDirectoryServer(socketio, ds)
     dq = DatabaseQueueServer(socketio, ds)
+    dsql = DatabaseSQLServer(socketio, ds)
     socketio.run(app, debug=True)
 
 

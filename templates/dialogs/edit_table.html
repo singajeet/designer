@@ -11,6 +11,10 @@
 				var tableName = params.get('name');
 				var schemaName = params.get('schemaName');
 				var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
+				var sqlTotalCount = 0;
+				var sqlSuccessCount = 0;
+				var sqlArray = [];
+				var error = false;
 
 				$j("#table-edit-layout").w2layout({
 					name: 'table-edit-layout',
@@ -107,6 +111,10 @@
 				dbTable.addTableStorageAvailableEventListener(onTableStorageAvailable);
 				dbTable.addTableCommentsAvailableEventListener(onTableCommentsAvailable);
 
+				var dbSQL = new DatabaseSQL();
+				dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+				dbSQL.addSQLErrorEventListener(onSQLError);
+
 				w2ui["table-edit-layout"].content('left', $j().w2sidebar({
 					name: 'table-edit-sidebar',
 					topHTML    : '<div style="background-color: #eee; padding: 10px 5px; border-bottom: 1px solid silver">Options</div>',
@@ -160,14 +168,26 @@
 								commentsPanel.refresh();
 							}
 						} if(id === 'table-edit-sidebar-ddl') {
-							if(!ddlPanel.isPanelCreated()) {
-								ddlPanel.createPanel();
-								var ddl = columnsPanel.getChanges();
+							if(!ddlPanel.isPanelCreated()) {								
+								var ddlArray = [];
+								ddlArray = ddlArray.concat(columnsPanel.getChanges());
+								ddlArray = ddlArray.concat(constraintsPanel.getChanges());
+								ddlPanel.createPanel(ddlArray);
+								var ddl = '';
+								ddlArray.forEach(function(text) {
+									ddl += text + '\n\n';
+								});
 								ddlPanel.setDDL(ddl);
 							} else {
-								ddlPanel.refresh();
-								var ddl = columnsPanel.getChanges();
+								var ddlArray = [];
+								ddlArray = ddlArray.concat(columnsPanel.getChanges());
+								ddlArray = ddlArray.concat(constraintsPanel.getChanges());
+								var ddl = '';
+								ddlArray.forEach(function(text) {
+									ddl += text + '\n\n';
+								});
 								ddlPanel.setDDL(ddl);
+								ddlPanel.refresh(ddlArray);
 							}
 						} else if(id === 'table-edit-sidebar-columns') {
 							columnsPanel.refresh();
@@ -273,10 +293,11 @@
 				}
 
 				function onConstraintsAvailable(result) {
-					constraintsPanel.getConstraintsGrid().records = result;
-					constraintsPanel.getConstraintsGrid().refresh();
-					constraintsPanel.getConstraintsGrid().unlock();
-					constraintsPanel.getConstraintsGrid().select(1);
+					// constraintsPanel.getConstraintsGrid().records = result;
+					// constraintsPanel.getConstraintsGrid().refresh();
+					// constraintsPanel.getConstraintsGrid().unlock();
+					// constraintsPanel.getConstraintsGrid().select(1);
+					constraintsPanel.loadData(result);
 				}
 
 				function onConstraintSelected(constraintName, constraintType) {
@@ -374,6 +395,43 @@
 					commentsPanel.populateTableComments(result);
 				}
 
+				function onSQLSuccess() {
+					sqlSuccessCount = sqlSuccessCount + 1;
+					if(sqlTotalCount === sqlSuccessCount) {
+						destroy();
+						w2popup.close();
+					}
+				}
+
+				function onSQLError(result) {
+					error = true;
+					w2alert(result);
+				}
+
+				function apply_and_close_dialog() {
+					var columnsPanelDDLArray = columnsPanel.getChanges();
+					sqlArray.clear();
+					sqlArray = sqlArray.concat(columnsPanelDDLArray);
+					//if we had previous successfull execution of some statements
+					//remove those from the array
+					if(sqlSuccessCount > 0) {						
+						sqlArray.splice(0, sqlSuccessCount);
+					}
+					sqlSuccessCount = 0;
+					sqlTotalCount = sqlArray.length;
+					error = false;
+					sqlArray.forEach(function(sql) {
+						if(!error) {
+							dbSQL.execute_sql(sql);
+						}
+					});
+				}
+
+				function close_dialog() {
+					destroy(); 
+					w2popup.close();
+				}
+
 				function destroy() {
 					w2ui['table-edit-layout'].destroy();
 					w2ui['table-edit-sidebar'].destroy();
@@ -383,12 +441,13 @@
 					storagePanel.destroy();
 					commentsPanel.destroy();
 					ddlPanel.destroy();
+					dbSQL.destroy();
 				}
 			// });
 		</script>
     </div>
     <div rel="buttons">
-    	<button class="w2ui-btn" onclick="destroy(); w2popup.close()">Apply</button>
-        <button class="w2ui-btn" onclick="destroy(); w2popup.close()">Close</button>
+    	<button class="w2ui-btn" onclick="apply_and_close_dialog()">Apply</button>
+        <button class="w2ui-btn" onclick="close_dialog()">Close</button>
     </div>
 </div>

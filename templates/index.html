@@ -5,6 +5,7 @@
     <meta charset="utf-1">
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <link rel="stylesheet" href="/static/css/designer.css">
+    <link rel="stylesheet" href="/static/css/list-view.css">
     <link rel="stylesheet" href="/static/css/lib/jquery-ui.css">
     <link rel="stylesheet" href="/static/css/lib/subjx.css" >
     <link rel="stylesheet" href="/static/css/lib/w2ui.min.css" >
@@ -29,6 +30,7 @@
     <script src="/static/js/db-read-only-models.js" ></script>
     <script src="/static/js/db-edit-models.js" ></script>
     <script src="/static/js/ui.js" ></script>
+    <script src="/static/js/list-view.js" ></script>
   	<script>
   		var $j = jQuery.noConflict();
   	</script>
@@ -42,7 +44,14 @@
         NODES_FOLDER: 'NODES-FOLDER',
         EDGE: 'EDGE',
         NODE: 'NODE',
-        PROJECT: 'PROJECT'
+        PROJECT: 'PROJECT',
+        BI_FOLDER: 'BI-FOLDER',
+        BI_PREDEFINED_REPORTS_FOLDER: 'BI-PREDEFINED-REPORTS-FOLDER',
+        BI_PREDEFINED_REPORT: 'BI-PREDEFINED-REPORT',
+        BI_CUSTOM_REPORTS_FOLDER: 'BI-CUSTOM-REPORTS-FOLDER',
+        BI_CUSTOM_REPORT: 'BI-CUSTOM-REPORT',
+        BI_WAREHOUSE_CATLOG_FOLDER: 'BI-WAREHOUSE-CATLOG-FOLDER',
+        BI_METADATA_DB_FOLDER: 'BI-METADATA-DB-FOLDER'
       };
 	    $j(document).ready(function(){
 		    try{
@@ -1310,6 +1319,10 @@
                   { id: 'edit-db-connection', text: 'Edit Connection...', icon: 'database_connection_icon'}
                 ];
               }
+            } else if(event.object.nodeType === NavNodeType.BI_FOLDER) {
+              navigationTree.menu = [
+                { id: 'configure-warehouse', text: 'Warehouse Configuration Wizard...', icon: 'database_connection_icon'}
+              ];
             } else {
               navigationTree.menu = [
                 { id: 'delete-project', text: 'Delete Project', icon: 'delete_icon'}
@@ -1515,6 +1528,8 @@
                                         ]);
                 });
               }
+            } else if(event.menuItem.id === 'configure-warehouse') {
+              w2popup.load({ url: '/warehouse-config-wizard', showMax: true, modal: true, showClose: false });
             }
           }
 
@@ -1541,7 +1556,14 @@
                             nodes: [
                               { id: projectId + '-edges', text: 'Edges', icon: 'edges_icon', expanded: true, nodeType: NavNodeType.EDGES_FOLDER},
                               { id: projectId + '-nodes', text: 'Nodes', icon: 'nodes_icon', expanded: true, nodeType: NavNodeType.NODES_FOLDER},
-                              { id: projectId + '-db', text: 'Databases', icon: 'database_folder_icon', expanded: true, nodeType: DatabaseNavNodeType.DATABASE_FOLDER}
+                              { id: projectId + '-db', text: 'Databases', icon: 'database_folder_icon', expanded: true, nodeType: DatabaseNavNodeType.DATABASE_FOLDER},
+                              { id: projectId + '-bi', text: 'Business Intelligence', icon: 'bi_icon', expanded: true, nodeType: NavNodeType.BI_FOLDER,
+                                nodes: [
+                                  { id: projectId + '-bi-predefined-reports', text: 'Predefined Reports', icon: 'predefined_reports_folder_icon', nodeType: NavNodeType.BI_PREDEFINED_REPORTS_FOLDER},
+                                  { id: projectId + '-bi-custom-reports', text: 'Custom Reports', icon: 'custom_reports_folder_icon', nodeType: NavNodeType.BI_CUSTOM_REPORTS_FOLDER},
+                                  { id: projectId + '-bi-warehouse-catlog', text: 'Warehouse Catlog', icon: 'warehouse_catlog_icon', nodeType: NavNodeType.BI_WAREHOUSE_CATLOG_FOLDER}
+                                ]
+                              }
                             ], nodeType: NavNodeType.PROJECT
                           }]);
           }

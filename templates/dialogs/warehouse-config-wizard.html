@@ -1,0 +1,231 @@
+<div id="warehouse-config-wizard-popup" style="width: 900px; height: 500px;">
+    <div rel="title">
+        Warehouse Configuration Wizard
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+    	<div id="warehouse-config-wizard-layout" style="width: 100%; height: 100%"></div>
+    	<script>
+    		var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
+    		var panels = [
+    			'metadata-db-connection-panel',
+    			'warehouse-db-connection-panel',
+    			'db-objects-selection-panel',
+    			'dimensions-rules-panel',
+    			'facts-rules-panel',
+    			'metric-rules-panel'
+    		];
+    		var current_panel_index = 0;
+
+    		$j("#warehouse-config-wizard-layout").w2layout({
+					name: 'warehouse-config-wizard-layout',
+			        padding: 4,
+			        panels: [
+			            { type: 'left', size: 200, resizable: false, style: pstyle, content: 'left' },
+			            { type: 'main', style: pstyle, content: 'main' }
+			        ]
+				});
+
+    		var leftHtml = `<img src='/static/images/designer-background.jpg' 
+    								style='height: 99.3%; width: 100%; object-fit: cover' />`;
+    		w2ui['warehouse-config-wizard-layout'].content('left', leftHtml);
+
+    		var mainHtml = `
+    			<div id='metadata-db-connection-panel' class='simple_panel display_simple_panel'>
+    				<h4 style='margin: 0px;'>Metadata Database Connection Information</h4>
+    				<hr />
+    				<div style='line-height: 20px;'>
+    					Please provide information to connect with an database that will hold the
+    					metadata information about the warehouse. The metadata will contain different
+    					kind of information related to the tables or db objects used from warehouse,
+    					i.e., the columns to be marked as dimensions, metrics and so on. This information
+    					is required to build the Business Intelligence project and its sub components. 
+    				</div>
+    				<br>
+    				<br>
+    				<div>
+    					<label for='metadata-db-connection-name'>Connection Name:</label>
+    					<input id='metadata-db-connection-name' style='width: 520px;' />
+    				</div>
+    				<div>
+    					<label for='metadata-db-connection-username'>Username:</label>
+    					<input id='metadata-db-connection-username' style='margin-left: 45px; width: 520px;' />
+    				</div>
+    				<div>
+    					<label for='metadata-db-connection-password'>Password:</label>
+    					<input id='metadata-db-connection-password' style='margin-left: 50px; width: 520px;' type='password' />
+    				</div>
+    				<div>
+    					<label for='metadata-db-connection-string'>Connection String:</label>
+    					<input id='metadata-db-connection-string' style='width: 520px;' />
+    				</div>
+    				<br>
+    				<button id='test-metadata-db-connection-button'>Test Connection...</button>
+    			</div>
+    			<div id='warehouse-db-connection-panel' class='simple_panel'>
+    				<h4 style='margin: 0px;'>Warehouse Connection Information</h4>
+    				<hr />
+    				<div style='line-height: 20px;'>
+    					Please provide information to connect with an database that will serve
+    					as warehouse for this project. Warehouse contains the information that
+    					will be analyzed using the various analytic tools available in the BI
+    					platform such as grid/pivot tables, graphs and so on.
+    				</div>
+    				<br>
+    				<br>
+    				<br>
+    				<div>
+    					<label for='warehouse-db-connection-name'>Connection Name:</label>
+    					<input id='warehouse-db-connection-name' style='width: 520px;' />
+    				</div>
+    				<div>
+    					<label for='warehouse-db-connection-username'>Username:</label>
+    					<input id='warehouse-db-connection-username' style='margin-left: 45px; width: 520px;' />
+    				</div>
+    				<div>
+    					<label for='warehouse-db-connection-password'>Password:</label>
+    					<input id='warehouse-db-connection-password' style='margin-left: 50px; width: 520px;' type='password' />
+    				</div>
+    				<div>
+    					<label for='warehouse-db-connection-string'>Connection String:</label>
+    					<input id='warehouse-db-connection-string' style='width: 520px;' />
+    				</div>
+    				<br>
+    				<button id='test-warehouse-db-connection-button'>Test Connection...</button>
+    			</div>
+    			<div id='db-objects-selection-panel' class='simple_panel'>
+    				<h4 style='margin: 0px;'>Select Database Objects</h4>
+    				<hr />
+    				<table>
+    					<tr>
+    						<td>Available Objects</td>
+    						<td />
+    						<td>Selected Objects</td>
+    					</tr>
+    					<tr>
+    						<td>
+    							<select id='available-db-objects' style='width: 300px;' size='18'>
+    								<option class='imagebacked' style='background-image: url(/static/icons/table.png)'>Table1</option>
+    								<option class='imagebacked' style='background-image: url(/static/icons/view.png)'>View1</option>
+    							</select>
+    						</td>
+    						<td>
+    							<table>
+										<tr>
+											<td><button id='right-button' onclick='moveToSelectedList()'><i class='shuttle_right_icon' /></button></td>
+										</tr>
+										<tr>
+											<td><button id='right-all-button' onclick='moveAllToSelectedList()'><i class='shuttle_right_all_icon' /></button></td>
+										</tr>
+										<tr>
+											<td><button id='left-button' onclick='moveToAvailableList()'><i class='shuttle_left_icon' /></button></td>
+										</tr>
+										<tr>
+											<td><button id='left-all-button' onclick='moveAllToAvailableList()'><i class='shuttle_left_all_icon' /></button></td>
+										</tr>
+									</table>
+    						</td>
+    						<td>
+    							<select id='selected-db-objects' style='width: 300px;' size='18'>
+    							</select>
+    						</td>
+    					</tr>
+    				</table>
+    			</div>
+    			<div id='dimensions-rules-panel' class='simple_panel'>
+    				<h4 style='margin: 0px;'>Dimension Rules</h4>
+    				<hr />
+    				<div><input type='radio' name='dimension-rules-radio' id='use-all-columns-as-dimensions' checked>Use all columns with unique values</input></div>
+    				<div><input type='radio' name='dimension-rules-radio' id='create-dimensions-manually'>Create dimensions manually later on</input></div>
+    			</div>
+    			<div id='facts-rules-panel' class='simple_panel'>
+    				<h4 style='margin: 0px;'>Fact Rules</h4>
+    				<hr />
+    				<div><input type='radio' name='facts-rules-radio' id='use-all-columns-as-facts' checked>Use all columns with numeric values and are not unique</input></div>
+    				<div><input type='radio' name='facts-rules-radio' id='create-facts-manually'>Create facts manually later on</input></div>
+    			</div>
+    			<div id='metric-rules-panel' class='simple_panel'>
+    				<h4 style='margin: 0px;'>Metric Rules</h4>
+    				<hr />
+    				<div><input type='radio' name='metric-rules-radio' id='use-all-columns-as-metrics' checked>Create metrics using the facts created previoulsy</input></div>
+    				<div><input type='radio' name='metric-rules-radio' id='create-metrics-manually'>Create metrics manually later on</input></div>
+    			</div>
+    		`;
+    		w2ui['warehouse-config-wizard-layout'].content('main', mainHtml);
+
+    		function goToPreviousPanel() {
+    			panels.forEach(function(panel) {
+    				$j('#' + panel).removeClass('display_simple_panel');
+    			});
+    			current_panel_index--;
+    			$j('#' + panels[current_panel_index]).addClass('display_simple_panel');
+
+    			if(current_panel_index === 0) {
+    				$j('#previous_button').prop('disabled', true);
+    			}
+
+    			if(current_panel_index < 5) {
+    				$j('#next_button').prop('disabled', false);
+    				$j('#finish_button').prop('disabled', true);
+    			}
+    		}
+    		
+    		function goToNextPanel() {
+    			panels.forEach(function(panel) {
+    				$j('#' + panel).removeClass('display_simple_panel');
+    			});
+    			current_panel_index++;
+    			$j('#' + panels[current_panel_index]).addClass('display_simple_panel');
+
+    			if(current_panel_index === 5) {
+    				$j('#next_button').prop('disabled', true);
+    				$j('#finish_button').prop('disabled', false);
+    			}
+
+    			if(current_panel_index > 0) {
+    				$j('#previous_button').prop('disabled', false);
+    			}
+    		}
+
+    		function moveToSelectedList() {
+    			var selectedItem = $j('#available-db-objects').children('option:selected');
+				if(selectedItem.length > 0) {
+					$j('#selected-db-objects').append(selectedItem[0].outerHTML);
+					selectedItem.remove();
+				}
+    		}
+
+			function moveAllToSelectedList() {
+				var that = this;
+				$j('#available-db-objects').children().each(function() {
+					var html = $j(this)[0].outerHTML;
+					$j('#selected-db-objects').append(html);
+					$j(this).remove();
+				});
+			}
+
+			function moveToAvailableList() {
+				var selectedItem = $j('#selected-db-objects').children('option:selected');
+				if(selectedItem.length > 0) {
+					$j('#available-db-objects').append(selectedItem[0].outerHTML);
+					selectedItem.remove();
+				}
+			}
+
+			function moveAllToAvailableList() {
+				var that = this;
+				$j('#selected-db-objects').children().each(function() {
+					var html = $j(this)[0].outerHTML;
+					$j('#available-db-objects').append(html);
+					$j(this).remove();
+				});
+			}
+
+    	</script>
+    </div>
+    <div rel="buttons">
+    	<button class="w2ui-btn" id='cancel_button' onclick="w2popup.close()">Cancel</button>
+    	<button class="w2ui-btn" id='previous_button' onclick="goToPreviousPanel()" disabled>&lt;&lt;Previous</button>
+    	<button class="w2ui-btn" id='next_button' onclick="goToNextPanel()">Next&gt;&gt;</button>
+        <button class="w2ui-btn" id='finish_button' onclick="w2popup.close()" disabled>Finish</button>
+    </div>
+</div>

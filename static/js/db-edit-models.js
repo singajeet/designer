@@ -392,9 +392,11 @@ var DatabaseEditableTable = Class.create({
 	},
 	getColumns: function() {
 		var that = this;
-	    this.socket.on('columns_result_to_edit', function(result){
-	      that.fireColumnsAvailableEvent(result);
-	    });
+		if(this.socket._callbacks['$columns_result_to_edit'] === undefined) {
+		    this.socket.on('columns_result_to_edit', function(result){
+		      that.fireColumnsAvailableEvent(result);
+		    });
+		}
 	    this.socket.emit('get_columns_to_edit', this.tableName);
 	},
 	getColumnConstraints: function(columnName) {
@@ -540,5 +542,68 @@ var DatabaseEditableTable = Class.create({
 	      that.fireTableCommentsAvailableEvent(result);
 	    });
 	    this.socket.emit('get_table_comments', this.tableName);
+	}
+});
+
+/**
+ * DatabaseSQL: This class represents an SQL to be executed in database and interacts with
+ *  websocket calls to execute same
+ * @constructor
+ */
+var DatabaseSQL = Class.create({
+	socket: null,
+	sqlSuccessEventListeners: [],
+	sqlErrorEventListeners: [],
+	initialize: function() {
+		this.socket = io('/oracle_db_sql');
+		this.sqlSuccessListeners = [];
+		this.sqlErrorListeners = [];
+		var that = this;
+	    this.socket.on('execute_sql_error', function(result){
+	      that.fireSQLErrorEvent(result);
+	    });
+	    this.socket.on('execute_sql_success', function(result){
+	      that.fireSQLSuccessEvent();
+	    });
+	},
+	addSQLSuccessEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.sqlSuccessEventListeners.push(listener);
+		}
+	},
+	removeSQLSuccessEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.sqlSuccessEventListeners.indexOf(listener);
+			this.sqlSuccessEventListeners.splice(index, 1);
+		}
+	},
+	fireSQLSuccessEvent: function() {
+		this.sqlSuccessEventListeners.forEach(function(listener) {
+			listener();
+		});
+	},
+	addSQLErrorEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.sqlErrorEventListeners.push(listener);
+		}
+	},
+	removeSQLErrorEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.sqlErrorEventListeners.indexOf(listener);
+			this.sqlErrorEventListeners.splice(index, 1);
+		}
+	},
+	fireSQLErrorEvent: function(err) {
+		this.sqlErrorEventListeners.forEach(function(listener) {
+			listener(err);
+		});
+	},
+	execute_sql: function(sql) {
+	    this.socket.emit('execute_sql', sql);
+	},
+	destroy: function() {
+		this.socket.disconnect();
+		this.socket.destroy();
+		this.socket = null;
 	}
 });
