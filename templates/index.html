@@ -1319,6 +1319,27 @@
                   { id: 'edit-db-connection', text: 'Edit Connection...', icon: 'database_connection_icon'}
                 ];
               }
+            } else if(event.object.nodeType === DatabaseNavNodeType.TABLE) {
+              navigationTree.menu = [
+                { id: 'edit-table', text: 'Edit...', icon: 'edit_icon'},
+                { id: 'sep-1', text: '--'},
+                { id: 'table-import-data', text: 'Import Data...', disabled: true},
+                { id: 'table-export-data', text: 'Export...', disabled: true},
+                { id: 'sep-2', text: '--'},
+                { id: 'show-table-actions', text: 'Table Actions...'},
+                { id: 'show-column-actions', text: 'Column Actions...'},
+                { id: 'show-constraint-actions', text: 'Constraint Actions...'},
+                { id: 'show-index-actions', text: 'Index Actions...'},
+                { id: 'show-priviliges-actions', text: 'Priviliges Actions...'},
+                { id: 'show-statistics-actions', text: 'Statistics Actions...'},
+                { id: 'show-storage-actions', text: 'Storage Actions...'},
+                { id: 'show-trigger-actions', text: 'Trigger Actions...'},
+                { id: 'show-spatial-actions', text: 'Spatial Actions...'},
+                { id: 'sep-3', text: '--'},
+                { id: 'enable-rest-service-table', text: 'Enable REST Service...', disabled: true},
+                { id: 'sep-4', text: '--'},
+                { id: 'quick-ddl', text: 'Quick DDL...'},
+              ]
             } else if(event.object.nodeType === NavNodeType.BI_FOLDER) {
               navigationTree.menu = [
                 { id: 'configure-warehouse', text: 'Warehouse Configuration Wizard...', icon: 'database_connection_icon'}
@@ -1344,7 +1365,16 @@
           }
 
           function contextMenuItemSelectedCallback(navigationTree, event) {
-            if(event.menuItem.id === 'add-db-connection') {
+            if(event.menuItem.id === 'edit-table') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ url: '/edit-table', showMax: true, modal: true, showClose: false });
+
+            } else if(event.menuItem.id === 'add-db-connection') {
               var databaseFolderId = event.target;
               var dbConnection = new DatabaseConnection(databaseFolderId);
               dbConnection.addConnectionInfoAvailableEventListener(onConnectionInfoAvailable);
@@ -1400,7 +1430,8 @@
               function onTablesAvailable(tables) {
                 tables.forEach(function(table) {
                   navigationTree.insert(connectionId + '-tables', null, [
-                                          {id: connectionId + '-tables-' + table, text: table, icon: 'table_icon', nodeType: DatabaseNavNodeType.TABLE}
+                                          {id: connectionId + '-tables-' + table, text: table, icon: 'table_icon', nodeType: DatabaseNavNodeType.TABLE, schemaName: dbConnection.getUsername().toUpperCase(),
+                                            tableName: table}
                                         ]);
                 });
               }

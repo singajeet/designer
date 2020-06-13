@@ -1327,9 +1327,14 @@ class DatabaseTableServer(Namespace):
         ref_columns = []
         for result in cursor:
             ref_columns.append(result[0])
-        result_array = [{'recid': 1,
-                         'localColumn': local_columns[0],
-                         'referencedColumn': ref_columns[0]}]
+        if local_columns.__len__() > 0:
+            result_array = [{'recid': 1,
+                             'localColumn': local_columns[0],
+                             'referencedColumn': ref_columns[0]}]
+        else:
+            result_array = [{'recid': 1,
+                             'localColumn': '',
+                             'referencedColumn': ref_columns[0]}]
         for i in range(1, ref_columns.__len__()):
             result_array.append({'recid': i + 1,
                                  'localColumn': '',
@@ -1354,6 +1359,7 @@ class DatabaseTableServer(Namespace):
         cursor = db_conn.cursor()
         query = """
                 SELECT
+                    ROWNUM,
                     index_name,
                     CASE
                         WHEN index_type IN ('NORMAL', 'NORMAL/REV', 'IOT - TOP', 'IOT') THEN
@@ -1402,29 +1408,30 @@ class DatabaseTableServer(Namespace):
         cursor.execute(query)
         result_array = []
         for result in cursor:
-            result_array.append({'indexName': result[0],
-                                 'indexType': result[1],
-                                 'iTypeOwner': result[2],
-                                 'iTypeName': result[3],
-                                 'parameters': result[4],
-                                 'keyCompression': result[5],
-                                 'prefixLength': result[6],
-                                 'parallelDegree': result[7],
-                                 'degree': result[8],
-                                 'reverse': result[9],
-                                 'tablespaceName': result[10],
-                                 'pctFree': result[11],
-                                 'logging': result[12],
-                                 'initrans': result[13],
-                                 'bufferMode': result[14],
-                                 'freeLists': result[15],
-                                 'freeListGroups': result[16],
-                                 'initialExtent': result[17],
-                                 'nextExtent': result[18],
-                                 'minExtent': result[19],
-                                 'maxExtent': result[20],
-                                 'unlimited': json.loads(result[21]),
-                                 'pctIncrease': result[22]
+            result_array.append({'recid': result[0],
+                                 'indexName': result[1],
+                                 'indexType': result[2],
+                                 'iTypeOwner': result[3],
+                                 'iTypeName': result[4],
+                                 'parameters': result[5],
+                                 'keyCompression': result[6],
+                                 'prefixLength': result[7],
+                                 'parallelDegree': result[8],
+                                 'degree': result[9],
+                                 'reverse': result[10],
+                                 'tablespaceName': result[11],
+                                 'pctFree': result[12],
+                                 'logging': result[13],
+                                 'initrans': result[14],
+                                 'bufferMode': result[15],
+                                 'freeLists': result[16],
+                                 'freeListGroups': result[17],
+                                 'initialExtent': result[18],
+                                 'nextExtent': result[19],
+                                 'minExtent': result[20],
+                                 'maxExtent': result[21],
+                                 'unlimited': json.loads(result[22]),
+                                 'pctIncrease': result[23]
                                  })
         emit('indexes_list_result', result_array, namespace=self._namespace_url)
 

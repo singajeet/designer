@@ -289,9 +289,9 @@ var DatabaseEditableTable = Class.create({
 			this.indexesListAvailableEventListeners.splice(index, 1);
 		}
 	},
-	fireIndexesListAvailableEvent: function(result) {
+	fireIndexesListAvailableEvent: function(result, source) {
 		this.indexesListAvailableEventListeners.forEach(function(listener) {
-			listener(result);
+			listener(result, source);
 		});
 	},
 	addIndexExpressionAvailableEventListener: function(listener) {
@@ -494,10 +494,10 @@ var DatabaseEditableTable = Class.create({
 	    });
 	    this.socket.emit('get_constraint_columns', constraintName);
 	},
-	getIndexesList: function() {
+	getIndexesList: function(source) {
 		var that = this;
 	    this.socket.on('indexes_list_result', function(result){
-	      that.fireIndexesListAvailableEvent(result);
+	      that.fireIndexesListAvailableEvent(result, source);
 	    });
 	    this.socket.emit('get_indexes_list', this.tableName);
 	},

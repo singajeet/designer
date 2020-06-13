@@ -172,6 +172,7 @@
 								var ddlArray = [];
 								ddlArray = ddlArray.concat(columnsPanel.getChanges());
 								ddlArray = ddlArray.concat(constraintsPanel.getChanges());
+								ddlArray = ddlArray.concat(indexesPanel.getChanges());
 								ddlPanel.createPanel(ddlArray);
 								var ddl = '';
 								ddlArray.forEach(function(text) {
@@ -182,6 +183,7 @@
 								var ddlArray = [];
 								ddlArray = ddlArray.concat(columnsPanel.getChanges());
 								ddlArray = ddlArray.concat(constraintsPanel.getChanges());
+								ddlArray = ddlArray.concat(indexesPanel.getChanges());
 								var ddl = '';
 								ddlArray.forEach(function(text) {
 									ddl += text + '\n\n';
@@ -334,10 +336,11 @@
 						dbTable.getConstraints();
 						constraintsPanel.getConstraintsGrid().lock('Reading Constraints...', true);
 						dbTable.getSchemasList('constraintsPanel');
+						dbTable.getIndexesList('constraintsPanel');
 					} else if(source === 'indexesPanel') {
 						indexesPanel.populateColumnsList(result);
 						indexesPanel.createPanel();
-						dbTable.getIndexesList();
+						dbTable.getIndexesList('indexesPanel');
 						dbTable.getSchemasList('indexesPanel');
 						dbTable.getTablespacesList('indexesPanel');
 					}
@@ -345,9 +348,7 @@
 
 				function onAssociationAvailable(result) {
 					if(constraintsPanel.isAssociationsGridCreated()) {
-						constraintsPanel.getAssociationsGrid().records = result;
-						constraintsPanel.getAssociationsGrid().refresh();
-						constraintsPanel.getAssociationsGrid().unlock();
+						constraintsPanel.populateAssociationGrid(result);
 					}
 				}
 
@@ -355,9 +356,13 @@
 					constraintsPanel.populateConstraintColumns(result);
 				}
 
-				function onIndexesListAvailable(result) {
-					indexesPanel.populateIndexesList(result);
-					indexesPanel.selectIndex(0);
+				function onIndexesListAvailable(result, source) {
+					if(source === 'indexesPanel') {
+						indexesPanel.populateIndexesList(result);
+						indexesPanel.selectIndex(0);
+					} else if(source === 'constraintsPanel') {
+						constraintsPanel.populateIndexesList(result);
+					}
 				}
 
 				function onIndexSelected(indexName) {
@@ -366,9 +371,7 @@
 				}
 
 				function onIndexExpressionAvailable(result) {
-					indexesPanel.getExpressionsGrid().records = result;
-					indexesPanel.getExpressionsGrid().refresh();
-					indexesPanel.getExpressionsGrid().unlock();
+					indexesPanel.populateExpressionGrid(result);
 				}
 
 				function onIndexTypeSchemaChanged(schemaName) {
@@ -410,8 +413,12 @@
 
 				function apply_and_close_dialog() {
 					var columnsPanelDDLArray = columnsPanel.getChanges();
+					var constraintsPanelDDLArray = constraintsPanel.getChanges();
+					var indexesPanelDDLArray = indexesPanel.getChanges();
 					sqlArray.clear();
 					sqlArray = sqlArray.concat(columnsPanelDDLArray);
+					sqlArray = sqlArray.concat(constraintsPanelDDLArray);
+					sqlArray = sqlArray.concat(indexesPanelDDLArray);
 					//if we had previous successfull execution of some statements
 					//remove those from the array
 					if(sqlSuccessCount > 0) {						
@@ -419,6 +426,10 @@
 					}
 					sqlSuccessCount = 0;
 					sqlTotalCount = sqlArray.length;
+					if(sqlTotalCount <= 0) {
+						destroy();
+						w2popup.close();
+					}
 					error = false;
 					sqlArray.forEach(function(sql) {
 						if(!error) {

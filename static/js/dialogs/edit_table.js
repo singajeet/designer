@@ -158,9 +158,13 @@ var ColumnsPanelUI = Class.create({
 														var recids = grid.getSelection();
 														recids.forEach(function(recid) {
 															var record = grid.get(recid);
-															that.removedColumns.push(record['columnName']);
+															if(record['mode'] !== 'NEW') {
+																that.removedColumns.push(record['columnName']);
+															}
 															grid.remove(recid);
 														});
+														var topRecid = grid.records[0]['recid'];
+														grid.select(topRecid);
 													} else if(event.target === that.id + '-grid-toolbar-copy-column') {
 														grid.save();
 														var records = grid.getSelection();
@@ -1728,7 +1732,9 @@ var ConstraintsPanelUI = Class.create({
 	schemaChangedEventListeners: [],
 	tableChangedEventListeners: [],
 	refConstraintChangedEventListeners: [],
-	constraintColumnsDict: {},
+	constraintSelectedColumnsDict: {},
+	constraintAvailableColumnsDict: {},
+	droppedConstraints: [],
 	initialize: function(id,label) {
 		this.id = id;
 		this.label = label;
@@ -1741,7 +1747,9 @@ var ConstraintsPanelUI = Class.create({
 		this.schemaChangedEventListeners = [];
 		this.tableChangedEventListeners = [];
 		this.refConstraintChangedEventListeners = [];
-		this.constraintColumnsDict = {};
+		this.constraintSelectedColumnsDict = {};
+		this.constraintAvailableColumnsDict = {};
+		this.droppedConstraints = [];
 	},
 	createPanel: function() {
 		var that = this;
@@ -1797,33 +1805,45 @@ var ConstraintsPanelUI = Class.create({
 												onClick: function(event) {
 													var grid = w2ui[that.id + '-grid'];
 													if(event.target === that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-primary-key') {
-														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/primarykey.png" /> Primary Key', constraintType: 'P'});
+														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/primarykey.png" /> Primary Key', constraintType: 'P', mode: 'NEW', name: 'CONSTRAINT1', enabled: true, deferrableState: 'Not Deferrable', constraintName: 'CONSTRAINT1'});
 													} else if(event.target === that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-unique') {
-														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/key.png" /> Unique', constraintType: 'U'});
+														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/key.png" /> Unique', constraintType: 'U', mode: 'NEW', name: 'CONSTRAINT1', enabled: true, deferrableState: 'Not Deferrable', constraintName: 'CONSTRAINT1'});
 													} else if(event.target === that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-foreign-key') {
-														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/foreignkey.png" /> Foreign Key', constraintType: 'R'});
+														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/foreignkey.png" /> Foreign Key', constraintType: 'R', mode: 'NEW', name: 'CONSTRAINT1', enabled: true, deferrableState: 'Not Deferrable', constraintName: 'CONSTRAINT1'});
 													} else if(event.target === that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-check') {
-														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/constraint.png" /> Check', constraintType: 'C'});
+														grid.add({recid: grid.records.length + 1, type: '<img src="/static/icons/constraint.png" /> Check', constraintType: 'C', mode: 'NEW', name: 'CONSTRAINT1', enabled: true, deferrableState: 'Not Deferrable', constraintName: 'CONSTRAINT1'});
 													} else if(event.target === that.id + '-grid-toolbar-drop-constraint') {
 														var records = grid.getSelection();
-														records.forEach(function(record) {
-															grid.remove(record);
+														records.forEach(function(recid) {
+															var record = grid.get(recid);
+															if(record['mode'] !== 'NEW') {
+																that.droppedConstraints.push(record['name']);
+															}
+															grid.remove(recid);
+															grid.refresh();
 														});
+														var topRecid = grid.records[0]['recid'];
+														grid.select(topRecid);
 													}
 												}
 											},
 											onSelect: function(event) {
 												var grid = this;
-												event.onComplete = function() {
-													var recid = event.recid;
-													var record = grid.get(recid);
-													that.changeConstraintPanel(record);
-												};
+												if(that.lastClickedRecid !== event.recid){
+													event.onComplete = function() {
+														var recid = event.recid;
+														var record = grid.get(recid);
+														that.changeConstraintPanel(record);
+													};
+												}
+												that.lastClickedRecid = event.recid;												
 											},
 											onRefresh: function(event) {
 												var recs = this.find({constraintType: 'P'});
 												if(recs.length > 0) {
 													this.toolbar.disable(that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-primary-key');
+												} else {
+													this.toolbar.enable(that.id + '-grid-toolbar-add-constraint' + ':' + that.id + '-grid-toolbar-add-constraint-primary-key');
 												}
 											}
 										});
@@ -2039,9 +2059,9 @@ var ConstraintsPanelUI = Class.create({
 				var records = that.constraintsGrid.getSelection();
 				var newValue = this.value;
 				that.constraintsGrid.save();
-				records.forEach(function(recid) {
-					that.constraintsGrid.set(recid, {refConstraintName: newValue});
-				});
+				// records.forEach(function(recid) {
+				// 	that.constraintsGrid.set(recid, {refConstraintName: newValue});
+				// });
 				var record = that.constraintsGrid.get(records[0]);
 				var constraintName = record['constraintName'];
 				that.fireRefConstraintChangedEvent(constraintName, newValue);
@@ -2100,12 +2120,14 @@ var ConstraintsPanelUI = Class.create({
 		this.constraintsGrid.select(1);
 	},
 	createAssociationsGrid: function() {
+		var that = this;
 		if(this.associationsGrid === null) {
 			this.associationsGrid = $j('#' + this.id + '-foreign-constraint-panel-associations-grid').w2grid({
 																		name: this.id + '-foreign-constraint-panel-associations-properties',
 																		header: 'Associations',
 																		show: { header: true,
-																		      toolbar: false,
+																		      toolbar: true,
+																		      toolbarSave: true,
 																		      lineNumbers: false
 																		    },
 																		columns: [
@@ -2114,8 +2136,20 @@ var ConstraintsPanelUI = Class.create({
 																				items: this.columnsList}
 																			},
 																			{field: 'referencedColumn', caption: 'Referenced Column', size: '100%'}
-																		]
-																	});
+																		],
+																		onSave: function(event) {
+																			var grid = this;
+																			event.onComplete = function() {
+																				var records = that.constraintsGrid.getSelection();
+																				records.forEach(function(recid) {
+																					var record = that.constraintsGrid.get(recid);
+																					if(record['mode'] !== 'NEW') {
+																						that.constraintsGrid.set(recid, {mode: 'CHANGED', associationDetails: grid.records});
+																					}
+																				});
+																			};
+																		}
+ 																	});
 		}
 	},
 	isAssociationsGridCreated: function() {
@@ -2129,6 +2163,8 @@ var ConstraintsPanelUI = Class.create({
 		return this.associationsGrid;
 	},
 	changeConstraintPanel: function(record) {
+		var recid = record['recid'];
+		var mode = record['mode'];
 		var constraintName = record['constraintName'];
 		var constraintType = record['constraintType'];
 
@@ -2140,24 +2176,57 @@ var ConstraintsPanelUI = Class.create({
 		var deleteRule = record['deleteRule'];
 		var indexName = record['indexName'];
 
-		this.fireConstraintSelectedEvent(constraintName, constraintType);
+		if(this.constraintAvailableColumnsDict[recid] === null || this.constraintAvailableColumnsDict[recid] === undefined) {
+			if(mode !== 'NEW') {
+				this.fireConstraintSelectedEvent(constraintName, constraintType);
+			}
+		} else {
+			$j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').empty();
+			var that = this;
+			var availableColumns = this.constraintAvailableColumnsDict[recid];
+			availableColumns.forEach(function(column) {
+				$j('#' + that.id + '-primary-unique-constraint-panel-available-columns-select').append('<option>' + column + '</option>');
+			});
+
+			$j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').empty();
+			var selectedColumns = this.constraintSelectedColumnsDict[recid];
+			selectedColumns.forEach(function(item) {
+				$j('#' + that.id + '-primary-unique-constraint-panel-selected-columns-select').append('<option>' + item + '</option>');
+			});
+		}
 
 		if(constraintType === 'P' || constraintType === 'U') {
 			$j('#' + this.id + '-foreign-constraint-panel').removeClass('display_constraints_panel');
 			$j('#' + this.id + '-check-constraint-panel').removeClass('display_constraints_panel');
 			$j('#' + this.id + '-primary-unique-constraint-panel').addClass('display_constraints_panel');
 
-			$j('#' + this.id + '-primary-unique-constraint-panel-using-index-select').empty();
-			$j('#' + this.id + '-primary-unique-constraint-panel-using-index-select').append('<option>' + indexName + '</option>');
+			if(indexName === null || indexName === undefined) {
+				$j('#' + this.id + '-primary-unique-constraint-panel-using-index-select').val('');
+				$j('#' + this.id + '-primary-unique-constraint-panel-using-index-select').prop('disabled', true);
+			} else {
+				$j('#' + this.id + '-primary-unique-constraint-panel-using-index-select').val(indexName);
+			}
 		} else if(constraintType === 'R') {
 			$j('#' + this.id + '-check-constraint-panel').removeClass('display_constraints_panel');
 			$j('#' + this.id + '-primary-unique-constraint-panel').removeClass('display_constraints_panel');
 			$j('#' + this.id + '-foreign-constraint-panel').addClass('display_constraints_panel');
 
-			$j('#' + this.id + '-foreign-constraint-panel-schema-input').val(refOwner).trigger('change');
-			$j('#' + this.id + '-foreign-constraint-panel-table-input').val(refTable).trigger('change');
-			$j('#' + this.id + '-foreign-constraint-panel-constraints-input').val(refConstraintName).trigger('change');
-			$j('#' + this.id + '-foreign-constraint-panel-on-delete-select').val(deleteRule);
+			if(mode !== 'NEW') {
+				$j('#' + this.id + '-foreign-constraint-panel-schema-input').val(refOwner).trigger('change');
+				$j('#' + this.id + '-foreign-constraint-panel-table-input').val(refTable).trigger('change');
+				$j('#' + this.id + '-foreign-constraint-panel-constraints-input').val(refConstraintName).trigger('change');
+				$j('#' + this.id + '-foreign-constraint-panel-on-delete-select').val(deleteRule);
+			} else {
+				this.associationsGrid.clear();
+				$j('#' + this.id + '-foreign-constraint-panel-schema-input').val(refOwner);
+				$j('#' + this.id + '-foreign-constraint-panel-table-input').val(refTable);
+				if(refConstraintName !== undefined) {
+					$j('#' + this.id + '-foreign-constraint-panel-constraints-input').val(refConstraintName).trigger('change');
+				} else {
+					$j('#' + this.id + '-foreign-constraint-panel-constraints-input').val(refConstraintName);
+				}
+				$j('#' + this.id + '-foreign-constraint-panel-on-delete-select').val(deleteRule);
+			}
 		} else if(constraintType === 'C') {
 			$j('#' + this.id + '-foreign-constraint-panel').removeClass('display_constraints_panel');
 			$j('#' + this.id + '-primary-unique-constraint-panel').removeClass('display_constraints_panel');
@@ -2165,6 +2234,14 @@ var ConstraintsPanelUI = Class.create({
 
 			$j('#' + this.id + '-check-constraint-panel-check-condition-input').val(checkCondition);
 		}
+		this.constraintsGrid.save();
+	},
+	populateIndexesList: function(result) {
+		$j('#' + this.id + '-primary-unique-constraint-panel-using-index-select').empty();
+		var that = this;
+		result.forEach(function(item) {
+			$j('#' + that.id + '-primary-unique-constraint-panel-using-index-select').append('<option>' + item['indexName'] + '</option>');
+		});			
 	},
 	addConstraintSelectedEventListener: function(listener) {
 		if(listener !== null && listener !== undefined) {
@@ -2257,6 +2334,31 @@ var ConstraintsPanelUI = Class.create({
 	populateColumnsList: function(list) {
 		this.columnsList = list;
 	},
+	populateAssociationGrid: function(result) {
+		var refConstraintNameTextboxValue = $j('#' + this.id + '-foreign-constraint-panel-constraints-input').val();
+		var records = this.constraintsGrid.getSelection();
+		var that = this;
+		records.forEach(function(recid) {
+			var record = that.constraintsGrid.get(recid);
+			if(record['refConstraintName'] === refConstraintNameTextboxValue) {
+				if(record['associationDetails'] === null || record['associationDetails'] === undefined) {
+					that.constraintsGrid.set(recid, {associationDetails: result});
+					that.associationsGrid.records = result;
+					that.associationsGrid.refresh();
+					that.associationsGrid.unlock();
+				} else {
+					that.associationsGrid.records = record['associationDetails'];
+					that.associationsGrid.refresh();
+					that.associationsGrid.unlock();
+				}
+			} else {
+				that.constraintsGrid.set(recid, {associationDetails: result, refConstraintName: refConstraintNameTextboxValue});
+				that.associationsGrid.records = result;
+				that.associationsGrid.refresh();
+				that.associationsGrid.unlock();
+			}
+		});
+	},
 	moveToSelectedList: function() {
 		var selectedItem = $j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').children('option:selected');
 		if(selectedItem.length > 0) {
@@ -2265,11 +2367,16 @@ var ConstraintsPanelUI = Class.create({
 			var records = this.constraintsGrid.getSelection();
 			var that = this;
 			records.forEach(function(recid) {
-				if(that.constraintColumnsDict[recid] !== null && that.constraintColumnsDict[recid] !== undefined) {
-					that.constraintColumnsDict[recid].push(selectedItem[0].value);
+				if(that.constraintSelectedColumnsDict[recid] !== null && that.constraintSelectedColumnsDict[recid] !== undefined) {
+					that.constraintSelectedColumnsDict[recid].push(selectedItem[0].value);
 				} else {
-					that.constraintColumnsDict[recid] = [selectedItem[0].value];
+					that.constraintSelectedColumnsDict[recid] = [selectedItem[0].value];
 				}
+
+				var index = that.constraintAvailableColumnsDict[recid].indexOf(selectedItem[0].value);
+				that.constraintAvailableColumnsDict[recid].splice(index, 1);
+
+				that.constraintsGrid.set(recid, {mode: 'CHANGED'});
 			});
 
 			selectedItem.remove();
@@ -2282,12 +2389,18 @@ var ConstraintsPanelUI = Class.create({
 			$j('#' + that.id + '-primary-unique-constraint-panel-selected-columns-select').append(html);
 
 			var records = that.constraintsGrid.getSelection();
+			var value = $j(this)[0].value;
 			records.forEach(function(recid) {
-				if(that.constraintColumnsDict[recid] !== null && that.constraintColumnsDict[recid] !== undefined) {
-					that.constraintColumnsDict[recid].push($j(this)[0].value);
+				if(that.constraintSelectedColumnsDict[recid] !== null && that.constraintSelectedColumnsDict[recid] !== undefined) {
+					that.constraintSelectedColumnsDict[recid].push(value);
 				} else {
-					that.constraintColumnsDict[recid] = [$j(this)[0].value];
+					that.constraintSelectedColumnsDict[recid] = [value];
 				}
+
+				var index = that.constraintAvailableColumnsDict[recid].indexOf(value);
+				that.constraintAvailableColumnsDict[recid].splice(index, 1);
+
+				that.constraintsGrid.set(recid, {mode: 'CHANGED'});
 			});
 
 			$j(this).remove();
@@ -2297,6 +2410,22 @@ var ConstraintsPanelUI = Class.create({
 		var selectedItem = $j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').children('option:selected');
 		if(selectedItem.length > 0) {
 			$j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').append(selectedItem[0].outerHTML);
+
+			var records = this.constraintsGrid.getSelection();
+			var that = this;
+			records.forEach(function(recid) {
+				if(that.constraintAvailableColumnsDict[recid] !== null && that.constraintAvailableColumnsDict[recid] !== undefined) {
+					that.constraintAvailableColumnsDict[recid].push(selectedItem[0].value);
+				} else {
+					that.constraintAvailableColumnsDict[recid] = [selectedItem[0].value];
+				}
+
+				var index = that.constraintSelectedColumnsDict[recid].indexOf(selectedItem[0].value);
+				that.constraintSelectedColumnsDict[recid].splice(index, 1);
+
+				that.constraintsGrid.set(recid, {mode: 'CHANGED'});
+			});
+
 			selectedItem.remove();
 		}
 	},
@@ -2305,6 +2434,22 @@ var ConstraintsPanelUI = Class.create({
 		$j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').children().each(function() {
 			var html = $j(this)[0].outerHTML;
 			$j('#' + that.id + '-primary-unique-constraint-panel-available-columns-select').append(html);
+
+			var records = that.constraintsGrid.getSelection();
+			var value = $j(this)[0].value;
+			records.forEach(function(recid) {
+				if(that.constraintAvailableColumnsDict[recid] !== null && that.constraintAvailableColumnsDict[recid] !== undefined) {
+					that.constraintAvailableColumnsDict[recid].push(value);
+				} else {
+					that.constraintAvailableColumnsDict[recid] = [value];
+				}
+
+				var index = that.constraintSelectedColumnsDict[recid].indexOf(value);
+				that.constraintSelectedColumnsDict[recid].splice(index, 1);
+
+				that.constraintsGrid.set(recid, {mode: 'CHANGED'});
+			});
+
 			$j(this).remove();
 		});
 	},
@@ -2335,23 +2480,26 @@ var ConstraintsPanelUI = Class.create({
 	populateConstraintColumns: function(list) {
 		$j('#' + this.id + '-primary-unique-constraint-panel-available-columns-select').empty();
 		var that = this;
+		var availableColumns = [];
 		this.columnsList.forEach(function(column) {
 			var index = list.indexOf(column);
 			if(index < 0) {
 				$j('#' + that.id + '-primary-unique-constraint-panel-available-columns-select').append('<option>' + column + '</option>');
+				availableColumns.push(column);
 			}
 		});
 
 		$j('#' + this.id + '-primary-unique-constraint-panel-selected-columns-select').empty();
-		var columns = [];
+		var selectedColumns = [];
 		list.forEach(function(item) {
 			$j('#' + that.id + '-primary-unique-constraint-panel-selected-columns-select').append('<option>' + item + '</option>');
-			columns.push(item);
+			selectedColumns.push(item);
 		});
 
 		var records = this.constraintsGrid.getSelection();
 		records.forEach(function(recid) {
-			that.constraintColumnsDict[recid] = columns;
+			that.constraintSelectedColumnsDict[recid] = selectedColumns;
+			that.constraintAvailableColumnsDict[recid] = availableColumns;
 		});
 	},
 	getOriginalRecord: function(recid) {
@@ -2366,6 +2514,10 @@ var ConstraintsPanelUI = Class.create({
 	getChanges: function() {
 		var that = this;
 		var deltaChanges = [];
+		//If constraints grid was never navigated and created
+		if(this.constraintsGrid === null) {
+			return deltaChanges;
+		}
 		this.constraintsGrid.records.forEach(function(gridRecord) {
 			var recid = gridRecord['recid'];
 			var originalRecord = that.getOriginalRecord(recid);
@@ -2381,13 +2533,18 @@ var ConstraintsPanelUI = Class.create({
 				changedRecord['constraintType'] = originalRecord['constraintType'];
 				
 				changedRecord['checkCondition'] = originalRecord['checkCondition'] !== gridRecord['checkCondition'] ? gridRecord['checkCondition'] : null;
+				changedRecord['originalCheckCondition'] = originalRecord['checkCondition'];
 				changedRecord['refOwner'] = originalRecord['refOwner'] !== gridRecord['refOwner'] ? gridRecord['refOwner'] : null;
 				changedRecord['refTable'] = originalRecord['refTable'] !== gridRecord['refTable'] ? gridRecord['refTable'] : null;
+				changedRecord['originalRefTable'] = originalRecord['refTable'];
 				changedRecord['refConstraintName'] = originalRecord['refConstraintName'] !== gridRecord['refConstraintName'] ? gridRecord['refConstraintName'] : null;
 				changedRecord['deleteRule'] = originalRecord['deleteRule'] !== gridRecord['deleteRule'] ? gridRecord['deleteRule'] : null;
 				changedRecord['indexName'] = originalRecord['indexName'] !== gridRecord['indexName'] ? gridRecord['indexName'] : null;
 				changedRecord['originalIndexName'] = originalRecord['indexName'] !== null && originalRecord['indexName'] !== undefined ? originalRecord['indexName'] : null;
 				changedRecord['constraintColumns'] = gridRecord['constraintColumns'];
+				changedRecord['associationDetails'] = gridRecord['associationDetails'];
+
+				changedRecord['mode'] = gridRecord['mode'];
 
 				deltaChanges.push(changedRecord);
 			} else {
@@ -2395,16 +2552,32 @@ var ConstraintsPanelUI = Class.create({
 			}
 		});
 		var ddlArray = [];
+		ddlArray = ddlArray.concat(this.getDroppedConstraints());
 		ddlArray = ddlArray.concat(this.getConstraintNameChanges(deltaChanges));
 		ddlArray = ddlArray.concat(this.getConstraintEnabledDisabledChanges(deltaChanges));
-		ddlArray = ddlArray.concat(this.getConstraintChanges(deltaChanges));
+		ddlArray = ddlArray.concat(this.getPrimaryUniqueKeyConstraintChanges(deltaChanges));
+		ddlArray = ddlArray.concat(this.getForeignKeyConstraintChanges(deltaChanges));
+		ddlArray = ddlArray.concat(this.getCheckConstraintChanges(deltaChanges));
+		return ddlArray;
+	},
+	getDroppedConstraints: function() {
+		var ddlArray = [];
+		var that = this;
+		this.droppedConstraints.forEach(function(constraint) {
+			var ddl = '';
+			ddl += 'ALTER TABLE ' + that.label;
+			ddl += '\nDROP CONSTRAINT ' + constraint + ';';
+			ddlArray.push(ddl);
+			ddl = '';
+		});
+
 		return ddlArray;
 	},
 	getConstraintNameChanges: function(deltaChanges) {
 		var that = this;
 		var ddlArray = [];
 		deltaChanges.forEach(function(record) {
-			if(record['name'] !== null) {
+			if(record['name'] !== null && record['mode'] !== 'NEW') {
 				var ddl = '';
 				ddl += 'ALTER TABLE ' + that.label;
 				ddl += '\nRENAME CONSTRAINT ' + record['originalName'] + ' TO ' + record['name'] + ';';
@@ -2418,7 +2591,7 @@ var ConstraintsPanelUI = Class.create({
 		var that = this;
 		var ddlArray = [];
 		deltaChanges.forEach(function(record) {
-			if(record['enabled'] !== null) {
+			if(record['enabled'] !== null && record['mode'] !== 'NEW') {
 				var ddl = '';
 				ddl += 'ALTER TABLE ' + that.label;
 				ddl += '\nMODIFY CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']);
@@ -2433,24 +2606,32 @@ var ConstraintsPanelUI = Class.create({
 
 		return ddlArray;
 	},
-	getConstraintChanges: function(deltaChanges) {
+	getPrimaryUniqueKeyConstraintChanges: function(deltaChanges) {
 		var that = this;
 		var ddlArray = [];
 		deltaChanges.forEach(function(record) {
-			if(record['deferrableState'] !== null) {
-				var ddl = '';
-				ddl += 'ALTER TABLE ' + that.label;
-				ddl += '\nDROP CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']) + ';';
-				ddlArray.push(ddl);
-				ddl = '';
+			if(record['deferrableState'] !== null || record['indexName'] !== null || record['mode'] === 'CHANGED' || record['mode'] === 'NEW') {
+				if(record['constraintType'] === 'P' || record['constraintType'] === 'U') {
+					var ddl = '';
 
-				if(record['constraintType'] === 'P') {
+					if(record['mode'] !== 'NEW') {
+						ddl += 'ALTER TABLE ' + that.label;
+						ddl += '\nDROP CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']) + ';';
+						ddlArray.push(ddl);
+						ddl = '';
+					}
+
 					ddl += 'ALTER TABLE ' + that.label;
-					ddl += '\nADD CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']) + ' PRIMARY KEY';
+					ddl += '\nADD CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']);
+					if(record['constraintType'] === 'P') {
+						ddl +=  ' PRIMARY KEY';
+					} else {
+						ddl += ' UNIQUE';
+					}
 					ddl += '\n(';
 					var recid = record['recid'];
-					if(that.constraintColumnsDict[recid] !== null && that.constraintColumnsDict[recid] !== undefined) {
-						var constraintColumns = that.constraintColumnsDict[recid];
+					if(that.constraintSelectedColumnsDict[recid] !== null && that.constraintSelectedColumnsDict[recid] !== undefined) {
+						var constraintColumns = that.constraintSelectedColumnsDict[recid];
 						if(constraintColumns.length > 0) {
 							var columns = '';
 							constraintColumns.forEach(function(column) {
@@ -2471,21 +2652,22 @@ var ConstraintsPanelUI = Class.create({
 						ddl += '\nDEFERRABLE INITIALLY DEFERRED';
 					}
 					//Apply Index if applicable
-					if(record['indexName'] !== null || record['originalIndexName'] !== null) {
+					if((record['indexName'] !== null && record['indexName'] !== undefined) || 
+						(record['originalIndexName'] !== null && record['originalIndexName'] !== undefined)) {
 						ddl += '\nUSING INDEX';
 						ddl += '\n(';
 						ddl += '\n\tCREATE INDEX ' + (record['indexName'] !== null ? record['indexName'] : record['originalIndexName']) + '1';
 						ddl += ' ON ' + that.label + '(';
 						var recid = record['recid'];
-						if(that.constraintColumnsDict[recid] !== null && that.constraintColumnsDict[recid] !== undefined) {
-							var constraintColumns = that.constraintColumnsDict[recid];
+						if(that.constraintSelectedColumnsDict[recid] !== null && that.constraintSelectedColumnsDict[recid] !== undefined) {
+							var constraintColumns = that.constraintSelectedColumnsDict[recid];
 							if(constraintColumns.length > 0) {
 								var columns = '';
 								constraintColumns.forEach(function(column) {
 									if(columns === '') {
 										columns += column + ' ASC';
 									} else {
-										columns += ',' + column + ' ASC';
+										columns += ', ' + column + ' ASC';
 									}
 								});
 								ddl += columns;
@@ -2510,6 +2692,120 @@ var ConstraintsPanelUI = Class.create({
 			}
 		});
 
+		return ddlArray;
+	},
+	getForeignKeyConstraintChanges: function(deltaChanges) {
+		var that = this;
+		var ddlArray = [];
+		deltaChanges.forEach(function(record) {
+			if(record['deferrableState'] !== null || record['refTable'] !== null || record['mode'] === 'CHANGED' || record['deleteRule'] !== null || record['mode'] === 'NEW') {
+				if(record['constraintType'] === 'R') {
+					var ddl = '';
+
+					if(record['mode'] !== 'NEW') {
+						ddl += 'ALTER TABLE ' + that.label;
+						ddl += '\nDROP CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']) + ';';
+						ddlArray.push(ddl);
+						ddl = '';
+					}
+				
+					ddl += 'ALTER TABLE ' + that.label;
+					ddl += '\nADD CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']) + ' FOREIGN KEY';
+					ddl += '\n(';
+					var associationDetails = record['associationDetails'];
+					var columns = '';
+					associationDetails.forEach(function(association) {
+						if(columns === '') {
+							columns += '\n\t' + association['localColumn'];
+						} else {
+							columns += ',\n\t' + association['localColumn'];
+						}
+					});
+					ddl += columns;
+					ddl += '\n)';
+					ddl += '\nREFERENCES ' + (record['refTable'] !== null ? record['refTable'] : record['originalRefTable']);
+					ddl += '\n(';
+					var columns = '';
+					associationDetails.forEach(function(association) {
+						if(columns === '') {
+							columns += '\n\t' + association['referencedColumn'];
+						} else {
+							columns += ',\n\t' + association['referencedColumn'];
+						}
+					});
+					ddl += columns;
+					ddl += '\n)';
+					//Apply DEFERRABLE keyword with selected option
+					if(record['deferrableState'] === 'Initially Immediate') {
+						ddl += '\nDEFERRABLE INITIALLY IMMEDIATE';
+					} else if(record['deferrableState'] === 'Initially Deferred') {
+						ddl += '\nDEFERRABLE INITIALLY DEFERRED';
+					}
+					ddl += '\n';
+					//Apply ON DELETE Rule
+					if(record['deleteRule'] === 'Cascade') {
+						ddl += 'ON DELETE CASCADE ';
+					} else if(record['deleteRule'] === 'Set Null') {
+						ddl += 'ON DELETE SET NULL ';
+					}
+					//Apply ENABLE or DISABLE keyword
+					if(record['enabled'] === null) {
+						ddl += 'ENABLE;';
+					} else {
+						if(record['enabled'] === true) {
+							ddl += 'ENABLE;';
+						} else {
+							ddl += 'DISABLE;';
+						}
+					}
+					ddlArray.push(ddl);
+					ddl = '';
+				}
+			}
+		});
+		return ddlArray;
+	},
+	getCheckConstraintChanges: function(deltaChanges) {
+		var that = this;
+		var ddlArray = [];
+		deltaChanges.forEach(function(record) {
+			if(record['deferrableState'] !== null || record['checkCondition'] !== null || record['mode'] === 'NEW') {
+				if(record['constraintType'] === 'C') {
+					var ddl = '';
+
+					if(record['mode'] !== 'NEW') {
+						ddl += 'ALTER TABLE ' + that.label;
+						ddl += '\nDROP CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']) + ';';
+						ddlArray.push(ddl);
+						ddl = '';
+					}
+				
+					ddl += 'ALTER TABLE ' + that.label;
+					ddl += '\nADD CONSTRAINT ' + (record['name'] !== null ? record['name'] : record['originalName']) + ' CHECK';
+					ddl += '\n(';
+					ddl += (record['checkCondition'] !== null ? record['checkCondition'] : record['originalCheckCondition']);
+					ddl += ')';
+					//Apply DEFERRABLE keyword with selected option
+					if(record['deferrableState'] === 'Initially Immediate') {
+						ddl += '\nDEFERRABLE INITIALLY IMMEDIATE';
+					} else if(record['deferrableState'] === 'Initially Deferred') {
+						ddl += '\nDEFERRABLE INITIALLY DEFERRED';
+					}
+					//Apply ENABLE or DISABLE keyword
+					if(record['enabled'] === null) {
+						ddl += '\nENABLE;';
+					} else {
+						if(record['enabled'] === true) {
+							ddl += '\nENABLE;';
+						} else {
+							ddl += '\nDISABLE;';
+						}
+					}
+					ddlArray.push(ddl);
+					ddl = '';
+				}
+			}
+		});
 		return ddlArray;
 	},
 	destroy: function() {
@@ -2551,6 +2847,8 @@ var IndexesPanelUI = Class.create({
 	columnsList: [],
 	newIndexCounter: 1,
 	tablespacesList: [],
+	originalData: [],
+	droppedIndexes: [],
 	initialize: function(id, label, schemaName) {
 		this.id = id;
 		this.label = label;
@@ -2562,6 +2860,8 @@ var IndexesPanelUI = Class.create({
 		this.columnsList = [];
 		this.newIndexCounter = 1;
 		this.tablespacesList = [];
+		this.originalData = [];
+		this.droppedIndexes = [];
 	},
 	createPanel: function() {
 		var that = this;
@@ -2653,13 +2953,66 @@ var IndexesPanelUI = Class.create({
 			`;
 			this.layout.content('main', mainHtml);
 
+			$j('#' + this.id + '-index-name').on('change', function() {
+				var newName = this.value;
+				var selectedOption = $j('#' + that.id + '-indexes-list')[0].selectedOptions[0];
+				selectedOption.value = newName;
+				selectedOption.text = newName;
+			});
+
 			$j('#' + this.id + '-index-type-select').on('change', function() {
+				var selectedOption = $j('#' + that.id + '-indexes-list')[0].selectedOptions[0];
+				var existingIndexType = selectedOption.getAttribute('indexType');
+				var mode = selectedOption.getAttribute('mode');
+				if(existingIndexType !== this.value && mode !== 'NEW') {
+					var message = '';
+					if(this.value === 'Unique' || this.value === 'Non-Unique') {
+						message = '<div style="text-align: left">To make the given changes, it is necessary to replace (or drop and create) the given object.';
+						message += '<br />The drop will be cascaded.';
+						message += '<br /><br />The properties changed that require this are:';
+						message += '<br />Index Type';
+						message += '<br /><br />Do you wish to allow this (data could be lost)?</div>';
+					} else if(this.value === 'Bitmap' || this.value === 'Domain') {
+						message = '<div style="text-align: left">To change Index Type to "' + this.value + '" the following properties must be removed from this object:';
+						message += '<br /><br />Key Compression';
+						message += '<br />Reverse';
+						message += '<br /><br />Do you wish to continue?</div>';
+					}
+
+					var indexType = this;
+					w2confirm({
+						title: 'Confirmation',
+						msg: message,
+						width: 650,
+						height: 220
+					})
+					.yes(function() {
+						that.setAttribute('indexType', indexType.value);
+					})
+					.no(function() {
+						var selectedOption = $j('#' + that.id + '-indexes-list')[0].selectedOptions[0];
+						var existingIndexType = selectedOption.getAttribute('indexType');
+						indexType.value = existingIndexType;
+					});
+				} else {
+					if(mode === 'NEW') {
+						that.setAttribute('indexType', this.value);
+					}
+				}
+
 				if(this.value === 'Domain') {
 					$j('#' + that.id + '-expressions-grid').addClass('index_compact_expression_grid');
 					$j('#' + that.id + '-domain-index-type-panel').addClass('display_index_domain_panel');
 				} else {
 					$j('#' + that.id + '-expressions-grid').removeClass('index_compact_expression_grid');
 					$j('#' + that.id + '-domain-index-type-panel').removeClass('display_index_domain_panel');
+					that.expressionsGrid.refresh();
+				}
+
+				if(this.value === 'Domain') {
+					$j('#' + that.id + '-index-advance-button').prop('disabled', true);
+				} else {
+					$j('#' + that.id + '-index-advance-button').prop('disabled', false);
 				}
 			});
 
@@ -2694,11 +3047,11 @@ var IndexesPanelUI = Class.create({
 											<label for='` + that.id + `-index-advance-key-compression-select'>Key Compression:</label>
 											<select id='` + that.id + `-index-advance-key-compression-select'>
 												<option>None</option>
-												<option>Defult</option>
+												<option>Default</option>
 												<option>Select</option>
 											</select>
 											<label for='` + that.id + `-index-advance-key-compression-prefix-length-input' style='margin-left: 10px;'>Prefix Length:</label>
-											<input id='` + that.id + `-index-advance-key-compression-prefix-length-input' style='width: 350px;' disabled>
+											<input id='` + that.id + `-index-advance-key-compression-prefix-length-input' style='width: 346px;' disabled>
 											<a onclick="
 												$j(this).w2overlay({
 													openAbove: true,
@@ -2712,7 +3065,7 @@ var IndexesPanelUI = Class.create({
 											<select id='` + that.id + `-index-advance-parallel-degree-select' style='margin-left: 14px;'>
 												<option>--Not Specified--</option>
 												<option selected>None</option>
-												<option>Defult</option>
+												<option>Default</option>
 												<option>Select</option>
 											</select>
 											<label for='` + that.id + `-index-advance-parallel-degree-input' style='margin-left: 10px;'>Degree:</label>
@@ -3042,6 +3395,252 @@ var IndexesPanelUI = Class.create({
 
 						$j('#' + that.id + '-index-advance-name-input').val(indexName);
 						$j('#' + that.id + '-index-advance-schema-select').val(that.schemaName);
+
+						//Key Compression event handler
+						$j('#' + that.id + '-index-advance-key-compression-select').on('change', function() {
+							that.setAttribute('keyCompression', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Prefix length event handler
+						$j('#' + that.id + '-index-advance-key-compression-prefix-length-input').on('change', function() {
+							that.setAttribute('prefixLength', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Parallel degree event handler
+						$j('#' + that.id + '-index-advance-parallel-degree-select').on('change', function() {
+							that.setAttribute('parallelDegree', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Degree event handler
+						$j('#' + that.id + '-index-advance-parallel-degree-input').on('change', function() {
+							that.setAttribute('degree', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Reverse event handler
+						$j('#' + that.id + '-index-advance-reverse-select').on('change', function() {
+							that.setAttribute('reverse', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Tablespace event handler
+						$j('#' + that.id + '-index-advance-tablespace-select').on('change', function() {
+							that.setAttribute('tablespaceName', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Pct Free event handler
+						$j('#' + that.id + '-index-advance-percent-free-input').on('change', function() {
+							that.setAttribute('pctFree', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Logging event handler
+						$j('#' + that.id + '-index-advance-logging-select').on('change', function() {
+							that.setAttribute('logging', this.value === 'on' ? 'On' : 'Off');
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Initrans event handler
+						$j('#' + that.id + '-index-advance-initrans-input').on('change', function() {
+							that.setAttribute('initrans', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Buffer Pool event handler
+						$j('#' + that.id + '-index-advance-buffer-mode-select').on('change', function() {
+							that.setAttribute('bufferMode', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//FreeList event handler
+						$j('#' + that.id + '-index-advance-freelists-input').on('change', function() {
+							that.setAttribute('freeLists', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//FreeLists Group event handler
+						$j('#' + that.id + '-index-advance-freelist-groups-input').on('change', function() {
+							that.setAttribute('freeListGroups', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Initial Extent event handler
+						$j('#' + that.id + '-index-advance-initial-extent-input').on('change', function() {
+							var unit = $j('#' + that.id + '-index-advance-initial-extent-select').val();
+
+							if(unit === null || unit === undefined) {
+								that.setAttribute('initialExtent', this.value);
+							} else {
+								that.setAttribute('initialExtent', that.getCalculatedValue(this.value, unit));
+							}
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Initial Extent Select event handler
+						$j('#' + that.id + '-index-advance-initial-extent-select').on('change', function() {
+							var value = $j('#' + that.id + '-index-advance-initial-extent-input').val();
+
+							if(this.value === null || this.value === undefined) {
+								that.setAttribute('initialExtent', value);
+							} else {
+								that.setAttribute('initialExtent', that.getCalculatedValue(value, this.value));
+							}
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Next Extent event handler
+						$j('#' + that.id + '-index-advance-next-extent-input').on('change', function() {
+							var unit = $j('#' + that.id + '-index-advance-next-extent-select').val();
+
+							if(unit === null || unit === undefined) {
+								that.setAttribute('nextExtent', this.value);
+							} else {
+								that.setAttribute('nextExtent', that.getCalculatedValue(this.value, unit));
+							}
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Next Extent Select event handler
+						$j('#' + that.id + '-index-advance-next-extent-select').on('change', function() {
+							var value = $j('#' + that.id + '-index-advance-next-extent-input').val();
+
+							if(this.value === null || this.value === undefined) {
+								that.setAttribute('nextExtent', value);
+							} else {
+								that.setAttribute('nextExtent', that.getCalculatedValue(value, this.value));
+							}
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Min Extent event handler
+						$j('#' + that.id + '-index-advance-min-extent-input').on('change', function() {
+							var unit = $j('#' + that.id + '-index-advance-min-extent-select').val();
+
+							if(unit === null || unit === undefined) {
+								that.setAttribute('minExtent', this.value);
+							} else {
+								that.setAttribute('minExtent', that.getCalculatedValue(this.value, unit));
+							}
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Min Extent Select event handler
+						$j('#' + that.id + '-index-advance-min-extent-select').on('change', function() {
+							var value = $j('#' + that.id + '-index-advance-min-extent-input').val();
+
+							if(this.value === null || this.value === undefined) {
+								that.setAttribute('minExtent', value);
+							} else {
+								that.setAttribute('minExtent', that.getCalculatedValue(value, this.value));
+							}
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Max Extent event handler
+						$j('#' + that.id + '-index-advance-max-extent-input').on('change', function() {
+							var unit = $j('#' + that.id + '-index-advance-max-extent-select').val();
+
+							if(unit === null || unit === undefined) {
+								that.setAttribute('maxExtent', this.value);
+							} else {
+								that.setAttribute('maxExtent', that.getCalculatedValue(this.value, unit));
+							}
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Max Extent Select event handler
+						$j('#' + that.id + '-index-advance-max-extent-select').on('change', function() {
+							var value = $j('#' + that.id + '-index-advance-max-extent-input').val();
+
+							if(this.value === null || this.value === undefined) {
+								that.setAttribute('maxExtent', value);
+							} else {
+								that.setAttribute('maxExtent', that.getCalculatedValue(value, this.value));
+							}
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Unlimited event handler
+						$j('#' + that.id + '-index-advance-max-extent-checkbox').on('change', function() {
+							that.setAttribute('unlimited', this.value === 'on' ? 'true' : 'false');
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
+
+						//Pct Increase event handler
+						$j('#' + that.id + '-index-advance-percent-increase-input').on('change', function() {
+							that.setAttribute('pctIncrease', this.value);
+							var mode = that.getAttribute('mode');
+							if(mode !== 'NEW' && mode !== 'CHANGED') {
+								that.setAttribute('mode', 'CHANGED');
+							}
+						});
 					},
 					onClose: function(event) {
 						w2ui[that.id + '-index-advance-tabs'].destroy();
@@ -3054,12 +3653,13 @@ var IndexesPanelUI = Class.create({
 											header: 'Expressions',
 											show: { header: true,
 											      toolbar: true,
+											      toolbarSave: true,
 											      lineNumbers: true
 											    },
 											reorderRows: true,
 											columns: [
 												{field: 'expression', caption: 'Expression', size: '250px',
-													editable: { type: 'select', items: this.columnsList }
+													editable: { type: 'combo', items: this.columnsList, filter: false }
 												},
 												{field: 'order', caption: 'Order', size: '100%',
 													editable: { type: 'select', items: ['ASC', 'DESC', 'None'] }
@@ -3068,34 +3668,54 @@ var IndexesPanelUI = Class.create({
 											toolbar: {
 												items: [
 													{type: 'break'},
-													{id: this.id + '-grid-toolbar-add-expression', type: 'button', caption: 'Add', icon: 'add_icon'},
-													{id: this.id + '-grid-toolbar-delete-expression', type: 'button', caption: 'Delete', icon: 'delete_icon'}
+													{id: this.id + '-grid-toolbar-add-expression', type: 'button', icon: 'add_icon'},
+													{id: this.id + '-grid-toolbar-delete-expression', type: 'button', icon: 'delete_icon'}
 												],
 												onClick: function(event) {
 													var grid = w2ui[that.id + '-expressions-grid'];
 													if(event.target === that.id + '-grid-toolbar-add-expression') {
 														grid.add({recid: grid.records.length + 1, expression: that.columnsList[0], order: 'ASC'})
+														that.setAttribute('indexExpressions', JSON.stringify(grid.records));
+														var mode = that.getAttribute('mode');
+														if(mode !== 'NEW' && mode !== 'CHANGED') {
+															that.setAttribute('mode', 'CHANGED');
+														}
 													} else if(event.target === that.id + '-grid-toolbar-delete-expression') {
 														var records = grid.getSelection();
 														records.forEach(function(record) {
 															grid.remove(record);
 														});
+														that.setAttribute('indexExpressions', JSON.stringify(grid.records));
+														var mode = that.getAttribute('mode');
+														if(mode !== 'NEW' && mode !== 'CHANGED') {
+															that.setAttribute('mode', 'CHANGED');
+														}
 													}
 												}
+											},
+											onSave: function(event) {
+												var grid = this;
+												event.onComplete = function() {
+													that.setAttribute('indexExpressions', JSON.stringify(grid.records));
+													var mode = that.getAttribute('mode');
+													if(mode !== 'NEW' && mode !== 'CHANGED') {
+														that.setAttribute('mode', 'CHANGED');
+													}
+												};
 											}
 										});
 
 			$j('#' + this.id + '-indexes-list').on('click', function() {
 				var indexName = this.value;
 				var selectedOption = $j(this)[0].selectedOptions[0];
-				var indexType = selectedOption.getAttribute('type');
+				var indexType = selectedOption.getAttribute('indexType');
 
 				$j('#' + that.id + '-index-name').val(indexName);
 				$j('#' + that.id + '-index-type-select').val(indexType).trigger('change');
 
 				if(indexType === 'Domain') {
-					var iTypeOwner = selectedOption.getAttribute('itype_owner');
-					var iTypeName = selectedOption.getAttribute('itype_name');
+					var iTypeOwner = selectedOption.getAttribute('iTypeOwner');
+					var iTypeName = selectedOption.getAttribute('iTypeName');
 					var parameters = selectedOption.getAttribute('parameters');
 
 					if(parameters === 'null') {
@@ -3112,24 +3732,39 @@ var IndexesPanelUI = Class.create({
 			//Index Type Schema event handlers
 			$j('#' + this.id + '-domain-index-type-schema-input').on('change', function() {
 				that.fireIndexTypeSchemaChangedEvent(this.value);
+				that.setAttribute('iTypeOwner', this.value);
+				var mode = that.getAttribute('mode');
+				if(mode !== 'NEW' && mode !== 'CHANGED') {
+					that.setAttribute('mode', 'CHANGED');
+				}
 			});
 
 			$j('#' + this.id + '-domain-index-type-schema-input').on('click', function() {
 				this.value = '';
+				that.setAttribute('iTypeOwner', this.value);
 			});
 
 			//Index Type event handlers
 			$j('#' + this.id + '-domain-index-type-input').on('change', function() {
-				
+				that.setAttribute('iTypeName', this.value);
+				var mode = that.getAttribute('mode');
+				if(mode !== 'NEW' && mode !== 'CHANGED') {
+					that.setAttribute('mode', 'CHANGED');
+				}
 			});
 
 			$j('#' + this.id + '-domain-index-type-input').on('click', function() {
 				this.value = '';
+				that.setAttribute('iTypeName', this.value);
 			});
 
 			//Index type parameters event handlers
 			$j('#' + this.id + '-domain-index-type-parameters-input').on('change', function() {
-				
+				that.setAttribute('parameters', this.value);
+				var mode = that.getAttribute('mode');
+				if(mode !== 'NEW' && mode !== 'CHANGED') {
+					that.setAttribute('mode', 'CHANGED');
+				}
 			});
 
 			//Index add button event handler
@@ -3160,6 +3795,22 @@ var IndexesPanelUI = Class.create({
 	getExpressionsGrid: function() {
 		return this.expressionsGrid;
 	},
+	populateExpressionGrid: function(result) {
+		var selectedOption = $j('#' + this.id + '-indexes-list')[0].selectedOptions[0];
+		var expressions = selectedOption.getAttribute('indexExpressions');
+
+		if(expressions === null || expressions === undefined) {
+			this.expressionsGrid.records = result;
+			this.expressionsGrid.refresh();
+			this.expressionsGrid.unlock();
+
+			this.setAttribute('indexExpressions', JSON.stringify(result));
+		} else {
+			this.expressionsGrid.records = JSON.parse(expressions);
+			this.expressionsGrid.refresh();
+			this.expressionsGrid.unlock();
+		}
+	},
 	getPanel: function() {
 		return this.layout;
 	},
@@ -3167,10 +3818,23 @@ var IndexesPanelUI = Class.create({
 		$j('#' + this.id + '-indexes-list')[0].selectedIndex = index;
 		$j('#' + this.id + '-indexes-list').trigger('click');
 	},
+	setAttribute: function(attrName, attrValue) {
+		var selectedOption = $j('#' + this.id + '-indexes-list')[0].selectedOptions[0];
+		selectedOption.setAttribute(attrName, attrValue);
+	},
+	getAttribute: function(attrName) {
+		var selectedOption = $j('#' + this.id + '-indexes-list')[0].selectedOptions[0];
+		return selectedOption.getAttribute(attrName);
+	},
 	populateIndexesList: function(list) {
 		$j('#' + this.id + '-indexes-list').empty();
 		var that = this;
+		
 		list.forEach(function(item) {
+			var copy = Object.clone(item);
+			that.originalData.push(copy);
+
+			var recid = item['recid']
 			var indexName = item['indexName'];
 			var indexType = item['indexType'];
 			var iTypeOwner = item['iTypeOwner'];
@@ -3196,9 +3860,10 @@ var IndexesPanelUI = Class.create({
 			var pctIncrease = item['pctIncrease'];
 
 			$j('#' + that.id + '-indexes-list').append('<option ' 
-														+ 'type="' + indexType + '" '
-														+ 'itype_owner="' + iTypeOwner + '" '
-														+ 'itype_name="' + iTypeName + '" '
+														+ 'recid="' + recid + '" '
+														+ 'indexType="' + indexType + '" '
+														+ 'iTypeOwner="' + iTypeOwner + '" '
+														+ 'iTypeName="' + iTypeName + '" '
 														+ 'parameters="' + parameters + '" '
 														+ 'keyCompression="' + keyCompression + '" '
 														+ 'prefixLength="' + prefixLength + '" '
@@ -3271,7 +3936,7 @@ var IndexesPanelUI = Class.create({
 	},
 	addNewIndex: function() {
 		var newIndexName = this.label + '_INDEX' + this.newIndexCounter++;
-		$j('#' + this.id + '-indexes-list').append('<option type="Non-Unique">' + newIndexName + '</option>');
+		$j('#' + this.id + '-indexes-list').append('<option indexType="Non-Unique" mode="NEW">' + newIndexName + '</option>');
 
 		var newItemIndex = $j('#' + this.id + '-indexes-list').children().length;
 		this.selectIndex(newItemIndex - 1);
@@ -3283,7 +3948,16 @@ var IndexesPanelUI = Class.create({
 		$j('#' + this.id + '-domain-index-type-parameters-input').val('');
 	},
 	dropIndexes: function() {
-
+		var selectedOption = $j('#' + this.id + '-indexes-list')[0].selectedOptions[0];
+		var mode = selectedOption.getAttribute('mode');
+		if(mode !== 'NEW') {
+			this.droppedIndexes.push(selectedOption.value);
+		}
+		selectedOption.remove();
+		if($j('#' + this.id + '-indexes-list')[0].length > 0) {
+			$j('#' + this.id + '-indexes-list')[0].selectedIndex = 0;
+			$j('#' + this.id + '-indexes-list').trigger('click');
+		}
 	},
 	populateColumnsList: function(list) {
 		this.columnsList = list;
@@ -3297,8 +3971,264 @@ var IndexesPanelUI = Class.create({
 		} 
 		return value + ' ' + units[uIndex];
 	},
+	getCalculatedValue(value, unit) {
+		if(unit === 'K') {
+			return parseInt(value) * 1024;
+		} else if(unit === 'M') {
+			return parseInt(value) * 1024 * 1024;
+		} else if(unit === 'G') {
+			return parseInt(value) * 1024 * 1024 * 1024;
+		} else if(unit === 'T') {
+			return parseInt(value) * 1024 * 1024 * 1024 * 1024;
+		}
+	},
 	populateTablespacesList: function(list) {
 		this.tablespacesList = list;
+	},
+	getOriginalRecord: function(recid) {
+		var recordToReturn = null;
+		this.originalData.forEach(function(record) {
+			if(record['recid'] === parseInt(recid)) {
+				recordToReturn = record;
+			}
+		});
+		return recordToReturn;
+	},
+	getChanges: function() {
+		var ddlArray = [];
+		var deltaChanges = [];
+		var that = this;
+
+		var optionList = $j('#' + this.id + '-indexes-list').children();
+		optionList.each(function(){
+			var option = $j(this);
+			var indexName = option.val();
+			var recid = option.attr('recid');
+			var mode = option.attr('mode');
+			var indexType = option.attr('indexType');
+			var iTypeOwner = option.attr('iTypeOwner');
+			var iTypeName = option.attr('iTypeName');
+			var parameters = option.attr('parameters');
+			var keyCompression = option.attr('keyCompression');
+			var prefixLength = option.attr('prefixLength');
+			var parallelDegree = option.attr('parallelDegree');
+			var degree = option.attr('degree');
+			var reverse = option.attr('reverse');
+			var tablespaceName = option.attr('tablespaceName');
+			var pctFree = option.attr('pctFree');
+			var logging = option.attr('logging');
+			var initrans = option.attr('initrans');
+			var bufferMode = option.attr('bufferMode');
+			var freeLists = option.attr('freeLists');
+			var freeListGroups = option.attr('freeListGroups');
+			var initialExtent = option.attr('initialExtent');
+			var nextExtent = option.attr('nextExtent');
+			var minExtent = option.attr('minExtent');
+			var maxExtent = option.attr('maxExtent');
+			var unlimited = option.attr('unlimited');
+			var pctIncrease = option.attr('pctIncrease');
+			var indexExpressions = null;
+			if(option.attr('indexExpressions') !== undefined) {
+				indexExpressions = JSON.parse(option.attr('indexExpressions'));
+			}
+
+			var originalRecord = that.getOriginalRecord(recid);
+			var changedRecord = {};
+			changedRecord['mode'] = mode;
+			if(originalRecord !== null) {
+				changedRecord['indexName'] = indexName !== originalRecord['indexName'] ? indexName : null;
+				changedRecord['originalIndexName'] = originalRecord['indexName'];
+				changedRecord['indexType'] = indexType !== originalRecord['indexType'] ? indexType : null;
+				changedRecord['originalIndexType'] = originalRecord['indexType'];
+				changedRecord['iTypeOwner'] = iTypeOwner !== originalRecord['iTypeOwner'] ? iTypeOwner : null;
+				changedRecord['iTypeName'] = iTypeName !== originalRecord['iTypeName'] ? iTypeName : null;
+				changedRecord['parameters'] = parameters !== originalRecord['parameters'] ? parameters : null;
+				changedRecord['indexExpressions'] = indexExpressions;
+
+				changedRecord['keyCompression'] = keyCompression !== originalRecord['keyCompression'] ? keyCompression : originalRecord['keyCompression'];
+				changedRecord['prefixLength'] = prefixLength !== originalRecord['prefixLength'] ? prefixLength : originalRecord['prefixLength'];
+				changedRecord['parallelDegree'] = parallelDegree !== originalRecord['parallelDegree'] ? parallelDegree : originalRecord['parallelDegree'];
+				changedRecord['degree'] = degree !== originalRecord['degree'] ? degree : originalRecord['degree'];
+				changedRecord['reverse'] = reverse !== originalRecord['reverse'] ? reverse : originalRecord['reverse'];
+				changedRecord['tablespaceName'] = tablespaceName !== originalRecord['tablespaceName'] ? tablespaceName : originalRecord['tablespaceName'];
+				changedRecord['pctFree'] = pctFree !== originalRecord['pctFree'] ? pctFree : originalRecord['pctFree'];
+				changedRecord['logging'] = logging !== originalRecord['logging'] ? logging : originalRecord['logging'];
+				changedRecord['initrans'] = initrans !== originalRecord['initrans'] ? initrans : originalRecord['initrans'];
+				changedRecord['bufferMode'] = bufferMode !== originalRecord['bufferMode'] ? bufferMode : originalRecord['bufferMode'];
+				changedRecord['freeLists'] = freeLists !== originalRecord['freeLists'] ? freeLists : originalRecord['freeLists'];
+				changedRecord['freeListGroups'] = freeListGroups !== originalRecord['freeListGroups'] ? freeListGroups : originalRecord['freeListGroups'];
+				changedRecord['initialExtent'] = initialExtent !== originalRecord['initialExtent'] ? initialExtent : originalRecord['initialExtent'];
+				changedRecord['nextExtent'] = nextExtent !== originalRecord['nextExtent'] ? nextExtent : originalRecord['nextExtent'];
+				changedRecord['minExtent'] = minExtent !== originalRecord['minExtent'] ? minExtent : originalRecord['minExtent'];
+				changedRecord['maxExtent'] = maxExtent !== originalRecord['maxExtent'] ? maxExtent : originalRecord['maxExtent'];
+				changedRecord['unlimited'] = JSON.parse(unlimited !== originalRecord['unlimited'] ? unlimited : originalRecord['unlimited']);
+				changedRecord['pctIncrease'] = pctIncrease !== originalRecord['pctIncrease'] ? pctIncrease : originalRecord['pctIncrease'];
+			} else {
+				changedRecord['indexName'] = indexName;
+				changedRecord['originalIndexName'] = indexName;
+				changedRecord['indexType'] = indexType;
+				changedRecord['iTypeOwner'] = iTypeOwner;
+				changedRecord['iTypeName'] = iTypeName;
+				changedRecord['parameters'] = parameters;
+				changedRecord['indexExpressions'] = indexExpressions;
+
+				changedRecord['keyCompression'] = keyCompression;
+				changedRecord['prefixLength'] = prefixLength;
+				changedRecord['parallelDegree'] = parallelDegree;
+				changedRecord['degree'] = degree;
+				changedRecord['reverse'] = reverse;
+				changedRecord['tablespaceName'] = tablespaceName;
+				changedRecord['pctFree'] = pctFree;
+				changedRecord['logging'] = logging;
+				changedRecord['initrans'] = initrans;
+				changedRecord['bufferMode'] = bufferMode;
+				changedRecord['freeLists'] = freeLists;
+				changedRecord['freeListGroups'] = freeListGroups;
+				changedRecord['initialExtent'] = initialExtent;
+				changedRecord['nextExtent'] = nextExtent;
+				changedRecord['minExtent'] = minExtent;
+				changedRecord['maxExtent'] = maxExtent;
+				if(unlimited !== undefined && unlimited !== null) {
+					changedRecord['unlimited'] = JSON.parse(unlimited);
+				}
+				changedRecord['pctIncrease'] = pctIncrease
+			}
+			deltaChanges.push(changedRecord);
+		});
+
+		ddlArray = ddlArray.concat(this.getDroppedIndexes());
+		ddlArray = ddlArray.concat(this.getIndexNameChanges(deltaChanges));
+		ddlArray = ddlArray.concat(this.getIndexChanges(deltaChanges));
+		return ddlArray;
+	},
+	getDroppedIndexes: function() {
+		var ddlArray = [];
+
+		this.droppedIndexes.forEach(function(index) {
+			var ddl = 'DROP INDEX ' + index + ';';
+			ddlArray.push(ddl);
+		});
+
+		return ddlArray;
+	},
+	getIndexNameChanges: function(deltaChanges) {
+		var ddlArray = [];
+		var that = this;
+
+		deltaChanges.forEach(function(record) {
+			if(record['indexName'] !== null && record['mode'] !== 'NEW') {
+				var ddl = 'ALTER INDEX ' + record['originalIndexName'];
+				ddl += '\nRENAME TO ' + record['indexName'];
+				ddlArray.push(ddl);
+			}
+		});
+
+		return ddlArray;
+	},
+	getIndexChanges: function(deltaChanges) {
+		var ddlArray = [];
+		var that = this;
+
+		deltaChanges.forEach(function(record) {
+			if(record['indexType'] !== null || record['mode'] === 'NEW' || record['mode'] === 'CHANGED') {
+
+				if(record['mode'] !== 'NEW') {
+					var ddl = 'DROP INDEX ' + record['originalIndexName'] + ';';
+					ddlArray.push(ddl);
+				}
+
+				ddl = 'CREATE ';
+				if(record['indexType'] === 'Unique') {
+					ddl += 'UNIQUE ';
+				} else if(record['indexType'] === 'Bitmap') {
+					ddl += 'BITMAP ';
+				}
+				ddl += 'INDEX ' + (record['indexName'] !== null ? record['indexName'] : record['originalIndexName']);
+				ddl += ' ON ' + that.label + '(';
+				var indexExpressions = record['indexExpressions'];
+				var columns = '';
+				indexExpressions.forEach(function(indexExpression) {
+					if(columns === '') {
+						columns = indexExpression['expression'] + ' ' + indexExpression['order'];
+					} else {
+						columns += ', ' + indexExpression['expression'] + ' ' + indexExpression['order'];
+					}
+				});
+				ddl += columns;
+				ddl += ')';
+				if(record['indexType'] !== 'Domain' && record['originalIndexType'] !== 'Domain') {
+					if(record['logging'] === 'On') {
+						ddl += '\nLOGGING';
+					}
+					if(record['tablespaceName'] !== null && record['tablespaceName'] !== undefined) {
+						ddl += '\nTABLESPACE ' + record['tablespaceName'];
+					}
+					if(record['pctFree'] !== null && record['pctFree'] !== undefined) {
+						ddl += '\nPCTFREE ' + record['pctFree'];
+					}
+					if(record['initrans'] !== null && record['initrans'] !== undefined) {
+						ddl += '\nINITRANS ' + record['initrans'];
+					}
+					if((record['initialExtent'] !== null && record['initialExtent'] !== undefined)
+						|| (record['nextExtent'] !== null && record['nextExtent'] !== undefined)
+						|| (record['minExtent'] !== null && record['minExtent'] !== undefined)
+						|| (record['maxExtent'] !== null && record['maxExtent'] !== undefined)
+						|| (record['unlimited'] !== null && record['unlimited'] !== undefined)
+						|| (record['bufferMode'] !== null && record['bufferMode'] !== undefined)) {
+						ddl += '\nSTORAGE';
+						ddl += '\n(';
+						if(record['initialExtent'] !== null && record['initialExtent'] !== undefined) {
+							ddl += '\n\tINITIAL ' + record['initialExtent'];
+						}
+						if(record['nextExtent'] !== null && record['nextExtent'] !== undefined) {
+							ddl += '\n\tNEXT ' + record['nextExtent'];
+						}
+						if(record['minExtent'] !== null && record['minExtent'] !== undefined) {
+							ddl += '\n\tMINEXTENTS ' + record['minExtent'];
+						}
+						if(record['unlimited'] === true) {
+							ddl += '\n\tMAXEXTENTS UNLIMITED';
+						} else if(record['maxExtent'] !== null && record['maxExtent'] !== undefined) {
+							ddl += '\n\tMAXEXTENTS ' + record['maxExtent'];
+						}
+						if(record['bufferMode'] !== null && record['bufferMode'] !== undefined) {
+							ddl += '\n\tBUFFER_POOL ' + record['bufferMode'];
+						}
+						ddl += '\n)';
+					}
+				
+					if(record['parallelDegree'] === 'None') {
+						ddl += '\nNOPARALLEL';
+					} else if(record['parallelDegree'] === 'Default') {
+						ddl += '\nPARALLEL';
+					} else if(record['parallelDegree'] === 'Select') {
+						ddl += '\nPARALLEL ' + record['degree'];
+					}
+					if(record['indexType'] === 'Unique' || record['indexType'] === 'Non-Unique'
+						|| record['originalIndexType'] === 'Unique' || record['originalIndexType'] === 'Non-Unique') {
+						if(record['keyCompression'] === 'Select') {
+							ddl += '\nCOMPRESS ' + record['prefixLength'];
+						} else if(record['keyCompression'] === 'Default') {
+							ddl += '\nCOMPRESS';
+						}
+						if(record['reverse'] === 'Reverse') {
+							ddl += '\nREVERSE';
+						}
+					}
+				} else {
+					ddl += ' INDEXTYPE IS ' + record['iTypeOwner'] + '.' + record['iTypeName'];
+					if(record['parameters'] !== null && record['parameters'] !== undefined) {
+						ddl += '\nPARAMETERS(\'' + record['parameters'] + '\')';
+					}
+					ddl += '\nNOPARALLEL';
+				}
+				ddl += ';';
+				ddlArray.push(ddl);
+				ddl = '';
+			}
+		});
+
+		return ddlArray;
 	},
 	destroy: function() {
 		if(this.layout !== null) {
