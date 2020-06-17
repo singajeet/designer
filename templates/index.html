@@ -1431,7 +1431,7 @@
                 tables.forEach(function(table) {
                   navigationTree.insert(connectionId + '-tables', null, [
                                           {id: connectionId + '-tables-' + table, text: table, icon: 'table_icon', nodeType: DatabaseNavNodeType.TABLE, schemaName: dbConnection.getUsername().toUpperCase(),
-                                            tableName: table}
+                                            tableName: table, schema: item.schema}
                                         ]);
                 });
               }
@@ -1561,6 +1561,40 @@
               }
             } else if(event.menuItem.id === 'configure-warehouse') {
               w2popup.load({ url: '/warehouse-config-wizard', showMax: true, modal: true, showClose: false });
+            } else if(event.menuItem.id === 'show-table-actions') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              var schema = tableItem.schema;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ 
+                            url: '/table-actions',
+                            showMax: false, 
+                            modal: true,
+                            showClose: true,
+                            onClose: function(event) {
+                              //schema.populateSchemaObjects();
+                            }
+                          });
+            } else if(event.menuItem.id === 'show-column-actions') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              var schema = tableItem.schema;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ 
+                            url: '/column-actions',
+                            showMax: false, 
+                            modal: true,
+                            showClose: true,
+                            onClose: function(event) {
+                              //schema.populateSchemaObjects();
+                            }
+                          });
             }
           }
 

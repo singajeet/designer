@@ -1,0 +1,32 @@
+<div id="table-actions-popup" style="width: 170px; height: 390px;">
+    <div rel="title">
+        Table Actions
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+			function doAction(action) {
+				window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+				w2popup.load({ url: '/' + action, showMax: false, modal: true, showClose: false });
+			}
+    	</script>
+    	<button onclick='doAction("rename-table")' style='width: 100%; margin-bottom: 5px;'>Rename...</button>
+    	<button onclick='doAction("copy-table")' style='width: 100%; margin-bottom: 5px;'>Copy...</button>
+    	<button onclick='doAction("drop-table")' style='width: 100%; margin-bottom: 5px;'>Drop...</button>
+    	<button onclick='doAction("truncate-table")' style='width: 100%; margin-bottom: 5px;'>Truncate...</button>
+    	<button onclick='doAction("lock-table")' style='width: 100%; margin-bottom: 5px;'>Lock...</button>
+    	<button onclick='doAction("comment-table")' style='width: 100%; margin-bottom: 5px;'>Comment...</button>
+    	<button onclick='doAction("parallel-table")' style='width: 100%; margin-bottom: 5px;'>Parallel...</button>
+    	<button onclick='doAction("logging-table")' style='width: 100%; margin-bottom: 5px;'>Logging...</button>
+    	<button onclick='doAction("no-parallel-table")' style='width: 100%; margin-bottom: 5px;'>No Parallel...</button>
+    	<button onclick='doAction("count-rows-table")' style='width: 100%; margin-bottom: 5px;'>Count Rows...</button>
+    	<button onclick='doAction("generate-table-api")' style='width: 100%; margin-bottom: 5px;'>Generate Table API...</button>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

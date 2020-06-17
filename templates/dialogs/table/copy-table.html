@@ -1,0 +1,41 @@
+<div id="table-edit-popup" style="width: 380px; height: 250px;">
+    <div rel="title">
+        Copy Table
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='copy-table-owner'>Owner:</label>
+            <input id='copy-table-owner' style="margin-left: 60px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='copy-table-name'>Name:</label>
+            <input id='copy-table-name' style="margin-left: 64px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='copy-table-new-owner'>New Owner:</label>
+            <select id='copy-table-new-owner' style="margin-left: 32px; width: 175px;">
+                <option>HR</option>
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            <label for='copy-table-new-name'>New Table Name:</label>
+            <input id='copy-table-new-name' />
+        </div>
+        <div style="line-height: 30px;">
+            <input id='copy-table-include-data' type='checkbox' style="margin-left: 110px;">Include Data</input>
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#copy-table-owner').val(schemaName);
+            $j('#copy-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

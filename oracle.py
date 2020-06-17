@@ -1495,27 +1495,64 @@ class DatabaseTableServer(Namespace):
         cursor = db_conn.cursor()
         query = """
                 SELECT
-                    decode(degree, 'DEFAULT', 'Default', '1', 'None', 'Select') AS parallel_degree,
-                    TRIM(degree) AS degree,
-                    tablespace_name,
-                    pct_free,
-                    pct_used,
-                    decode(logging, 'YES', 'On', 'Off') AS logging,
-                    ini_trans,
-                    buffer_pool,
-                    freelists,
-                    freelist_groups,
-                    initial_extent,
-                    next_extent,
-                    min_extents,
-                    decode(max_extents, 2147483645, null, max_extents) AS max_extents,
-                    decode(max_extents, 2147483645, 'true', 'false') as unlimited,
-                    pct_increase
-                FROM
-                    SYS.user_tables
-                WHERE
-                    table_name='%s'
+                    decode(iot_type, 'IOT', 'IOT', 'NORMAL') as table_type
+                FROM SYS.user_tables
+                WHERE table_name='%s'
                 """ % table_name
+        cursor.execute(query)
+        table_type = ''
+        for result in cursor:
+            table_type = result[0]
+        cursor = db_conn.cursor()
+        if table_type == 'NORMAL':
+            query = """
+                    SELECT
+                        decode(degree, 'DEFAULT', 'Default', '1', 'None', 'Select') AS parallel_degree,
+                        TRIM(degree) AS degree,
+                        tablespace_name,
+                        pct_free,
+                        pct_used,
+                        decode(logging, 'YES', 'On', 'Off') AS logging,
+                        ini_trans,
+                        buffer_pool,
+                        freelists,
+                        freelist_groups,
+                        initial_extent,
+                        next_extent,
+                        min_extents,
+                        decode(max_extents, 2147483645, null, max_extents) AS max_extents,
+                        decode(max_extents, 2147483645, 'true', 'false') as unlimited,
+                        pct_increase
+                    FROM
+                        SYS.user_tables
+                    WHERE
+                        table_name='%s'
+                    """ % table_name
+        else:
+            query = """
+                    SELECT
+                        decode(degree, 'DEFAULT', 'Default', '1', 'None', 'Select') AS parallel_degree,
+                        TRIM(degree) AS degree,
+                        tablespace_name,
+                        pct_free,
+                        '' as pct_used,
+                        decode(logging, 'YES', 'On', 'Off') AS logging,
+                        ini_trans,
+                        buffer_pool,
+                        freelists,
+                        freelist_groups,
+                        initial_extent,
+                        next_extent,
+                        min_extents,
+                        decode(max_extents, 2147483645, null, max_extents) AS max_extents,
+                        decode(max_extents, 2147483645, 'true', 'false') as unlimited,
+                        pct_increase
+                    FROM
+                        SYS.user_indexes
+                    WHERE
+                        table_name='%s'
+                        AND index_type = 'IOT - TOP'
+                    """ % table_name
         cursor.execute(query)
         result_array = []
         for result in cursor:

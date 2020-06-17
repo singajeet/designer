@@ -1,0 +1,48 @@
+<div id="table-edit-popup" style="width: 380px; height: 250px;">
+    <div rel="title">
+        Parallel Table
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='parallel-table-owner'>Owner:</label>
+            <input id='parallel-table-owner' style="margin-left: 30px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='parallel-table-name'>Name:</label>
+            <input id='parallel-table-name' style="margin-left: 34px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='parallel-table-degree'>Degree:</label>
+            <select id="parallel-table-degree" style="margin-left: 27px; width: 250px;">
+                <option>1</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+                <option>6</option>
+                <option>7</option>
+                <option>8</option>
+                <option>9</option>
+                <option>10</option>
+                <option>11</option>
+                <option>12</option>
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            Change the degree of parallelism for the selected table? 
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#parallel-table-owner').val(schemaName);
+            $j('#parallel-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

@@ -1,0 +1,32 @@
+<div id="table-edit-popup" style="width: 340px; height: 200px;">
+    <div rel="title">
+        Rename Table
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='rename-table-owner'>Owner:</label>
+            <input id='rename-table-owner' style="margin-left: 60px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='rename-table-name'>Name:</label>
+            <input id='rename-table-name' style="margin-left: 64px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='rename-table-new-name'>New Table Name:</label>
+            <input id='rename-table-new-name' />
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#rename-table-owner').val(schemaName);
+            $j('#rename-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

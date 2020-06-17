@@ -3403,6 +3403,11 @@ var IndexesPanelUI = Class.create({
 							if(mode !== 'NEW' && mode !== 'CHANGED') {
 								that.setAttribute('mode', 'CHANGED');
 							}
+							if(this.value === 'Select') {
+								$j('#' + that.id + '-index-advance-key-compression-prefix-length-input').prop('disabled', false);
+							} else {
+								$j('#' + that.id + '-index-advance-key-compression-prefix-length-input').prop('disabled', true);
+							}
 						});
 
 						//Prefix length event handler
@@ -3420,6 +3425,11 @@ var IndexesPanelUI = Class.create({
 							var mode = that.getAttribute('mode');
 							if(mode !== 'NEW' && mode !== 'CHANGED') {
 								that.setAttribute('mode', 'CHANGED');
+							}
+							if(this.value === 'Select') {
+								$j('#' + that.id + '-index-advance-parallel-degree-input').prop('disabled', false);
+							} else {
+								$j('#' + that.id + '-index-advance-parallel-degree-input').prop('disabled', true);
 							}
 						});
 
@@ -3999,6 +4009,10 @@ var IndexesPanelUI = Class.create({
 		var deltaChanges = [];
 		var that = this;
 
+		if(!this.isPanelCreated()) {
+			return ddlArray;
+		}
+
 		var optionList = $j('#' + this.id + '-indexes-list').children();
 		optionList.each(function(){
 			var option = $j(this);
@@ -4257,13 +4271,16 @@ var StoragePanelUI = Class.create({
 	label: null,
 	layout: null,
 	record: {},
+	originalData: {},
 	initialize: function(id, label) {
 		this.id = id;
 		this.label = label;
 		this.layout = null;
 		this.record = {};
+		this.originalData = {};
 	},
 	createPanel: function() {
+		var that = this;
 		if(this.layout === null) {
 			var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
 			this.layout = $j('#' + this.id).w2layout({
@@ -4413,6 +4430,27 @@ var StoragePanelUI = Class.create({
 				</div>
 			`;
 			this.layout.content('main', mainHtml);
+
+			$j('#' + this.id + '-parallel-degree-select').on('change', function() {
+				if(this.value === 'Select') {
+					$j('#' + that.id + '-parallel-degree-input').prop('disabled', false);
+				} else {
+					$j('#' + that.id + '-parallel-degree-input').prop('disabled', true);
+				}
+			});
+
+			$j('#' + this.id + '-max-extent-checkbox').on('change', function() {
+				if(this.checked) {
+					$j('#' + that.id + '-max-extent-input').prop('disabled', true);
+					$j('#' + that.id + '-max-extent-select').prop('disabled', true);
+					$j('#' + that.id + '-max-extent-input').val('');
+					$j('#' + that.id + '-max-extent-select').val('');
+				} else {
+					$j('#' + that.id + '-max-extent-input').prop('disabled', false);
+					$j('#' + that.id + '-max-extent-select').prop('disabled', false);
+					$j('#' + that.id + '-max-extent-input').val('1');
+				}
+			});
 		}
 	},
 	isPanelCreated: function() {
@@ -4427,6 +4465,7 @@ var StoragePanelUI = Class.create({
 	},
 	populateTableStorage: function(result) {
 		this.record = result[0];
+		this.originalData = Object.clone(this.record);
 
 		var parallelDegree = this.record['parallelDegree'];
 		var degree = this.record['degree'];
@@ -4536,7 +4575,7 @@ var StoragePanelUI = Class.create({
 			$j('#' + this.id + '-max-extent-select').val(' ');
 		}
 		if(unlimited !== 'null') {
-			$j('#' + this.id + '-max-extent-checkbox').prop('checked', JSON.parse(unlimited));
+			$j('#' + this.id + '-max-extent-checkbox').prop('checked', JSON.parse(unlimited)).trigger('change');
 		}
 		if(pctIncrease !== 'null' && pctIncrease !== null) {
 			$j('#' + this.id + '-percent-increase-input').val(pctIncrease);
@@ -4553,6 +4592,22 @@ var StoragePanelUI = Class.create({
 		} 
 		return value + ' ' + units[uIndex];
 	},
+	getCalculatedValue: function(value, unit) {
+		if(value === null) {
+			return null;
+		}
+		if(unit === null || unit === undefined || unit === '') {
+			return parseInt(value);
+		} else if(unit === 'K') {
+			return parseInt(value) * 1024;
+		} else if(unit === 'M') {
+			return parseInt(value) * 1024 * 1024;
+		} else if(unit === 'G') {
+			return parseInt(value) * 1024 * 1024 * 1024;
+		} else if(unit === 'T') {
+			return parseInt(value) * 1024 * 1024 * 1024 * 1024;
+		}
+	},
 	populateTablespacesList: function(list) {
 		$j('#' + this.id + '-tablespace-select').empty();
 
@@ -4560,6 +4615,174 @@ var StoragePanelUI = Class.create({
 		list.forEach(function(item) {
 			$j('#' + that.id + '-tablespace-select').append('<option>' + item + '</option>');
 		});
+	},
+	getChanges: function() {
+		var ddlArray = [];
+
+		if(!this.isPanelCreated()) {
+			return ddlArray;
+		}
+
+		var parallelDegree = $j('#' + this.id + '-parallel-degree-select').val();
+		var degree = $j('#' + this.id + '-parallel-degree-input').val();
+		var tablespaceName = $j('#' + this.id + '-tablespace-select').val();
+		var pctFree = $j('#' + this.id + '-percent-free-input').val();
+		if(pctFree === '') {
+			pctFree = null;
+		}
+		var pctUsed = $j('#' + this.id + '-percent-used-input').val();
+		if(pctUsed === '') {
+			pctUsed = null;
+		}
+		var logging = $j('#' + this.id + '-logging-select').val();
+		var initrans = $j('#' + this.id + '-initrans-input').val();
+		if(initrans === '') {
+			initrans = null;
+		}
+		var bufferMode = $j('#' + this.id + '-buffer-mode-select').val();
+		var freeLists = $j('#' + this.id + '-freelists-input').val();
+		if(freeLists === '') {
+			freeLists = null;
+		}
+		var freeListGroups = $j('#' + this.id + '-freelist-groups-input').val();
+		if(freeListGroups === '') {
+			freeListGroups = null;
+		}
+		var initialExtent = $j('#' + this.id + '-initial-extent-input').val();
+		if(initialExtent === '') {
+			initialExtent = null;
+		}
+		var initialExtentUnit = $j('#' + this.id + '-initial-extent-select').val();
+		var nextExtent = $j('#' + this.id + '-next-extent-input').val();
+		if(nextExtent === '') {
+			nextExtent = null;
+		}
+		var nextExtentUnit = $j('#' + this.id + '-next-extent-select').val();
+		var minExtent = $j('#' + this.id + '-min-extent-input').val();
+		if(minExtent === '') {
+			minExtent = null;
+		}
+		var minExtentUnit = $j('#' + this.id + '-min-extent-select').val();
+		var maxExtent = $j('#' + this.id + '-max-extent-input').val();
+		if(maxExtent === '') {
+			maxExtent = null;
+		}
+		var maxExtentUnit = $j('#' + this.id + '-max-extent-select').val();
+		var unlimited = $j('#' + this.id + '-max-extent-checkbox').prop('checked');
+		var pctIncrease = $j('#' + this.id + '-percent-increase-input').val();
+		if(pctIncrease === '') {
+			pctIncrease = null;
+		}
+
+		var changedRecord = {};
+		changedRecord['parallelDegree'] = parallelDegree !== this.originalData['parallelDegree'] ? parallelDegree : null;
+		changedRecord['degree'] = degree !== this.originalData['degree'] ? degree : null;
+		changedRecord['tablespaceName'] = tablespaceName !== this.originalData['tablespaceName'] ? tablespaceName : null;
+		changedRecord['pctFree'] = pctFree !== String(this.originalData['pctFree']) ? pctFree : null;
+		changedRecord['pctUsed'] = pctUsed !== String(this.originalData['pctUsed']) ? pctUsed : null;
+		changedRecord['logging'] = logging !== this.originalData['logging'] ? logging : null;
+		changedRecord['initrans'] = initrans !== String(this.originalData['initrans']) ? initrans : null;
+		changedRecord['bufferMode'] = bufferMode !== this.originalData['bufferMode'] ? bufferMode : null;
+		changedRecord['freeLists'] = freeLists !== String(this.originalData['freeLists']) ? freeLists : null;
+		changedRecord['freeListGroups'] = freeListGroups !== String(this.originalData['freeListGroups']) ? freeListGroups : null;
+		changedRecord['initialExtent'] = this.getCalculatedValue(initialExtent, initialExtentUnit) !== parseInt(this.originalData['initialExtent']) ? this.getCalculatedValue(initialExtent, initialExtentUnit) : null;
+		changedRecord['nextExtent'] = this.getCalculatedValue(nextExtent, nextExtentUnit) !== parseInt(this.originalData['nextExtent']) ? this.getCalculatedValue(nextExtent, nextExtentUnit) : null;
+		changedRecord['minExtent'] = this.getCalculatedValue(minExtent, minExtentUnit) !== parseInt(this.originalData['minExtent']) ? this.getCalculatedValue(minExtent, minExtentUnit) : null;
+		changedRecord['maxExtent'] = this.getCalculatedValue(maxExtent, maxExtentUnit) !== parseInt(this.originalData['maxExtent']) ? this.getCalculatedValue(maxExtent, maxExtentUnit) : null;
+		if(this.originalData['unlimited'] !== 'null' && this.originalData['unlimited'] !== null && this.originalData['unlimited'] !== undefined) {
+			changedRecord['unlimited'] = unlimited !== JSON.parse(this.originalData['unlimited']) ? unlimited : null;
+		} else {
+			changedRecord['unlimited'] = null;
+		}
+		changedRecord['pctIncrease'] = pctIncrease !== String(this.originalData['pctIncrease']) ? pctIncrease : null;
+		
+		if(changedRecord['parallelDegree'] !== null || changedRecord['degree'] !== null) {
+			var ddl = 'ALTER TABLE ' + this.label;
+			if(changedRecord['parallelDegree'] === 'Default') {
+				ddl += '\nPARALLEL;';
+			} else if(changedRecord['parallelDegree'] === 'Select') {
+				ddl += '\nPARALLEL ' + changedRecord['degree'] + ';';
+			} else if(changedRecord['parallelDegree'] === 'None') {
+				ddl += '\nNOPARALLEL;';
+			} else if(changedRecord['degree'] !== null) {
+				ddl += '\nPARALLEL ' + changedRecord['degree'] + ';';
+			}
+
+			ddlArray.push(ddl);
+		}
+
+		if(changedRecord['tablespaceName'] !== null || changedRecord['freeLists'] !== null || changedRecord['freeListGroups'] !== null) {
+			var ddl = '';
+			ddl = 'ALTER TABLE ' + this.label + ' MOVE';
+			if(changedRecord['tablespaceName'] !== null) {
+				ddl += '\nTABLESPACE ' + changedRecord['tablespaceName'];
+			}
+			if(changedRecord['freeLists'] !== null || changedRecord['freeListGroups'] !== null) {
+				ddl += '\nSTORAGE';
+				ddl += '\n(';
+				if(changedRecord['freeLists'] !== null) {
+					ddl += '\n\tFREELISTS ' + changedRecord['freeLists'];
+				}
+				if(changedRecord['freeListGroups'] !== null) {
+					ddl += '\n\tFREELIST GROUPS ' + changedRecord['freeListGroups'];
+				}
+				ddl += '\n)';
+			}
+			ddl += ';';
+			ddlArray.push(ddl);
+		}
+
+		var ddl = '';
+		if(changedRecord['logging'] === 'On') {
+			ddl += '\nLOGGING';
+		} else if(changedRecord['logging'] === 'Off') {
+			ddl += '\nNOLOGGING';
+		}
+		if(changedRecord['pctFree'] !== null) {
+			ddl += '\nPCTFREE ' + changedRecord['pctFree'];
+		}
+		if(changedRecord['pctUsed'] !== null) {
+			ddl += '\nPCTUSED ' + changedRecord['pctUsed'];
+		}
+		if(changedRecord['initrans'] !== null) {
+			ddl += '\nINITRANS ' + changedRecord['initrans'];
+		}
+
+		if(changedRecord['bufferMode'] !== null || changedRecord['initialExtent'] !== null
+			|| changedRecord['nextExtent'] !== null || changedRecord['minExtent']
+			|| changedRecord['maxExtent'] !== null || changedRecord['unlimited'] !== null
+			|| changedRecord['pctIncrease']) {
+			ddl += '\nSTORAGE';
+			ddl += '\n('
+			if(changedRecord['bufferMode'] !== null) {
+				ddl += '\n\tBUFFER_POOL ' + changedRecord['bufferMode'];
+			}
+			if(changedRecord['initialExtent'] !== null) {
+				ddl += '\n\tINITIAL ' + changedRecord['initialExtent'];
+			}
+			if(changedRecord['nextExtent'] !== null) {
+				ddl += '\n\tNEXT ' + changedRecord['nextExtent'];
+			}
+			if(changedRecord['minExtent'] !== null) {
+				ddl += '\n\tMINEXTENTS ' + changedRecord['minExtent'];
+			}
+			if(changedRecord['unlimited'] === true) {
+				ddl += '\n\tMAXEXTENTS UNLIMITED';
+			} else if(changedRecord['maxExtent'] !== null && changedRecord['unlimited'] === false) {
+				ddl += '\n\tMAXEXTENTS ' +  + changedRecord['maxExtent'];
+			}
+			if(changedRecord['pctIncrease'] !== null) {
+				ddl += '\n\tPCTINCREASE ' + changedRecord['pctIncrease'];
+			}
+			ddl += '\n)';
+		}
+
+		if(ddl !== '') {
+			ddl = 'ALTER TABLE ' + this.label + ddl + ';';
+			ddlArray.push(ddl);
+		}
+
+		return ddlArray;
 	},
 	destroy: function() {
 		if(this.layout !== null) {
@@ -4582,10 +4805,12 @@ var CommentsPanelUI = Class.create({
 	id: null,
 	label: null,
 	layout: null,
+	originalData: null,
 	initialize: function(id, label) {
 		this.id = id;
 		this.label = label;
 		this.layout = null;
+		this.originalData = null;
 	},
 	createPanel: function() {
 		if(this.layout === null) {
@@ -4622,7 +4847,24 @@ var CommentsPanelUI = Class.create({
 		return this.layout;
 	},
 	populateTableComments: function(result) {
+		this.originalData = result[0];
 		$j('#' + this.id + '-comments-input').val(result[0]);
+	},
+	getChanges: function() {
+		var ddlArray = [];
+
+		if(!this.isPanelCreated()) {
+			return ddlArray;
+		}
+
+		var comments = $j('#' + this.id + '-comments-input').val();
+
+		if(comments !== this.originalData) {
+			var ddl = 'COMMENT ON TABLE ' + this.label + ' IS \'' + comments + '\';';
+			ddlArray.push(ddl);
+		}		
+
+		return ddlArray;
 	},
 	destroy: function() {
 		if(this.layout !== null) {

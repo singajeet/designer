@@ -1,0 +1,36 @@
+<div id="table-edit-popup" style="width: 380px; height: 250px;">
+    <div rel="title">
+        Comment Column
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='comment-column-table-owner'>Owner:</label>
+            <input id='comment-column-table-owner' style="margin-left: 30px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='comment-column-table-name'>Name:</label>
+            <input id='comment-column-table-name' style="margin-left: 34px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for="comment-column-name">Column:</label>
+            <select id="comment-column-name" style="margin-left: 24px; width: 250px;"></select>
+        </div>
+        <div style="line-height: 30px;">
+            <label for='comment-column-comment'>Comment:</label>
+            <input id='comment-column-comment' style="margin-left: 10px; width: 250px;" />
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#comment-column-table-owner').val(schemaName);
+            $j('#comment-column-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

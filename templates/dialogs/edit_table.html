@@ -173,6 +173,8 @@
 								ddlArray = ddlArray.concat(columnsPanel.getChanges());
 								ddlArray = ddlArray.concat(constraintsPanel.getChanges());
 								ddlArray = ddlArray.concat(indexesPanel.getChanges());
+								ddlArray = ddlArray.concat(storagePanel.getChanges());
+								ddlArray = ddlArray.concat(commentsPanel.getChanges());
 								ddlPanel.createPanel(ddlArray);
 								var ddl = '';
 								ddlArray.forEach(function(text) {
@@ -184,6 +186,8 @@
 								ddlArray = ddlArray.concat(columnsPanel.getChanges());
 								ddlArray = ddlArray.concat(constraintsPanel.getChanges());
 								ddlArray = ddlArray.concat(indexesPanel.getChanges());
+								ddlArray = ddlArray.concat(storagePanel.getChanges());
+								ddlArray = ddlArray.concat(commentsPanel.getChanges());
 								var ddl = '';
 								ddlArray.forEach(function(text) {
 									ddl += text + '\n\n';
@@ -415,10 +419,14 @@
 					var columnsPanelDDLArray = columnsPanel.getChanges();
 					var constraintsPanelDDLArray = constraintsPanel.getChanges();
 					var indexesPanelDDLArray = indexesPanel.getChanges();
+					var storagePanelDDLArray = storagePanel.getChanges();
+					var commentsPanelDDLArray = commentsPanel.getChanges();
 					sqlArray.clear();
 					sqlArray = sqlArray.concat(columnsPanelDDLArray);
 					sqlArray = sqlArray.concat(constraintsPanelDDLArray);
 					sqlArray = sqlArray.concat(indexesPanelDDLArray);
+					sqlArray = sqlArray.concat(storagePanelDDLArray);
+					sqlArray = sqlArray.concat(commentsPanelDDLArray);
 					//if we had previous successfull execution of some statements
 					//remove those from the array
 					if(sqlSuccessCount > 0) {						
