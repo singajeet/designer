@@ -1,0 +1,36 @@
+<div id="column-rename-action-popup" style="width: 380px; height: 250px;">
+    <div rel="title">
+        Rename Column
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='rename-column-table-owner'>Owner:</label>
+            <input id='rename-column-table-owner' style="margin-left: 30px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='rename-column-table-name'>Name:</label>
+            <input id='rename-column-table-name' style="margin-left: 34px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for="rename-column-name">Column:</label>
+            <select id="rename-column-name" style="margin-left: 24px; width: 250px;"></select>
+        </div>
+        <div style="line-height: 30px;">
+            <label for='rename-column-new-name'>New Name:</label>
+            <input id='rename-column-new-name' style="margin-left: 4px; width: 250px;" />
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#rename-column-table-owner').val(schemaName);
+            $j('#rename-column-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

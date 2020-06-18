@@ -1,0 +1,24 @@
+<div id="index-actions-popup" style="width: 170px; height: 190px;">
+    <div rel="title">
+        Index Actions
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+			function doAction(action) {
+				window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+				w2popup.load({ url: '/' + action, showMax: false, modal: true, showClose: false });
+			}
+    	</script>
+    	<button onclick='doAction("create-index")' style='width: 100%; margin-bottom: 5px;'>Create...</button>
+    	<button onclick='doAction("drop-index")' style='width: 100%; margin-bottom: 5px;'>Drop...</button>
+    	<button onclick='doAction("rebuild-index")' style='width: 100%; margin-bottom: 5px;'>Rebuild...</button>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

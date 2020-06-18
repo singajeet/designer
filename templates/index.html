@@ -1595,6 +1595,40 @@
                               //schema.populateSchemaObjects();
                             }
                           });
+            } else if(event.menuItem.id === 'show-constraint-actions') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              var schema = tableItem.schema;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ 
+                            url: '/constraint-actions',
+                            showMax: false, 
+                            modal: true,
+                            showClose: true,
+                            onClose: function(event) {
+                              //schema.populateSchemaObjects();
+                            }
+                          });
+            } else if(event.menuItem.id === 'show-index-actions') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              var schema = tableItem.schema;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ 
+                            url: '/index-actions',
+                            showMax: false, 
+                            modal: true,
+                            showClose: true,
+                            onClose: function(event) {
+                              //schema.populateSchemaObjects();
+                            }
+                          });
             }
           }
 

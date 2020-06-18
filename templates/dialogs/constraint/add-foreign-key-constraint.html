@@ -1,0 +1,47 @@
+<div id="constraint-add-foreign-key-action-popup" style="width: 390px; height: 300px;">
+    <div rel="title">
+        Add Foreign Key
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='constraint-add-foreign-key-table-owner'>Owner:</label>
+            <input id='constraint-add-foreign-key-table-owner' style="margin-left: 93px; width: 200px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='constraint-add-foreign-key-table-name'>Name:</label>
+            <input id='constraint-add-foreign-key-table-name' style="margin-left: 97px; width: 200px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='constraint-add-foreign-key-constraint-name'>Constraint:</label>
+            <input id='constraint-add-foreign-key-constraint-name' style="margin-left: 71px; width: 200px;" />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='constraint-add-foreign-key-column'>Column Name:</label>
+            <select id='constraint-add-foreign-key-column' style="margin-left: 49px; width: 200px;">
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            <label for='constraint-add-foreign-key-ref-table'>Reference Table Name:</label>
+            <select id='constraint-add-foreign-key-ref-table' style="margin-left: 0px; width: 200px;">
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            <label for='constraint-add-foreign-key-ref-column'>Reference Column:</label>
+            <select id='constraint-add-foreign-key-ref-column' style="margin-left: 24px; width: 200px;">
+            </select>
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#constraint-add-foreign-key-table-owner').val(schemaName);
+            $j('#constraint-add-foreign-key-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

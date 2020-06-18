@@ -16,7 +16,7 @@ socketio = SocketIO(app, async_mode=None)
 
 @app.route('/edit-table')
 def edit_table():
-	return render_template('dialogs/edit_table.html')
+	return render_template('dialogs/table/edit_table.html')
 
 
 @app.route('/warehouse-config-wizard')
@@ -87,6 +87,111 @@ def column_actions():
 @app.route('/comment-column')
 def comment_column():
     return render_template('dialogs/column/comment-column.html')
+
+
+@app.route('/rename-column')
+def rename_column():
+    return render_template('dialogs/column/rename-column.html')
+
+
+@app.route('/add-column')
+def add_column():
+    return render_template('dialogs/column/add-column.html')
+
+
+@app.route('/drop-column')
+def drop_column():
+    return render_template('dialogs/column/drop-column.html')
+
+
+@app.route('/normalize-column')
+def normalize_column():
+    return render_template('dialogs/column/normalize-column.html')
+
+
+@app.route('/constraint-actions')
+def constraint_actions():
+    return render_template('dialogs/constraint/constraint-actions.html')
+
+
+@app.route('/enable-foreign-keys-constraint')
+def enable_foreign_keys_constraint():
+    return render_template('dialogs/constraint/enable-foreign-keys-constraint.html')
+
+
+@app.route('/disable-foreign-keys-constraint')
+def disable_foreign_keys_constraint():
+    return render_template('dialogs/constraint/disable-foreign-keys-constraint.html')
+
+
+@app.route('/enable-all-constraint')
+def enable_all_constraint():
+    return render_template('dialogs/constraint/enable-all-constraint.html')
+
+
+@app.route('/disable-all-constraint')
+def disable_all_constraint():
+    return render_template('dialogs/constraint/disable-all-constraint.html')
+
+
+@app.route('/enable-single-constraint')
+def enable_single_constraint():
+    return render_template('dialogs/constraint/enable-single-constraint.html')
+
+
+@app.route('/disable-single-constraint')
+def disable_single_constraint():
+    return render_template('dialogs/constraint/disable-single-constraint.html')
+
+
+@app.route('/rename-single-constraint')
+def rename_single_constraint():
+    return render_template('dialogs/constraint/rename-single-constraint.html')
+
+
+@app.route('/drop-constraint')
+def drop_constraint():
+    return render_template('dialogs/constraint/drop-constraint.html')
+
+
+@app.route('/add-check-constraint')
+def add_check_constraint():
+    return render_template('dialogs/constraint/add-check-constraint.html')
+
+
+@app.route('/add-primary-key-constraint')
+def add_primary_key_constraint():
+    return render_template('dialogs/constraint/add-primary-key-constraint.html')
+
+
+@app.route('/add-foreign-key-constraint')
+def add_foreign_key_constraint():
+    return render_template('dialogs/constraint/add-foreign-key-constraint.html')
+
+
+@app.route('/add-unique-constraint')
+def add_unique_constraint():
+    return render_template('dialogs/constraint/add-unique-constraint.html')
+
+
+@app.route('/index-actions')
+def index_actions():
+    return render_template('dialogs/index/index-actions.html')
+
+
+@app.route('/create-index')
+def create_index():
+    return render_template('dialogs/index/create-index.html')
+
+
+@app.route('/drop-index')
+def drop_index():
+    return render_template('dialogs/index/drop-index.html')
+
+
+@app.route('/rebuild-index')
+def rebuild_index():
+    return render_template('dialogs/index/rebuild-index.html')
 
 
 @app.route('/')

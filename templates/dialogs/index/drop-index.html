@@ -1,18 +1,20 @@
-<div id="table-count-rows-action-popup" style="width: 380px; height: 200px;">
+<div id="index-drop-action-popup" style="width: 360px; height: 200px;">
     <div rel="title">
-        Count Rows
+        Drop
     </div>
     <div rel="body" style="padding: 5px; width: 100%; height: 100%">
         <div style="line-height: 30px;">
-            <label for='count-rows-table-owner'>Owner:</label>
-            <input id='count-rows-table-owner' style="margin-left: 30px; width: 250px;" disabled />
+            <label for='index-drop-table-owner'>Owner:</label>
+            <input id='index-drop-table-owner' style="margin-left: 33px; width: 230px;" disabled />
         </div>
         <div style="line-height: 30px;">
-            <label for='count-rows-table-name'>Name:</label>
-            <input id='count-rows-table-name' style="margin-left: 34px; width: 250px;" disabled />
+            <label for='index-drop-table-name'>Name:</label>
+            <input id='index-drop-table-name' style="margin-left: 37px; width: 230px;" disabled />
         </div>
         <div style="line-height: 30px;">
-            Count rows of selected table? 
+            <label for='index-drop-index-name'>Index:</label>
+            <select id='index-drop-index-name' style="margin-left: 39px; width: 230px;">
+            </select>
         </div>
     	<script type="text/javascript">
     		var queryString = window.location.search;
@@ -20,8 +22,8 @@
 			var tableName = params.get('name');
 			var schemaName = params.get('schemaName');
 
-            $j('#count-rows-table-owner').val(schemaName);
-            $j('#count-rows-table-name').val(tableName);
+            $j('#index-drop-table-owner').val(schemaName);
+            $j('#index-drop-table-name').val(tableName);
     	</script>
     </div>
     <div rel="buttons">

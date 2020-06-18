@@ -1,0 +1,36 @@
+<div id="index-rebuild-action-popup" style="width: 360px; height: 220px;">
+    <div rel="title">
+        Rebuild
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='index-rebuild-table-owner'>Owner:</label>
+            <input id='index-rebuild-table-owner' style="margin-left: 33px; width: 230px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='index-rebuild-table-name'>Name:</label>
+            <input id='index-rebuild-table-name' style="margin-left: 37px; width: 230px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='index-rebuild-index-name'>Index:</label>
+            <select id='index-rebuild-index-name' style="margin-left: 39px; width: 230px;">
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            <input id='index-rebuild-table-online' type="checkbox" style="margin-left: 83px;">Online</input>
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#index-rebuild-table-owner').val(schemaName);
+            $j('#index-rebuild-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>
