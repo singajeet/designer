@@ -1,0 +1,47 @@
+<div id="statistics-gather-action-popup" style="width: 360px; height: 260px;">
+    <div rel="title">
+        Gather Statistics
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='statistics-gather-table-owner'>Owner:</label>
+            <input id='statistics-gather-table-owner' style="margin-left: 66px; width: 200px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='statistics-gather-table-name'>Name:</label>
+            <input id='statistics-gather-table-name' style="margin-left: 71px; width: 200px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for="statistics-gather-table-sample-percent">Sample Percent:</label>
+            <select id='statistics-gather-table-sample-percent' style="margin-left: 13px; width: 200px;">
+                <option>1</option>
+                <option>5</option>
+                <option>10</option>
+                <option>15</option>
+                <option>20</option>
+                <option>25</option>
+                <option>30</option>
+                <option>35</option>
+                <option>40</option>
+                <option>45</option>
+                <option>100</option>
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            Confirm gather table statistics?
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#statistics-gather-table-owner').val(schemaName);
+            $j('#statistics-gather-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

@@ -1,0 +1,29 @@
+<div id="storage-actions-popup" style="width: 170px; height: 320px;">
+    <div rel="title">
+        Storage Actions
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+			function doAction(action) {
+				window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+				w2popup.load({ url: '/' + action, showMax: false, modal: true, showClose: false });
+			}
+    	</script>
+    	<button onclick='doAction("shrink-table-storage")' style='width: 100%; margin-bottom: 5px;'>Shrink Table...</button>
+    	<button onclick='doAction("row-movement-storage")' style='width: 100%; margin-bottom: 5px;'>Row Movement...</button>
+        <button onclick='doAction("compress-storage")' style='width: 100%; margin-bottom: 5px;'>Compress...</button>
+        <button onclick='doAction("no-compress-storage")' style='width: 100%; margin-bottom: 5px;'>No Compress...</button>
+        <button onclick='doAction("move-storage")' style='width: 100%; margin-bottom: 5px;'>Move...</button>
+        <button onclick='doAction("move-tablespace-storage")' style='width: 100%; margin-bottom: 5px;'>Move Tablespace...</button>
+        <button onclick='doAction("cache-storage")' style='width: 100%; margin-bottom: 5px;'>Cache...</button>
+        <button onclick='doAction("no-cache-storage")' style='width: 100%; margin-bottom: 5px;'>No Cache...</button>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

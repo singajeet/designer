@@ -1,0 +1,67 @@
+<div id="privileges-revoke-action-popup" style="width: 460px; height: 560px;">
+    <div rel="title">
+        Revoke
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='privileges-revoke-table-owner'>Owner:</label>
+            <input id='privileges-revoke-table-owner' style="margin-left: 33px; width: 330px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='privileges-revoke-table-name'>Name:</label>
+            <input id='privileges-revoke-table-name' style="margin-left: 37px; width: 330px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='privileges-revoke-users-roles'>Users/Roles:</label>
+            <select id='privileges-revoke-users-roles' style="width: 330px;">
+            </select>
+        </div>
+        <hr />
+        <div style="line-height: 30px;">
+            <input id='privileges-revoke-revoke-all' type="checkbox" style="margin-left: 81px;">Revoke All</input>
+        </div>
+        <div>
+            <table>
+                <tr>
+                    <td>
+                        <select id='privileges-revoke-available-grants' size="20" style="width: 190px;">
+                        </select>
+                    </td>
+                    <td style='width: 40px;'>
+                        <table>
+                            <tr>
+                                <td><button id='right-button'><i class='shuttle_right_icon' /></button></td>
+                            </tr>
+                            <tr>
+                                <td><button id='right-all-button'><i class='shuttle_right_all_icon' /></button></td>
+                            </tr>
+                            <tr>
+                                <td><button id='left-button'><i class='shuttle_left_icon' /></button></td>
+                            </tr>
+                            <tr>
+                                <td><button id='left-all-button'><i class='shuttle_left_all_icon' /></button></td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td>
+                        <select id='privileges-revoke-selected-grants' size="20" style="width: 190px;">
+                        </select>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#privileges-revoke-table-owner').val(schemaName);
+            $j('#privileges-revoke-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

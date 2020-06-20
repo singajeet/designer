@@ -1,0 +1,34 @@
+<div id="shrink-table-action-popup" style="width: 350px; height: 230px;">
+    <div rel="title">
+        Gather Statistics
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='shrink-table-owner'>Owner:</label>
+            <input id='shrink-table-owner' style="margin-left: 5px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='shrink-table-name'>Name:</label>
+            <input id='shrink-table-name' style="margin-left: 9px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <input type="checkbox" id="shrink-table-compact" style="margin-left: 55px;">Compact</input>
+        </div>
+        <div style="line-height: 30px;">
+            <input type="checkbox" id="shrink-table-cascade" style="margin-left: 55px;">Cascade</input>
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#shrink-table-owner').val(schemaName);
+            $j('#shrink-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

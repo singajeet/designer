@@ -1,0 +1,28 @@
+<div id="trigger-actions-popup" style="width: 220px; height: 290px;">
+    <div rel="title">
+        Trigger Actions
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+			function doAction(action) {
+				window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+				w2popup.load({ url: '/' + action, showMax: false, modal: true, showClose: false });
+			}
+    	</script>
+    	<button onclick='doAction("create-trigger")' style='width: 100%; margin-bottom: 5px;'>Create...</button>
+    	<button onclick='doAction("create-pk-sequence-trigger")' style='width: 100%; margin-bottom: 5px;'>Create (PK from Sequence)...</button>
+    	<button onclick='doAction("enable-all-trigger")' style='width: 100%; margin-bottom: 5px;'>Enable All...</button>
+        <button onclick='doAction("disable-all-trigger")' style='width: 100%; margin-bottom: 5px;'>Disable All...</button>
+        <button onclick='doAction("enable-single-trigger")' style='width: 100%; margin-bottom: 5px;'>Enable Single...</button>
+        <button onclick='doAction("disable-single-trigger")' style='width: 100%; margin-bottom: 5px;'>Disable Single...</button>
+        <button onclick='doAction("drop-trigger")' style='width: 100%; margin-bottom: 5px;'>Drop...</button>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

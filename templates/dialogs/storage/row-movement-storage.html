@@ -1,0 +1,35 @@
+<div id="row-movement-table-action-popup" style="width: 350px; height: 200px;">
+    <div rel="title">
+        Row Movement
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='row-movement-table-owner'>Owner:</label>
+            <input id='row-movement-table-owner' style="margin-left: 5px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='row-movement-table-name'>Name:</label>
+            <input id='row-movement-table-name' style="margin-left: 9px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for="row-movement-table-status">Status:</label>
+            <select id="row-movement-table-status" style="margin-left: 7px; width: 250px;">
+                <option>ENABLED</option>
+                <option>DISABLED</option>
+            </select>
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#row-movement-table-owner').val(schemaName);
+            $j('#row-movement-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

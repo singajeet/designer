@@ -1,0 +1,31 @@
+<div id="cache-table-action-popup" style="width: 350px; height: 200px;">
+    <div rel="title">
+        Cache
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='cache-table-owner'>Owner:</label>
+            <input id='cache-table-owner' style="margin-left: 5px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='cache-table-name'>Name:</label>
+            <input id='cache-table-name' style="margin-left: 9px; width: 250px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            Cache table storage?
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#cache-table-owner').val(schemaName);
+            $j('#cache-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

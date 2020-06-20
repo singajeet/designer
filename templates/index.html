@@ -1330,7 +1330,7 @@
                 { id: 'show-column-actions', text: 'Column Actions...'},
                 { id: 'show-constraint-actions', text: 'Constraint Actions...'},
                 { id: 'show-index-actions', text: 'Index Actions...'},
-                { id: 'show-priviliges-actions', text: 'Priviliges Actions...'},
+                { id: 'show-privileges-actions', text: 'Privileges Actions...'},
                 { id: 'show-statistics-actions', text: 'Statistics Actions...'},
                 { id: 'show-storage-actions', text: 'Storage Actions...'},
                 { id: 'show-trigger-actions', text: 'Trigger Actions...'},
@@ -1622,6 +1622,74 @@
               window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
               w2popup.load({ 
                             url: '/index-actions',
+                            showMax: false, 
+                            modal: true,
+                            showClose: true,
+                            onClose: function(event) {
+                              //schema.populateSchemaObjects();
+                            }
+                          });
+            } else if(event.menuItem.id === 'show-privileges-actions') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              var schema = tableItem.schema;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ 
+                            url: '/privileges-actions',
+                            showMax: false, 
+                            modal: true,
+                            showClose: true,
+                            onClose: function(event) {
+                              //schema.populateSchemaObjects();
+                            }
+                          });
+            } else if(event.menuItem.id === 'show-statistics-actions') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              var schema = tableItem.schema;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ 
+                            url: '/statistics-actions',
+                            showMax: false, 
+                            modal: true,
+                            showClose: true,
+                            onClose: function(event) {
+                              //schema.populateSchemaObjects();
+                            }
+                          });
+            } else if(event.menuItem.id === 'show-storage-actions') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              var schema = tableItem.schema;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ 
+                            url: '/storage-actions',
+                            showMax: false, 
+                            modal: true,
+                            showClose: true,
+                            onClose: function(event) {
+                              //schema.populateSchemaObjects();
+                            }
+                          });
+            } else if(event.menuItem.id === 'show-trigger-actions') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              var schema = tableItem.schema;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ 
+                            url: '/trigger-actions',
                             showMax: false, 
                             modal: true,
                             showClose: true,

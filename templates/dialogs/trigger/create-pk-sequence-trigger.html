@@ -1,0 +1,46 @@
+<div id="trigger-create-pk-sequence-action-popup" style="width: 380px; height: 330px;">
+    <div rel="title">
+        Create (PK from Sequence)
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='trigger-create-pk-sequence-table-owner'>Owner:</label>
+            <input id='trigger-create-pk-sequence-table-owner' style="margin-left: 62px; width: 220px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='trigger-create-pk-sequence-table-name'>Name:</label>
+            <input id='trigger-create-pk-sequence-table-name' style="margin-left: 66px; width: 220px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='trigger-create-pk-sequence-trigger-name'>Trigger Name:</label>
+            <input id='trigger-create-pk-sequence-trigger-name' style="width: 220px; margin-left: 20px;" />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='trigger-create-pk-sequence-name'>Sequence Name:</label>
+            <select id='trigger-create-pk-sequence-name' style="width: 220px; margin-left: 5px;">
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            <label for="trigger-create-pk-column-name">Column Name:</label>
+            <select id="trigger-create-pk-column-name" style="margin-left: 17px; width: 220px;">
+            </select>
+        </div>
+        <br />
+        <div>
+            Create trigger to populate primary key values using the selected sequence?
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#trigger-create-pk-sequence-table-owner').val(schemaName);
+            $j('#trigger-create-pk-sequence-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

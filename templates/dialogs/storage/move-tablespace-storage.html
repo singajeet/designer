@@ -1,0 +1,32 @@
+<div id="move-tablespace-table-action-popup" style="width: 350px; height: 200px;">
+    <div rel="title">
+        Move Tablespace
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='move-tablespace-table-owner'>Owner:</label>
+            <input id='move-tablespace-table-owner' style="margin-left: 26px; width: 230px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='move-tablespace-table-name'>Name:</label>
+            <input id='move-tablespace-table-name' style="margin-left: 30px; width: 230px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for="move-tablespace-name">Tablespace:</label>
+            <select id="move-tablespace-name" style="width: 230px;"></select>
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#move-tablespace-table-owner').val(schemaName);
+            $j('#move-tablespace-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

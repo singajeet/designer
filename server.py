@@ -194,6 +194,121 @@ def rebuild_index():
     return render_template('dialogs/index/rebuild-index.html')
 
 
+@app.route('/privileges-actions')
+def privileges_actions():
+    return render_template('dialogs/privileges/privileges-actions.html')
+
+
+@app.route('/grant-privileges')
+def grant_privileges():
+    return render_template('dialogs/privileges/grant-privileges.html')
+
+
+@app.route('/revoke-privileges')
+def revoke_privileges():
+    return render_template('dialogs/privileges/revoke-privileges.html')
+
+
+@app.route('/statistics-actions')
+def statistics_actions():
+    return render_template('dialogs/statistics/statistics-actions.html')
+
+
+@app.route('/validate-structure-statistics')
+def validate_structure_statistics():
+    return render_template('dialogs/statistics/validate-structure-statistics.html')
+
+
+@app.route('/gather-statistics')
+def gather_statistics():
+    return render_template('dialogs/statistics/gather-statistics.html')
+
+
+@app.route('/storage-actions')
+def storage_actions():
+    return render_template('dialogs/storage/storage-actions.html')
+
+
+@app.route('/shrink-table-storage')
+def shrink_table_storage():
+    return render_template('dialogs/storage/shrink-table-storage.html')
+
+
+@app.route('/row-movement-storage')
+def row_movement_storage():
+    return render_template('dialogs/storage/row-movement-storage.html')
+
+
+@app.route('/compress-storage')
+def compress_storage():
+    return render_template('dialogs/storage/compress-storage.html')
+
+
+@app.route('/no-compress-storage')
+def no_compress_storage():
+    return render_template('dialogs/storage/no-compress-storage.html')
+
+
+@app.route('/move-storage')
+def move_storage():
+    return render_template('dialogs/storage/move-storage.html')
+
+
+@app.route('/move-tablespace-storage')
+def move_tablespace_storage():
+    return render_template('dialogs/storage/move-tablespace-storage.html')
+
+
+@app.route('/cache-storage')
+def cache_storage():
+    return render_template('dialogs/storage/cache-storage.html')
+
+
+@app.route('/no-cache-storage')
+def no_cache_storage():
+    return render_template('dialogs/storage/no-cache-storage.html')
+
+
+@app.route('/trigger-actions')
+def trigger_actions():
+    return render_template('dialogs/trigger/trigger-actions.html')
+
+
+@app.route('/create-trigger')
+def create_trigger():
+    return render_template('dialogs/trigger/create-trigger.html')
+
+
+@app.route('/create-pk-sequence-trigger')
+def create_pk_sequence_trigger():
+    return render_template('dialogs/trigger/create-pk-sequence-trigger.html')
+
+
+@app.route('/disable-all-trigger')
+def disable_all_trigger():
+    return render_template('dialogs/trigger/disable-all-trigger.html')
+
+
+@app.route('/disable-single-trigger')
+def disable_single_trigger():
+    return render_template('dialogs/trigger/disable-single-trigger.html')
+
+
+@app.route('/enable-all-trigger')
+def enable_all_trigger():
+    return render_template('dialogs/trigger/enable-all-trigger.html')
+
+
+@app.route('/enable-single-trigger')
+def enable_single_trigger():
+    return render_template('dialogs/trigger/enable-single-trigger.html')
+
+
+@app.route('/drop-trigger')
+def drop_trigger():
+    return render_template('dialogs/trigger/drop-trigger.html')
+
+
 @app.route('/')
 def index():
 	return render_template('index.html')
