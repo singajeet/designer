@@ -27,10 +27,50 @@
 
             $j('#truncate-table-owner').val(schemaName);
             $j('#truncate-table-name').val(tableName);
+
+            var dbSQL = null;
+
+            function applyAndClose() {
+                var drop = $j('#truncate-table-storage-drop').prop('checked');
+                var reuse = $j('#truncate-table-storage-reuse').prop('checked');
+
+                var storageOption = '';
+
+                if(drop) {
+                    storageOption = ' DROP';
+                }
+
+                if(reuse) {
+                    storageOption = ' REUSE';
+                }
+
+                var sql = 'TRUNCATE TABLE ' + schemaName + '.' + tableName + storageOption + ' STORAGE;';
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Truncating table...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Table truncated successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while truncating table: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

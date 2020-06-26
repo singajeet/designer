@@ -4,7 +4,7 @@ from oracle import DatabaseConnectionServer, DatabaseSchemaServer, DatabaseTable
 from oracle import DatabaseViewServer, DatabaseIndexServer, DatabaseMaterializedViewServer
 from oracle import DatabasePLSQLServer, DatabaseSequenceServer, DatabaseSynonymServer
 from oracle import DatabaseLinkServer, DatabaseDirectoryServer, DatabaseQueueServer
-from oracle import DatabaseSQLServer
+from oracle import DatabaseSQLServer, DatabaseServer
 from engineio.payload import Payload
 
 
@@ -309,6 +309,46 @@ def drop_trigger():
     return render_template('dialogs/trigger/drop-trigger.html')
 
 
+@app.route('/spatial-actions')
+def spatial_actions():
+    return render_template('dialogs/spatial/spatial-actions.html')
+
+
+@app.route('/update-metadata-spatial')
+def update_metadata_spatial():
+    return render_template('dialogs/spatial/update-metadata-spatial.html')
+
+
+@app.route('/validate-geometery-using-tolerance-spatial')
+def validate_geometery_using_tolerance_spatial():
+    return render_template('dialogs/spatial/validate-geometery-using-tolerance-spatial.html')
+
+
+@app.route('/validate-geometery-using-dimension-spatial')
+def validate_geometery_using_dimension_spatial():
+    return render_template('dialogs/spatial/validate-geometery-using-dimension-spatial.html')
+
+
+@app.route('/drop-metadata-spatial')
+def drop_metadata_spatial():
+    return render_template('dialogs/spatial/drop-metadata-spatial.html')
+
+
+@app.route('/create-index-spatial')
+def create_index_spatial():
+    return render_template('dialogs/spatial/create-index-spatial.html')
+
+
+@app.route('/drop-index-spatial')
+def drop_index_spatial():
+    return render_template('dialogs/spatial/drop-index-spatial.html')
+
+
+@app.route('/ddl-actions')
+def ddl_actions():
+    return render_template('dialogs/ddl/ddl-actions.html')
+
+
 @app.route('/')
 def index():
 	return render_template('index.html')
@@ -328,6 +368,7 @@ def start_app():
     ddir = DatabaseDirectoryServer(socketio, ds)
     dq = DatabaseQueueServer(socketio, ds)
     dsql = DatabaseSQLServer(socketio, ds)
+    db = DatabaseServer(socketio, ds)
     socketio.run(app, debug=True)
 
 

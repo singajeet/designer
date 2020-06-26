@@ -29,10 +29,39 @@
 
             $j('#logging-table-owner').val(schemaName);
             $j('#logging-table-name').val(tableName);
+
+            var dbSQL = null;
+
+            function applyAndClose() {
+                var logging = $j('#logging-table-logging').val();
+
+                var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' '  + logging + ';';
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Setting up logging option on table...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Logging option set successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while setting up logging option on table: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

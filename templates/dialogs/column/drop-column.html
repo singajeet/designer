@@ -23,10 +23,49 @@
 
             $j('#drop-column-table-owner').val(schemaName);
             $j('#drop-column-table-name').val(tableName);
+
+            var dbSQL = null;
+            var dbTable = new DatabaseEditableTable(tableName);
+
+            dbTable.addColumnsListAvailableEventListener(onColumnsListAvailable);
+            dbTable.getColumnsList(null);
+
+            function onColumnsListAvailable(result, source) {
+                result.forEach(function(column) {
+                    $j('#drop-column-name').append('<option>' + column + '</option>');
+                });
+            }
+
+            function applyAndClose() {
+                var dropColumnName = $j('#drop-column-name').val();
+
+                var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' DROP COLUMN ' + dropColumnName + ';';
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Dropping column...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Column dropped successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while dropping column: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

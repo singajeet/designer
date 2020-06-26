@@ -23,10 +23,43 @@
 
             $j('#comment-table-owner').val(schemaName);
             $j('#comment-table-name').val(tableName);
+
+            var dbSQL = null;
+
+            function applyAndClose() {
+                var comment = $j('#comment-table').val();
+
+                if(comment === null || comment === undefined || comment === '') {
+                    w2alert('Comment field can not be empty!');
+                } else {
+                    var sql = 'COMMENT ON TABLE ' + schemaName + '.' + tableName + ' IS \'' + comment + '\';';
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Commenting on table...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Table commented successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while commenting on table: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

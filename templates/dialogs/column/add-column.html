@@ -18,45 +18,30 @@
         <div style="line-height: 30px;">
             <label for="add-column-data-type">Data Type:</label>
             <select id="add-column-data-type" style="margin-left: 24px; width: 220px;">
-                <option>BFILE</option>
-                    <option>BINARY_DOUBLE</option>
-                    <option>BINARY_FLOAT</option>
+                    <option selected>VARCHAR2</option>
+                    <option>NUMBER</option>
+                    <option>INTEGER</option>
+                    <option>DATE</option>
+                    <option>TIMESTAMP</option> 
+                    <option>TIMESTAMP WITH TIME ZONE</option>
+                    <option>TIMESTAMP WITH LOCAL TIME ZONE</option>
+                    <option>CLOB</option>
                     <option>BLOB</option>
                     <option>CHAR</option>
-                    <option>CHAR VARYING</option>
-                    <option>CHARACTER</option>
-                    <option>CHARACTER VARYING</option>
-                    <option>CLOB</option>
-                    <option>DATE</option>
-                    <option>DEC</option>
-                    <option>DECIMAL</option>
-                    <option>DOUBLE PRECISION</option>
-                    <option>FLOAT</option>
-                    <option>INT</option>
-                    <option>INTEGER</option>
-                    <option>INTERVAL DAY</option>
-                    <option>INTERVAL YEAR</option>
+                    <option>NCHAR</option>
+                    <option>NVARCHAR2</option>
+                    <option>NCLOB</option>
+                    <option>INTERVAL DAY TO SECOND</option>
+                    <option>INTERVAL YEAR TO MONTH</option>
                     <option>LONG</option>
                     <option>LONG RAW</option>
-                    <option>LONG VARCHAR</option>
-                    <option>NATIONAL CHAR</option>
-                    <option>NATIONAL CHAR VARYING</option>
-                    <option>NATIONAL CHARACTER</option>
-                    <option>NATIONAL CHARACTER VARYING</option>
-                    <option>NCHAR</option>
-                    <option>NCHAR VARYING</option>
-                    <option>NCLOB</option>
-                    <option>NUMBER</option>
                     <option>NUMERIC</option>
-                    <option>NVARCHAR2</option>
                     <option>RAW</option>
                     <option>REAL</option>
                     <option>ROWID</option>
-                    <option>SMALLINT</option>
-                    <option>TIMESTAMP</option>
-                    <option>UROWID</option>
-                    <option>VARCHAR</option>
-                    <option selected>VARCHAR2</option> 
+                    <option>BFILE</option>
+                    <option>FLOAT</option>
+                    <option>DECIMAL</option>
             </select>
         </div>
         <div style="line-height: 30px;">
@@ -75,10 +60,88 @@
 
             $j('#add-column-table-owner').val(schemaName);
             $j('#add-column-table-name').val(tableName);
+
+            var dbSQL = null;
+            
+            function applyAndClose() {
+                var columnName = $j('#add-column-name').val();
+                var dataType = $j('#add-column-data-type').val();
+                var precision = $j('#add-column-precision').val();
+                var scale = $j('#add-column-scale').val();
+
+                if(columnName === null || columnName === undefined || columnName === '') {
+                    w2alert('Column name field can not be empty!');
+                } else {
+                    
+                    var sql = '';
+                    sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' ADD(' + columnName + ' ';
+                    if (dataType === 'INTERVAL DAY TO SECOND') {
+                      sql = sql + 'INTERVAL DAY';
+                      if (precision.length>0) {
+                        sql = sql + '('+ precision+')';
+                      }
+
+                      sql = sql + ' TO SECOND';
+                      if (scale.length > 0) {
+                        sql = sql + '(' + scale + ')';
+                      }
+
+                    } else {
+                      if (dataType === 'INTERVAL YEAR TO MONTH') {
+                        sql = sql + 'INTERVAL YEAR';
+                      } else if (dataType === 'TIMESTAMP WITH TIME ZONE' || dataType === 'TIMESTAMP WITH LOCAL TIME ZONE') {
+                        sql = sql + 'TIMESTAMP';
+                      } else {
+                        sql = sql + dataType;
+                      }
+
+                      if (dataType === 'DATE' || dataType === 'CLOB' || dataType === 'NCLOB' || dataType === 'BLOB' || dataType === 'BFILE' || 
+                          dataType === 'LONG' || dataType === 'LONG RAW' || dataType === 'ROWID') {
+                        sql = sql;
+                      } else if (precision.length > 0 && scale.length === 0) {
+                        sql = sql + '(' + precision + ')';
+                      } else if (precision.length > 0 && scale.length > 0) {
+                        sql = sql + '(' + precision + ', ' + scale + ')';
+                      }
+
+                      if (dataType == 'INTERVAL YEAR TO MONTH') {
+                        sql = sql + ' TO MONTH';
+                      } else if (dataType == 'TIMESTAMP WITH TIME ZONE') {
+                        sql = sql + ' WITH TIME ZONE';
+                      } else if (dataType == 'TIMESTAMP WITH LOCAL TIME ZONE') {
+                        sql = sql + ' WITH LOCAL TIME ZONE';
+                      }
+
+                    }
+                    sql = sql + ');';
+
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Adding column...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Column added successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while adding column: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

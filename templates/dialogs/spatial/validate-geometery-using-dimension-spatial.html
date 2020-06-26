@@ -1,0 +1,55 @@
+<div id="spatial-validate-geometery-dimension-popup" style="width: 500px; height: 550px;">
+    <div rel="title">
+        Validate Geometery
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='spatial-validate-geometery-dimension-table-owner'>Owner:</label>
+            <input id='spatial-validate-geometery-dimension-table-owner' style="margin-left: 140px; width: 260px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-validate-geometery-dimension-table-name'>Name:</label>
+            <input id='spatial-validate-geometery-dimension-table-name' style="margin-left: 145px; width: 260px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-validate-geometery-dimension-table-column-name'>Spatial Column:</label>
+            <select id='spatial-validate-geometery-dimension-table-column-name' style="margin-left: 90px; width: 260px;">
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-validate-geometery-dimension-table-identification-columns' style="vertical-align: top;">Identification Columns:</label>
+            <select id='spatial-validate-geometery-dimension-table-identification-columns' size="7" style="margin-left: 46px; width: 260px;">
+            </select>
+        </div>
+        <div style="height: 220px; width: 478px;">
+            <div id="spatial-validate-geometery-dimension-table-validate-result-grid" style="height: 220px; width: 478px;"></div>
+        </div>
+        <script type="text/javascript">
+            var queryString = window.location.search;
+            var params = new URLSearchParams(queryString);
+            var tableName = params.get('name');
+            var schemaName = params.get('schemaName');
+
+            $j('#spatial-validate-geometery-dimension-table-owner').val(schemaName);
+            $j('#spatial-validate-geometery-dimension-table-name').val(tableName);
+
+            $j('#spatial-validate-geometery-dimension-table-validate-result-grid').w2grid({
+                name: 'spatial-validate-geometery-dimension-table-validate-result-grid',
+                header: 'Validation Results',
+                show: { header: true,
+                      toolbar: false,
+                      lineNumbers: true
+                    },
+                columns: [
+                    {field: 'result', caption: 'Result', size: '100%', sortable: true,
+                        editable: { type: 'text' }
+                    }
+                ]
+            });
+        </script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2ui['spatial-validate-geometery-dimension-table-validate-result-grid'].destroy(); w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2ui['spatial-validate-geometery-dimension-table-validate-result-grid'].destroy(); w2popup.close()">Close</button>
+    </div>
+</div>

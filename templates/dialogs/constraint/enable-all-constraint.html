@@ -25,10 +25,53 @@
 
             $j('#constraint-enable-all-table-owner').val(schemaName);
             $j('#constraint-enable-all-table-name').val(tableName);
+
+            var dbSQL = null;
+            
+            function applyAndClose() {
+                var noValidate = $j('#constraint-enable-all-no-validate').prop('checked');
+                var noValidateStatement = '';
+
+                if(noValidate) {
+                    noValidateStatement = 'NOVALIDATE';
+                }
+
+                var sql = `
+                    begin
+                      for cur in (select owner, constraint_name , table_name 
+                        from all_constraints
+                         where owner = '` + schemaName + `' and
+                               TABLE_NAME = '` + tableName + `') loop
+                         execute immediate 'ALTER TABLE '||cur.owner||'.'||cur.table_name||' MODIFY CONSTRAINT "'||cur.constraint_name||'" ENABLE ` + noValidateStatement + `';
+                      end loop;
+                    end;
+                `;
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Enabling constraints...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Constraints enabled successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while enabling constraints: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

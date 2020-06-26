@@ -3353,3 +3353,193 @@ class DatabaseSQLServer(Namespace):
             emit('execute_sql_error', str(err), namespace=self._namespace_url)
             print('Error while executing SQL: ' + sql)
             print(err)
+
+    def on_execute_select(self, sql):
+        """For internal use only: will be called when 'execute_select' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        sql = sql.rstrip(';')
+        try:
+            cursor.execute(sql)
+            column_headers = []
+            for col in cursor.description:
+                column_headers.append(col[0])
+            result_array = []
+            for result in cursor:
+                row = {}
+                for i in range(0, column_headers.__len__()):
+                    row[column_headers[i]] = str(result[i])
+                result_array.append(row)
+            emit('execute_select_success', result_array, namespace=self._namespace_url)
+        except Exception as err:
+            emit('execute_select_error', str(err), namespace=self._namespace_url)
+            print('Error while executing SQL: ' + sql)
+            print(err)
+
+
+class DatabaseServer(Namespace):
+    """Class to interact with the database
+    """
+
+    _socket_io = None
+    _db_connection = None
+    _namespace_url = None
+
+    def __init__(self, socket_io, schema):
+        """Default constructor for DatabaseServer class
+
+
+            Args:
+                socket_io (SocketIO): An instance of the SocketIO class
+                schema (DatabaseSchema): An instance of DatabaseSchema Class
+        """
+        Namespace.__init__(self, '/oracle_db')
+        self._namespace_url = '/oracle_db'
+        self._socket_io = socket_io
+        self._db_connection = schema.get_connection()
+        socket_io.on_namespace(self)
+
+    def on_get_schemas_list(self):
+        """For internal use only: will be called when 'get_schemas_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT username FROM SYS.all_users")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('schemas_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_columns_to_normalize(self, props):
+        """For internal use only: will be called when 'get_columns_to_normalize' event will be emitted
+        """
+        schema_name = props['schemaName']
+        table_name = props['tableName']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    column_name
+                FROM
+                    sys.all_tab_cols
+                WHERE
+                    owner = '%s'
+                    AND table_name = '%s'
+                    AND data_type IN (
+                        'VARCHAR',
+                        'VARCHAR2',
+                        'CHAR',
+                        'NCHAR',
+                        'NVARCHAR',
+                        'NVARCHAR2'
+                    )
+                """ % (schema_name, table_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('columns_to_normalize_result', result_array, namespace=self._namespace_url)
+
+    def on_get_disabled_constraints(self, props):
+        """For internal use only: will be called when 'get_disabled_constraints' event will be emitted
+        """
+        schema_name = props['schemaName']
+        table_name = props['tableName']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT constraint_name
+                FROM sys.all_constraints
+                WHERE
+                    owner = '%s' AND
+                    table_name = '%s' AND
+                    status = 'DISABLED'
+                """ % (schema_name, table_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('disabled_constraints_result', result_array, namespace=self._namespace_url)
+
+    def on_get_enabled_constraints(self, props):
+        """For internal use only: will be called when 'get_enabled_constraints' event will be emitted
+        """
+        schema_name = props['schemaName']
+        table_name = props['tableName']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT constraint_name
+                FROM sys.all_constraints
+                WHERE
+                    owner = '%s' AND
+                    table_name = '%s' AND
+                    status = 'ENABLED'
+                """ % (schema_name, table_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('enabled_constraints_result', result_array, namespace=self._namespace_url)
+
+    def on_get_constraints_list(self, props):
+        """For internal use only: will be called when 'get_constraints_list' event will be emitted
+        """
+        schema_name = props['schemaName']
+        table_name = props['tableName']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT constraint_name
+                FROM sys.all_constraints
+                WHERE
+                    owner = '%s' AND
+                    table_name = '%s'
+                """ % (schema_name, table_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('constraints_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_columns(self, props):
+        """For internal use only: will be called when 'get_columns' event will be emitted
+        """
+        schema_name = props['schemaName']
+        table_name = props['tableName']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    column_name
+                FROM
+                    sys.all_tab_columns
+                WHERE
+                    owner = '%s'
+                    AND table_name = '%s'
+                """ % (schema_name, table_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('columns_result', result_array, namespace=self._namespace_url)
+
+    def on_get_tables(self, schema_name):
+        """For internal use only: will be called when 'get_tables' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    table_name
+                FROM
+                    sys.all_tables
+                WHERE
+                    owner='%s'
+                """ % schema_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('tables_result', result_array, namespace=self._namespace_url)

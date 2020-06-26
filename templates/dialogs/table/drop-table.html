@@ -28,10 +28,51 @@
 
             $j('#drop-table-owner').val(schemaName);
             $j('#drop-table-name').val(tableName);
+
+            var dbSQL = null;
+
+            function applyAndClose() {
+                var cascadeConstraints = $j('#drop-table-cascade-constraints').prop('checked');
+                var purge = $j('#drop-table-purge-data').prop('checked');
+
+                var cascadeConstraintsQuery = '';
+                var purgeQuery = '';
+
+                if(cascadeConstraints) {
+                    cascadeConstraintsQuery = ' CASCADE CONSTRAINTS';
+                }
+
+                if(purge) {
+                    purgeQuery = ' PURGE';
+                }
+
+                var sql = 'drop table ' + schemaName + '.' + tableName + cascadeConstraintsQuery + purgeQuery + ';';
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Dropping table...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Table dropped successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while dropping table: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

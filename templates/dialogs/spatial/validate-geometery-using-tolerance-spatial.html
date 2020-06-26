@@ -1,0 +1,59 @@
+<div id="spatial-validate-geometery-tolerance-popup" style="width: 500px; height: 550px;">
+    <div rel="title">
+        Validate Geometery
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='spatial-validate-geometery-tolerance-table-owner'>Owner:</label>
+            <input id='spatial-validate-geometery-tolerance-table-owner' style="margin-left: 140px; width: 260px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-validate-geometery-tolerance-table-name'>Name:</label>
+            <input id='spatial-validate-geometery-tolerance-table-name' style="margin-left: 145px; width: 260px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-validate-geometery-tolerance'>Tolerance:</label>
+            <input id='spatial-validate-geometery-tolerance' style="margin-left: 125px; width: 260px;" value="0.0005" />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-validate-geometery-tolerance-table-column-name'>Spatial Column:</label>
+            <select id='spatial-validate-geometery-tolerance-table-column-name' style="margin-left: 90px; width: 260px;">
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-validate-geometery-tolerance-table-identification-columns' style="vertical-align: top;">Identification Columns:</label>
+            <select id='spatial-validate-geometery-tolerance-table-identification-columns' size="7" style="margin-left: 46px; width: 260px;">
+            </select>
+        </div>
+        <div style="height: 190px; width: 478px;">
+            <div id="spatial-validate-geometery-tolerance-table-validate-result-grid" style="height: 190px; width: 478px;"></div>
+        </div>
+        <script type="text/javascript">
+            var queryString = window.location.search;
+            var params = new URLSearchParams(queryString);
+            var tableName = params.get('name');
+            var schemaName = params.get('schemaName');
+
+            $j('#spatial-validate-geometery-tolerance-table-owner').val(schemaName);
+            $j('#spatial-validate-geometery-tolerance-table-name').val(tableName);
+
+            $j('#spatial-validate-geometery-tolerance-table-validate-result-grid').w2grid({
+                name: 'spatial-validate-geometery-tolerance-table-validate-result-grid',
+                header: 'Validation Results',
+                show: { header: true,
+                      toolbar: false,
+                      lineNumbers: true
+                    },
+                columns: [
+                    {field: 'result', caption: 'Result', size: '100%', sortable: true,
+                        editable: { type: 'text' }
+                    }
+                ]
+            });
+        </script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2ui['spatial-validate-geometery-tolerance-table-validate-result-grid'].destroy(); w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2ui['spatial-validate-geometery-tolerance-table-validate-result-grid'].destroy(); w2popup.close()">Close</button>
+    </div>
+</div>

@@ -23,10 +23,43 @@
 
             $j('#rename-table-owner').val(schemaName);
             $j('#rename-table-name').val(tableName);
+
+            var dbSQL = null;
+
+            function applyAndClose() {
+                var newTableName = $j('#rename-table-new-name').val();
+
+                if(newTableName === null || newTableName === undefined || newTableName === '') {
+                    w2alert('New table name cannot be empty!');
+                } else {
+                    var sql = 'alter table ' + schemaName + '.' + tableName + ' rename to ' + newTableName + ';';
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Renaming table...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Table renamed successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while renaming table: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

@@ -554,16 +554,26 @@ var DatabaseSQL = Class.create({
 	socket: null,
 	sqlSuccessEventListeners: [],
 	sqlErrorEventListeners: [],
+	selectSuccessEventListeners: [],
+	selectErrorEventListeners: [],
 	initialize: function() {
 		this.socket = io('/oracle_db_sql');
 		this.sqlSuccessListeners = [];
 		this.sqlErrorListeners = [];
+		this.selectSuccessListeners = [];
+		this.selectErrorListeners = [];
 		var that = this;
 	    this.socket.on('execute_sql_error', function(result){
 	      that.fireSQLErrorEvent(result);
 	    });
 	    this.socket.on('execute_sql_success', function(result){
 	      that.fireSQLSuccessEvent();
+	    });
+	    this.socket.on('execute_select_error', function(result){
+	      that.fireSelectErrorEvent(result);
+	    });
+	    this.socket.on('execute_select_success', function(result){
+	      that.fireSelectSuccessEvent(result);
 	    });
 	},
 	addSQLSuccessEventListener: function(listener) {
@@ -598,8 +608,43 @@ var DatabaseSQL = Class.create({
 			listener(err);
 		});
 	},
+	addSelectSuccessEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.selectSuccessEventListeners.push(listener);
+		}
+	},
+	removeSelectSuccessEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.selectSuccessEventListeners.indexOf(listener);
+			this.selectSuccessEventListeners.splice(index, 1);
+		}
+	},
+	fireSelectSuccessEvent: function(result) {
+		this.selectSuccessEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addSelectErrorEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.selectErrorEventListeners.push(listener);
+		}
+	},
+	removeSelectErrorEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.selectErrorEventListeners.indexOf(listener);
+			this.selectErrorEventListeners.splice(index, 1);
+		}
+	},
+	fireSelectErrorEvent: function(err) {
+		this.selectErrorEventListeners.forEach(function(listener) {
+			listener(err);
+		});
+	},
 	execute_sql: function(sql) {
 	    this.socket.emit('execute_sql', sql);
+	},
+	executeSelect: function(sql) {
+	    this.socket.emit('execute_select', sql);
 	},
 	destroy: function() {
 		this.socket.disconnect();

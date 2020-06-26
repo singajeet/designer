@@ -1,0 +1,77 @@
+<div id="update-metadata-spatial-popup" style="width: 500px; height: 550px;">
+    <div rel="title">
+        Maintain Spatial Metadata
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='spatial-update-metadata-table-owner'>Owner:</label>
+            <input id='spatial-update-metadata-table-owner' style="margin-left: 140px; width: 260px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-update-metadata-table-name'>Name:</label>
+            <input id='spatial-update-metadata-table-name' style="margin-left: 145px; width: 260px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-update-metadata-table-index-name'>Spatial Index Name:</label>
+            <input id='spatial-update-metadata-table-index-name' style="margin-left: 62px; width: 260px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-update-metadata-table-column-name'>Spatial Column:</label>
+            <select id='spatial-update-metadata-table-column-name' style="margin-left: 90px; width: 260px;">
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-update-metadata-table-coordinate-identifier'>Coordinate System Identifier:</label>
+            <input id='spatial-update-metadata-table-coordinate-identifier' style="margin-left: 7px; width: 260px;" />
+        </div>
+        <div style="height: 280px; width: 478px;">
+            <div id="spatial-update-metadata-table-dimensions-grid" style="height: 280px; width: 478px;"></div>
+        </div>
+        <script type="text/javascript">
+            var queryString = window.location.search;
+            var params = new URLSearchParams(queryString);
+            var tableName = params.get('name');
+            var schemaName = params.get('schemaName');
+
+            $j('#spatial-update-metadata-table-owner').val(schemaName);
+            $j('#spatial-update-metadata-table-name').val(tableName);
+
+            $j('#spatial-update-metadata-table-dimensions-grid').w2grid({
+                name: 'spatial-update-metadata-table-dimensions-grid',
+                header: 'Spatial Dimensions',
+                show: { header: true,
+                      toolbar: true,
+                      lineNumbers: true
+                    },
+                columns: [
+                    {field: 'name', caption: 'Name', size: '120px', sortable: true,
+                        editable: { type: 'text' }
+                    },
+                    {field: 'lowerBoundary', caption: 'Lower Boundary', size: '110px', sortable: true,
+                        editable: { type: 'text' }
+                    },
+                    {field: 'upperBoundary', caption: 'Upper Boundary', size: '110px', sortable: true,
+                        editable: { type: 'text' }
+                    },
+                    {field: 'tolerance', caption: 'Tolerance', size: '100px', sortable: true,
+                        editable: { type: 'text' }
+                    }
+                ],
+                toolbar: {
+                    items: [
+                        {type: 'break'},
+                        {id: this.id + '-grid-toolbar-add-constraint', type: 'button', icon: 'add_icon'},
+                        {id: this.id + '-grid-toolbar-drop-constraint', type: 'button', icon: 'delete_icon'}
+                    ],
+                    onClick: function(event) {
+                        
+                    }
+                }
+            });
+        </script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2ui['spatial-update-metadata-table-dimensions-grid'].destroy(); w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2ui['spatial-update-metadata-table-dimensions-grid'].destroy(); w2popup.close()">Close</button>
+    </div>
+</div>

@@ -27,10 +27,54 @@
 
             $j('#comment-column-table-owner').val(schemaName);
             $j('#comment-column-table-name').val(tableName);
+
+            var dbSQL = null;
+            var dbTable = new DatabaseEditableTable(tableName);
+
+            dbTable.addColumnsListAvailableEventListener(onColumnsListAvailable);
+            dbTable.getColumnsList(null);
+
+            function onColumnsListAvailable(result, source) {
+                result.forEach(function(column) {
+                    $j('#comment-column-name').append('<option>' + column + '</option>');
+                });
+            }
+
+            function applyAndClose() {
+                var column = $j('#comment-column-name').val();
+                var comment = $j('#comment-column-comment').val();
+
+                if(comment === null || comment === undefined || comment === '') {
+                    w2alert('Comment field can not be empty!');
+                } else {
+                    var sql = 'COMMENT ON COLUMN ' + schemaName + '.' + tableName + '.' + column + ' IS \'' + comment + '\';';
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Commenting on column...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Column commented successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while commenting on column: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

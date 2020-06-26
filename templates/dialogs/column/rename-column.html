@@ -27,10 +27,54 @@
 
             $j('#rename-column-table-owner').val(schemaName);
             $j('#rename-column-table-name').val(tableName);
+
+            var dbSQL = null;
+            var dbTable = new DatabaseEditableTable(tableName);
+
+            dbTable.addColumnsListAvailableEventListener(onColumnsListAvailable);
+            dbTable.getColumnsList(null);
+
+            function onColumnsListAvailable(result, source) {
+                result.forEach(function(column) {
+                    $j('#rename-column-name').append('<option>' + column + '</option>');
+                });
+            }
+
+            function applyAndClose() {
+                var existingColumnName = $j('#rename-column-name').val();
+                var newColumnName = $j('#rename-column-new-name').val();
+
+                if(newColumnName === null || newColumnName === undefined || newColumnName === '') {
+                    w2alert('New Column name field can not be empty!');
+                } else {
+                    var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' RENAME COLUMN ' + existingColumnName + ' TO ' + newColumnName + ';';
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Renaming column...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Column renamed successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while renaming column: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

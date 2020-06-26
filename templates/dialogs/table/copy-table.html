@@ -14,7 +14,6 @@
         <div style="line-height: 30px;">
             <label for='copy-table-new-owner'>New Owner:</label>
             <select id='copy-table-new-owner' style="margin-left: 32px; width: 175px;">
-                <option>HR</option>
             </select>
         </div>
         <div style="line-height: 30px;">
@@ -32,10 +31,89 @@
 
             $j('#copy-table-owner').val(schemaName);
             $j('#copy-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+            db.addSchemaListAvailableEventListener(onSchemaListAvailable);
+            db.getSchemaList();
+
+            function onSchemaListAvailable(result) {
+                result.forEach(function(item) {
+                    if(item === schemaName) {
+                        $j('#copy-table-new-owner').append('<option selected>' + item + '</option>');
+                    } else {
+                        $j('#copy-table-new-owner').append('<option>' + item + '</option>');
+                    }
+                });
+                db.destroy();
+            }
+
+            function applyAndClose() {
+                var newTableName = $j('#copy-table-new-name').val();
+                var newSchemaName = $j('#copy-table-new-owner').val();
+
+                if(newTableName === null || newTableName === undefined || newTableName === '') {
+                    w2alert('New table name cannot be empty!');
+                } else {
+                    var isIncludeData = $j('#copy-table-include-data').prop('checked');
+                    var whereCondition = '';
+                    if(!isIncludeData) {
+                        whereCondition = ' WHERE rownum < 1';
+                    }
+
+                    var sql = `
+                        declare
+                              c_tab_comment varchar2(32767);
+                              procedure run(p_sql varchar2) as
+                              begin 
+                                 execute immediate p_sql;
+                                 
+                              end; 
+                            begin
+                            run('create table ` + newSchemaName + `.` + newTableName + ` as select * from ` + schemaName + `.` + tableName + whereCondition + `');
+                              begin
+                              select comments into c_tab_comment from sys.all_TAB_comments where owner = '` + schemaName + `' and table_name = '` + tableName + `' and comments is not null;
+                              run('comment on table ` + newSchemaName + `.` + newTableName + ` is '||''''||REPLACE(c_tab_comment, q'[']', q'['']')||'''');
+
+                              for tc in (select column_name from sys.all_tab_cols where owner = '` + schemaName + `' and table_name = '` + tableName + `')
+                                  loop
+                                 for c in (select comments from sys.all_col_comments where owner = '` + schemaName + `' and table_name = '` + tableName + `' and column_name=tc.column_name) 
+                                 loop 
+                                 run ('comment on column ` + newSchemaName + `.` + newTableName + `.'||tc.column_name||' is '||''''||REPLACE(c.comments, q'[']', q'['']')||'''');
+                               end loop;
+                              end loop;
+                              EXCEPTION
+                                WHEN OTHERS THEN NULL; 
+                              end;
+                            end;
+                    `;
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Copying table...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Table copied successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while copying table: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

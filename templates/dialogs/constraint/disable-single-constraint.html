@@ -27,10 +27,55 @@
 
             $j('#constraint-disable-single-table-owner').val(schemaName);
             $j('#constraint-disable-single-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+
+            db.addEnabledConstraintsListAvailableEventListener(onConstraintsListAvailable);
+            db.getEnabledConstraintsList(schemaName, tableName);
+
+            function onConstraintsListAvailable(result) {
+                result.forEach(function(constraint) {
+                    $j('#constraint-disable-single-constraint-name').append('<option>' + constraint + '</option>');
+                });
+            }
+            
+            function applyAndClose() {
+                var validate = $j('#constraint-disable-single-validate').prop('checked');
+                var constraint = $j('#constraint-disable-single-constraint-name').val();
+                var validateStatement = '';
+
+                if(validate) {
+                    validateStatement = 'VALIDATE ';
+                }
+
+                var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' DISABLE ' + validateStatement + 'CONSTRAINT ' + constraint;
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Disabling constraints...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Constraints disabled successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while disabling constraints: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

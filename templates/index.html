@@ -29,6 +29,7 @@
     <script src="/static/js/ws/db-connection-schema-ws.js" ></script>
     <script src="/static/js/ws/db-read-only-ws.js" ></script>
     <script src="/static/js/ws/db-edit-ws.js" ></script>
+    <script src="/static/js/ws/db-ws.js" ></script>
     <script src="/static/js/ui/main-tabs.js" ></script>
     <script src="/static/js/ui/list-view.js" ></script>
   	<script>
@@ -194,34 +195,54 @@
             tabs[tabId].destroy();
 
             var index = openedTabs.indexOf(tabId);
-            openedTabs.splice(index, 1);
+            if(index >= 0){
+              openedTabs.splice(index, 1);
+            }
 
             index = openedViews.indexOf(tabId);
-            openedViews.splice(index, 1);
+            if(index >= 0){
+              openedViews.splice(index, 1);
+            }
 
             index = openedIndexes.indexOf(tabId);
-            openedIndexes.splice(index, 1);
+            if(index >= 0){
+              openedIndexes.splice(index, 1);
+            }
 
             index = openedMViews.indexOf(tabId);
-            openedMViews.splice(index, 1);
+            if(index >= 0){
+              openedMViews.splice(index, 1);
+            }
 
             index = openedPLSQLs.indexOf(tabId);
-            openedPLSQLs.splice(index, 1);
+            if(index >= 0){
+              openedPLSQLs.splice(index, 1);
+            }
 
             index = openedSequences.indexOf(tabId);
-            openedSequences.splice(index, 1);
+            if(index >= 0){
+              openedSequences.splice(index, 1);
+            }
 
             index = openedSynonyms.indexOf(tabId);
-            openedSynonyms.splice(index, 1);
+            if(index >= 0){
+              openedSynonyms.splice(index, 1);
+            }
 
             index = openedDBLinks.indexOf(tabId);
-            openedDBLinks.splice(index, 1);
+            if(index >= 0){
+              openedDBLinks.splice(index, 1);
+            }
 
             index = openedDirectories.indexOf(tabId);
-            openedDirectories.splice(index, 1);
+            if(index >= 0){
+              openedDirectories.splice(index, 1);
+            }
 
             index = openedQueues.indexOf(tabId);
-            openedQueues.splice(index, 1);
+            if(index >= 0){
+              openedQueues.splice(index, 1);
+            }
 
             delete tables[tabId];
             delete tabs[tabId];
@@ -1690,6 +1711,40 @@
               window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
               w2popup.load({ 
                             url: '/trigger-actions',
+                            showMax: false, 
+                            modal: true,
+                            showClose: true,
+                            onClose: function(event) {
+                              //schema.populateSchemaObjects();
+                            }
+                          });
+            } else if(event.menuItem.id === 'show-spatial-actions') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              var schema = tableItem.schema;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ 
+                            url: '/spatial-actions',
+                            showMax: false, 
+                            modal: true,
+                            showClose: true,
+                            onClose: function(event) {
+                              //schema.populateSchemaObjects();
+                            }
+                          });
+            } else if(event.menuItem.id === 'quick-ddl') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = tableItem.tableName;
+              var schema = tableItem.schema;
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ 
+                            url: '/ddl-actions',
                             showMax: false, 
                             modal: true,
                             showClose: true,

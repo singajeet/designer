@@ -28,10 +28,54 @@
 
             $j('#constraint-rename-single-table-owner').val(schemaName);
             $j('#constraint-rename-single-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+
+            db.addConstraintsListAvailableEventListener(onConstraintsListAvailable);
+            db.getConstraintsList(schemaName, tableName);
+
+            function onConstraintsListAvailable(result) {
+                result.forEach(function(constraint) {
+                    $j('#constraint-rename-single-constraint-name').append('<option>' + constraint + '</option>');
+                });
+            }
+            
+            function applyAndClose() {
+                var newName = $j('#constraint-rename-single-new-name').val();
+                var existingName = $j('#constraint-rename-single-constraint-name').val();
+                
+                if(newName === null || newName === undefined || newName === '') {
+                    w2alert('New Constrint Name field cannot be blank!');
+                } else {
+                    var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' RENAME CONSTRAINT ' + existingName + ' TO ' + newName;
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Renaming constraint...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Constraint renamed successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while renaming constraint: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

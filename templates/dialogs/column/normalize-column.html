@@ -22,7 +22,6 @@
         <div style="line-height: 30px;">
             <label for="normalize-column-name">Column:</label>
             <select id="normalize-column-name" style="margin-left: 57px; width: 220px;">
-               
             </select>
         </div>
         <div style="line-height: 30px;">
@@ -41,10 +40,103 @@
 
             $j('#normalize-column-table-owner').val(schemaName);
             $j('#normalize-column-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+
+            db.addColumnsToNormalizeAvailableEventListener(onColumnsListAvailable);
+            db.getColumnsToNormalize(schemaName, tableName);
+
+            function onColumnsListAvailable(result) {
+                result.forEach(function(column) {
+                    $j('#normalize-column-name').append('<option>' + column + '</option>');
+                });
+            }
+
+            function applyAndClose() {
+                var newTableName = $j('#normalize-column-table-name-table').val();
+                var primaryKey = $j('#normalize-column-primary-key').val();
+                var columnToNormalize = $j('#normalize-column-name').val();
+                var sequenceName = $j('#normalize-column-sequence-name').val();
+                var triggerName = $j('#normalize-column-trigger-name').val();
+
+                if(newTableName === null || newTableName === undefined || newTableName === '') {
+                    w2alert('Table name field can not be empty!');
+                } else if(primaryKey === null || primaryKey === undefined || primaryKey === '') {
+                    w2alert('Primary Key field can not be empty!');
+                } else if(sequenceName === null || sequenceName === undefined || sequenceName === '') {
+                    w2alert('Sequence Name field can not be empty!');
+                } else if(triggerName === null || triggerName === undefined || triggerName === '') {
+                    w2alert('Trigger Name field can not be empty!');
+                } else {
+                    var sql = `
+                        DECLARE
+                          l_sql VARCHAR2(32767);
+                          l_col_size NUMBER;
+                          PROCEDURE run(p_sql varchar2) AS
+                          BEGIN
+                            EXECUTE IMMEDIATE p_sql;
+                          END;
+                        BEGIN
+                         SELECT data_length INTO l_col_size FROM sys.all_tab_cols WHERE owner = '` + schemaName + `' AND table_name = '` + tableName + `' AND column_name = '` + columnToNormalize + `';
+                          
+                          run('CREATE TABLE ` + newTableName + ` (` + primaryKey + ` NUMBER NOT NULL PRIMARY KEY, ` + columnToNormalize + ` VARCHAR2('||l_col_size||') NOT NULL)');
+
+                          run('CREATE SEQUENCE ` + sequenceName + `');
+
+                          run('CREATE OR REPLACE TRIGGER "T_` + triggerName + `"'||
+                                   ' BEFORE INSERT OR UPDATE ON '||
+                                   ' ` + newTableName + ` FOR EACH ROW '||
+                                   ' BEGIN '||
+                                   ' IF INSERTING AND :new.` + primaryKey + ` IS NULL THEN '||
+                                   '  FOR c1 IN (SELECT ` + sequenceName + `.nextval nv FROM dual) LOOP '||
+                                   '     :new.` + primaryKey + ` := c1.nv; '||
+                                   '  END LOOP; '||
+                                   'END IF; '||
+                                   'END;');
+                         
+                           run('INSERT INTO ` + newTableName + `( ` + columnToNormalize + ` ) SELECT DISTINCT ` + columnToNormalize + ` FROM "` + schemaName + `"."` + tableName + `" WHERE ` + columnToNormalize + ` IS NOT NULL');
+
+                           run('ALTER TABLE "` + tableName + `" ADD ` + columnToNormalize + `_ID NUMBER');
+
+                           run('UPDATE "` + tableName + `" x SET ` + columnToNormalize + `_ID = (SELECT ` + primaryKey + ` FROM ` + newTableName + ` WHERE ` + columnToNormalize + ` = x.` + columnToNormalize + `)');
+
+                           run('ALTER TABLE "` + tableName + `" DROP COLUMN ` + columnToNormalize + `');
+
+                           run('ALTER TABLE "` + tableName + `" RENAME COLUMN ` + columnToNormalize + `_ID  TO ` + columnToNormalize + `');
+
+                           run('ALTER TABLE "` + tableName + `" ADD FOREIGN KEY (` + columnToNormalize + `) REFERENCES ` + newTableName + `(` + primaryKey + `)');
+                        END;
+                    `;
+
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Normalizing column...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Column normalized successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        db.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while normalizing column: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
-        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
+        <button class="w2ui-btn" onclick="db.destroy(); w2popup.close()">Close</button>
     </div>
 </div>

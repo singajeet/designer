@@ -38,10 +38,79 @@
 
             $j('#constraint-add-foreign-key-table-owner').val(schemaName);
             $j('#constraint-add-foreign-key-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+            var source = '';
+
+            db.addColumnsAvailableEventListener(onColumnsListAvailable);
+            db.addTablesAvailableEventListener(onTablesListAvailable);
+            db.getColumns(schemaName, tableName);
+            db.getTables(schemaName);
+
+            $j('#constraint-add-foreign-key-ref-table').on('change', function() {
+                var refTable = this.value;
+                source = 'REF';
+                db.getColumns(schemaName, refTable);
+            });
+
+            function onColumnsListAvailable(result) {
+                if(source === 'REF') {
+                    $j('#constraint-add-foreign-key-ref-column').empty();
+                    result.forEach(function(column) {
+                        $j('#constraint-add-foreign-key-ref-column').append('<option>' + column + '</option>');
+                    }); 
+                } else {
+                    result.forEach(function(column) {
+                        $j('#constraint-add-foreign-key-column').append('<option>' + column + '</option>');
+                    });    
+                }
+            }
+
+            function onTablesListAvailable(result) {
+                result.forEach(function(table) {
+                    $j('#constraint-add-foreign-key-ref-table').append('<option>' + table + '</option>');
+                });
+                $j('#constraint-add-foreign-key-ref-table').trigger('change');
+            }
+            
+            function applyAndClose() {
+                var constraintName = $j('#constraint-add-foreign-key-constraint-name').val();
+                var localColumn = $j('#constraint-add-foreign-key-column').val();
+                var refTable = $j('#constraint-add-foreign-key-ref-table').val();
+                var refColumn = $j('#constraint-add-foreign-key-ref-column').val();       
+                
+                if(constraintName === null || constraintName === undefined || constraintName === '') {
+                    w2alert('Constraint Name field cannot be empty!');
+                } else {
+                    var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' ADD CONSTRAINT ' + constraintName + ' FOREIGN KEY(' + localColumn + ') REFERENCES ' + refTable + '(' + refColumn + ');';
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Adding constraint...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Constraint added successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while adding constraint: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

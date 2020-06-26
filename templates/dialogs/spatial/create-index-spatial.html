@@ -1,0 +1,37 @@
+<div id="spatial-create-index-action-popup" style="width: 360px; height: 240px;">
+    <div rel="title">
+        Create Spatial Index
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="line-height: 30px;">
+            <label for='spatial-create-index-table-owner'>Owner:</label>
+            <input id='spatial-create-index-table-owner' style="margin-left: 33px; width: 230px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-create-index-table-name'>Name:</label>
+            <input id='spatial-create-index-table-name' style="margin-left: 37px; width: 230px;" disabled />
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-create-index-column-name'>Column:</label>
+            <select id='spatial-create-index-column-name' style="margin-left: 27px; width: 230px;">
+            </select>
+        </div>
+        <div style="line-height: 30px;">
+            <label for='spatial-create-index-name'>Index Name:</label>
+            <input id='spatial-create-index-name' style="width: 230px;" />
+        </div>
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+            $j('#spatial-create-index-table-owner').val(schemaName);
+            $j('#spatial-create-index-table-name').val(tableName);
+    	</script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

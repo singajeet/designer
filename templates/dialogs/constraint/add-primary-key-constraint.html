@@ -43,10 +43,77 @@
 
             $j('#constraint-add-primary-key-table-owner').val(schemaName);
             $j('#constraint-add-primary-key-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+
+            db.addColumnsAvailableEventListener(onColumnsListAvailable);
+            db.getColumns(schemaName, tableName);
+
+            function onColumnsListAvailable(result) {
+                $j('#constraint-add-primary-key-column1').append('<option></option>');
+                $j('#constraint-add-primary-key-column2').append('<option></option>');
+                $j('#constraint-add-primary-key-column3').append('<option></option>');
+                $j('#constraint-add-primary-key-column4').append('<option></option>');
+
+                result.forEach(function(column) {
+                    $j('#constraint-add-primary-key-column1').append('<option>' + column + '</option>');
+                    $j('#constraint-add-primary-key-column2').append('<option>' + column + '</option>');
+                    $j('#constraint-add-primary-key-column3').append('<option>' + column + '</option>');
+                    $j('#constraint-add-primary-key-column4').append('<option>' + column + '</option>');
+                });
+            }
+            
+            function applyAndClose() {
+                var constraintName = $j('#constraint-add-primary-key-constraint-name').val();
+                var column1 = $j('#constraint-add-primary-key-column1').val();
+                var column2 = $j('#constraint-add-primary-key-column2').val();
+                var column3 = $j('#constraint-add-primary-key-column3').val();
+                var column4 = $j('#constraint-add-primary-key-column4').val();                
+                
+                if(constraintName === null || constraintName === undefined || constraintName === '') {
+                    w2alert('Constraint Name field cannot be empty!');
+                } else if(column1 === null || column1 === undefined || column1 === '') {
+                    w2alert('Column 1 field cannot be empty!');
+                } else {
+                    var pkColumns = column1;
+                    if(column2 !== null && column2 !== undefined && column2 !== '') {
+                        pkColumns += ', ' + column2;
+                    }
+                    if(column3 !== null && column3 !== undefined && column3 !== '') {
+                        pkColumns += ', ' + column3;
+                    }
+                    if(column4 !== null && column4 !== undefined && column4 !== '') {
+                        pkColumns += ', ' + column4;
+                    }
+                    var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' ADD CONSTRAINT ' + constraintName + ' PRIMARY KEY(' + pkColumns + ');';
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Adding constraint...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Constraint added successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while adding constraint: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

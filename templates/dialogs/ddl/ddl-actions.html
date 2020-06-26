@@ -1,0 +1,24 @@
+<div id="ddl-actions-popup" style="width: 220px; height: 190px;">
+    <div rel="title">
+        Quick DDL Actions
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+    	<script type="text/javascript">
+    		var queryString = window.location.search;
+			var params = new URLSearchParams(queryString);
+			var tableName = params.get('name');
+			var schemaName = params.get('schemaName');
+
+			function doAction(action) {
+				window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+				w2popup.load({ url: '/' + action, showMax: false, modal: true, showClose: false });
+			}
+    	</script>
+    	<button onclick='doAction("save-to-file-ddl")' style='width: 100%; margin-bottom: 5px;'>Save to file...</button>
+    	<button onclick='doAction("save-to-worksheet-ddl")' style='width: 100%; margin-bottom: 5px;'>Save to worksheet...</button>
+        <button onclick='doAction("save-to-clipboard-ddl")' style='width: 100%; margin-bottom: 5px;'>Save to clipboard...</button>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+    </div>
+</div>

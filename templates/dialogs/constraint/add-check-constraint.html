@@ -22,8 +22,8 @@
         <div style="line-height: 30px;">
             <label for='constraint-add-check-status'>Status:</label>
             <select id='constraint-add-check-status' style="margin-left: 65px; width: 200px;">
-                <option>ENABLED</option>
-                <option>DISABLED</option>
+                <option>ENABLE</option>
+                <option>DISABLE</option>
             </select>
         </div>
     	<script type="text/javascript">
@@ -34,10 +34,47 @@
 
             $j('#constraint-add-check-table-owner').val(schemaName);
             $j('#constraint-add-check-table-name').val(tableName);
+
+            var dbSQL = null;
+            
+            function applyAndClose() {
+                var constraintName = $j('#constraint-add-check-constraint-name').val();
+                var checkCondition = $j('#constraint-add-check-condition').val();
+                var status = $j('#constraint-add-check-status').val();
+
+                if(constraintName === null || constraintName === undefined || constraintName === '') {
+                    w2alert('Constraint Name field cannot be empty!');
+                } else if(checkCondition === null || checkCondition === undefined || checkCondition === '') {
+                    w2alert('Check Condition field cannot be empty!');
+                } else {
+                    var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' ADD CONSTRAINT ' + constraintName + ' CHECK(' + checkCondition + ') ' + status + ';';
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Adding constraint...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Constraint added successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while adding constraint: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>
