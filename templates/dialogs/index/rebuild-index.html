@@ -17,7 +17,7 @@
             </select>
         </div>
         <div style="line-height: 30px;">
-            <input id='index-rebuild-table-online' type="checkbox" style="margin-left: 83px;">Online</input>
+            <input id='index-rebuild-index-online' type="checkbox" style="margin-left: 83px;">Online</input>
         </div>
     	<script type="text/javascript">
     		var queryString = window.location.search;
@@ -27,10 +27,56 @@
 
             $j('#index-rebuild-table-owner').val(schemaName);
             $j('#index-rebuild-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+
+            db.addIndexesAvailableEventListener(onIndexesListAvailable);
+            db.getIndexes(schemaName, tableName);
+
+            function onIndexesListAvailable(result) {
+                result.forEach(function(index) {
+                    $j('#index-rebuild-index-name').append('<option>' + index + '</option>');
+                });
+            }
+            
+            function applyAndClose() {
+                var index = $j('#index-rebuild-index-name').val();
+                var online = $j('#index-rebuild-index-online').prop('checked');
+
+                var onlineStatement = '';
+                if(online) {
+                    onlineStatement = ' ONLINE';
+                }
+                
+                var sql = 'ALTER INDEX ' + index + ' REBUILD' + onlineStatement + ';';
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Rebuilding index...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Index rebuild successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        db.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while rebuilding index: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
-        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
+        <button class="w2ui-btn" onclick="db.destroy(); w2popup.close()">Close</button>
     </div>
 </div>

@@ -25,10 +25,51 @@
 
             $j('#shrink-table-owner').val(schemaName);
             $j('#shrink-table-name').val(tableName);
+
+            var dbSQL = null;
+
+            function applyAndClose() {
+                var compact = $j('#shrink-table-compact').prop('checked');
+                var cascade = $j('#shrink-table-cascade').prop('checked');
+
+                var cascadeQuery = '';
+                var compactQuery = '';
+
+                if(cascade) {
+                    cascadeQuery = ' CASCADE';
+                }
+
+                if(compact) {
+                    compactQuery = ' COMPACT';
+                }
+
+                var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' SHRINK SPACE' + compactQuery + cascadeQuery + ';';
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Shrinking table...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Table shrink successful!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while shrinking table: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>

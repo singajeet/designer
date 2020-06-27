@@ -3543,3 +3543,98 @@ class DatabaseServer(Namespace):
         for result in cursor:
             result_array.append(result[0])
         emit('tables_result', result_array, namespace=self._namespace_url)
+
+    def on_get_indexes(self, props):
+        """For internal use only: will be called when 'get_indexes' event will be emitted
+        """
+        schema_name = props['schemaName']
+        table_name = props['tableName']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    index_name
+                FROM
+                    sys.all_indexes
+                WHERE
+                    owner = '%s'
+                    AND table_name = '%s'
+                """ % (schema_name, table_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('indexes_result', result_array, namespace=self._namespace_url)
+
+    def on_get_roles(self):
+        """For internal use only: will be called when 'get_roles' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    'PUBLIC'
+                FROM
+                    dual
+                UNION ALL
+                SELECT
+                    username
+                FROM
+                    all_users
+                UNION ALL
+                SELECT DISTINCT
+                    granted_role
+                FROM
+                    user_role_privs
+                ORDER BY
+                    1
+                """
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('roles_result', result_array, namespace=self._namespace_url)
+
+    def on_get_privileges(self, props):
+        """For internal use only: will be called when 'get_indexes' event will be emitted
+        """
+        schema_name = props['schemaName']
+        table_name = props['tableName']
+        grantee = props['grantee']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    privilege
+                FROM
+                    sys.all_col_privs
+                WHERE
+                    table_schema = '%s'
+                    AND table_name = '%s'
+                    AND grantee = '%s'
+                UNION
+                SELECT
+                    privilege
+                FROM
+                    sys.all_tab_privs
+                WHERE
+                    table_schema = '%s'
+                    AND table_name = '%s'
+                    AND grantee = '%s'
+                """ % (schema_name, table_name, grantee, schema_name, table_name, grantee)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('privileges_result', result_array, namespace=self._namespace_url)
+
+    def on_get_tablespaces_list(self):
+        """For internal use only: will be called when 'get_tablespace_list' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT tablespace_name FROM SYS.user_tablespaces")
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('tablespaces_list_result', result_array, namespace=self._namespace_url)

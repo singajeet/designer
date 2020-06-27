@@ -24,10 +24,50 @@
 
             $j('#index-drop-table-owner').val(schemaName);
             $j('#index-drop-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+
+            db.addIndexesAvailableEventListener(onIndexesListAvailable);
+            db.getIndexes(schemaName, tableName);
+
+            function onIndexesListAvailable(result) {
+                result.forEach(function(index) {
+                    $j('#index-drop-index-name').append('<option>' + index + '</option>');
+                });
+            }
+            
+            function applyAndClose() {
+                var index = $j('#index-drop-index-name').val();
+                
+                var sql = 'DROP INDEX ' + index + ';';
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Dropping index...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Index dropped successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        db.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while dropping index: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
-        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
+        <button class="w2ui-btn" onclick="db.destroy(); w2popup.close()">Close</button>
     </div>
 </div>

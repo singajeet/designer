@@ -12,6 +12,10 @@ var Database = Class.create({
 	constraintsListAvailableEventListeners: [],
 	columnsAvailableEventListeners: [],
 	tablesAvailableEventListeners: [],
+	indexesAvailableEventListeners: [],
+	rolesAvailableEventListeners: [],
+	privilegesAvailableEventListeners: [],
+	tablespaceListAvailableEventListeners: [],
 	initialize: function() {
 		this.socket = io('/oracle_db');
 		this.schemaListAvailableEventListeners = [];
@@ -21,6 +25,10 @@ var Database = Class.create({
 		this.constraintsListAvailableEventListeners = [];
 		this.columnsAvailableEventListeners = [];
 		this.tablesAvailableEventListeners = [];
+		this.indexesAvailableEventListeners = [];
+		this.rolesAvailableEventListeners = [];
+		this.privilegesAvailableEventListeners = [];
+		this.tablespaceListAvailableEventListeners = [];
 		var that = this;
 	    this.socket.on('schemas_list_result', function(result){
 	      that.fireSchemaListAvailableEvent(result);
@@ -42,6 +50,18 @@ var Database = Class.create({
 	    });
 	    this.socket.on('tables_result', function(result){
 	      that.fireTablesAvailableEvent(result);
+	    });
+	    this.socket.on('indexes_result', function(result){
+	      that.fireIndexesAvailableEvent(result);
+	    });
+	    this.socket.on('roles_result', function(result){
+	      that.fireRolesAvailableEvent(result);
+	    });
+	    this.socket.on('privileges_result', function(result){
+	      that.firePrivilegesAvailableEvent(result);
+	    });
+	    this.socket.on('tablespaces_list_result', function(result){
+	      that.fireTablespaceListAvailableEvent(result);
 	    });
 	},
 	addSchemaListAvailableEventListener: function(listener) {
@@ -156,6 +176,70 @@ var Database = Class.create({
 			listener(result);
 		});
 	},
+	addIndexesAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.indexesAvailableEventListeners.push(listener);
+		}
+	},
+	removeIndexesAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.indexesAvailableEventListeners.indexOf(listener);
+			this.indexesAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireIndexesAvailableEvent: function(result) {
+		this.indexesAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addRolesAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.rolesAvailableEventListeners.push(listener);
+		}
+	},
+	removeRolesAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.rolesAvailableEventListeners.indexOf(listener);
+			this.rolesAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireRolesAvailableEvent: function(result) {
+		this.rolesAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addPrivilegesAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.privilegesAvailableEventListeners.push(listener);
+		}
+	},
+	removePrivilegesAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.privilegesAvailableEventListeners.indexOf(listener);
+			this.privilegesAvailableEventListeners.splice(index, 1);
+		}
+	},
+	firePrivilegesAvailableEvent: function(result) {
+		this.privilegesAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addTablespaceListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.tablespaceListAvailableEventListeners.push(listener);
+		}
+	},
+	removeTablespaceListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.tablespaceListAvailableEventListeners.indexOf(listener);
+			this.tablespaceListAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireTablespaceListAvailableEvent: function(result) {
+		this.tablespaceListAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
 	getSchemaList: function() {
 	    this.socket.emit('get_schemas_list');
 	},
@@ -181,6 +265,20 @@ var Database = Class.create({
 	},
 	getTables: function(schemaName) {
 		this.socket.emit('get_tables', schemaName);
+	},
+	getIndexes: function(schemaName, tableName) {
+		var props = {schemaName: schemaName, tableName: tableName};
+		this.socket.emit('get_indexes', props);
+	},
+	getRoles: function() {
+	    this.socket.emit('get_roles');
+	},
+	getPrivileges: function(schemaName, tableName, grantee) {
+		var props = {schemaName: schemaName, tableName: tableName, grantee: grantee};
+		this.socket.emit('get_privileges', props);
+	},
+	getTablespaceList: function() {
+	    this.socket.emit('get_tablespaces_list');
 	},
 	destroy: function() {
 		this.socket.disconnect();

@@ -23,10 +23,50 @@
 
             $j('#move-tablespace-table-owner').val(schemaName);
             $j('#move-tablespace-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+
+            db.addTablespaceListAvailableEventListener(onTablespaceListAvailable);
+            db.getTablespaceList();
+
+            function onTablespaceListAvailable(result) {
+                result.forEach(function(tablespace) {
+                    $j('#move-tablespace-name').append('<option>' + tablespace + '</option>');
+                });
+            }
+
+            function applyAndClose() {
+                var tablespace = $j('#move-tablespace-name').val();
+
+                var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' MOVE TABLESPACE ' + tablespace + ';';
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Moving tablespace...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Table moved to selected tablespace successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        db.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while moving tablespace: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
-        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
+        <button class="w2ui-btn" onclick="db.destroy(); w2popup.close()">Close</button>
     </div>
 </div>

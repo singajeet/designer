@@ -61,10 +61,169 @@
 
             $j('#privileges-grant-table-owner').val(schemaName);
             $j('#privileges-grant-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+
+            db.addRolesAvailableEventListener(onRolesListAvailable);
+            db.addPrivilegesAvailableEventListener(onPrivilegesListAvailable);
+            db.getRoles();
+
+            $j('#privileges-grant-users-roles').on('change', function() {
+                var grantee = this.value;
+                db.getPrivileges(schemaName, tableName, grantee);
+            });
+
+            $j('#privileges-grant-grant-all').on('change', function() {
+                if(this.checked) {
+                    $j('#privileges-grant-available-grants').prop('disabled', true);
+                    $j('#right-button').prop('disabled', true);
+                    $j('#right-all-button').prop('disabled', true);
+                    $j('#left-button').prop('disabled', true);
+                    $j('#left-all-button').prop('disabled', true);
+                    $j('#privileges-grant-selected-grants').prop('disabled', true);
+                } else {
+                    $j('#privileges-grant-available-grants').prop('disabled', false);
+                    $j('#right-button').prop('disabled', false);
+                    $j('#right-all-button').prop('disabled', false);
+                    $j('#left-button').prop('disabled', false);
+                    $j('#left-all-button').prop('disabled', false);
+                    $j('#privileges-grant-selected-grants').prop('disabled', false);
+                }
+            });
+
+            $j('#right-button').on('click', function() {
+                var selectedItem = $j('#privileges-grant-available-grants').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#privileges-grant-selected-grants').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#right-all-button').on('click', function() {
+                $j('#privileges-grant-available-grants').children().each(function() {
+                    var html = $j(this)[0].outerHTML;
+                    $j('#privileges-grant-selected-grants').append(html);
+                    $j(this).remove();
+                });
+            });
+
+            $j('#left-button').on('click', function() {
+                var selectedItem = $j('#privileges-grant-selected-grants').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#privileges-grant-available-grants').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#left-all-button').on('click', function() {
+                $j('#privileges-grant-selected-grants').children().each(function() {
+                    var html = $j(this)[0].outerHTML;
+                    $j('#privileges-grant-available-grants').append(html);
+                    $j(this).remove();
+                });
+            });
+
+            function onPrivilegesListAvailable(result) {
+                $j('#privileges-grant-selected-grants').empty();
+                result.forEach(function(privilege) {
+                    $j('#privileges-grant-selected-grants').append('<option>' + privilege + '</option>');
+                });
+                var privileges = [
+                    'ALTER',
+                    'DELETE',
+                    'INDEX',
+                    'INSERT',
+                    'UPDATE',
+                    'SELECT',
+                    'REFERENCES',
+                    'ON COMMIT REFRESH',
+                    'QUERY REWRITE',
+                    'DEBUG',
+                    'FLASHBACK'
+                ];
+
+                $j('#privileges-grant-available-grants').empty();
+                privileges.forEach(function(privilege) {
+                    var index = result.indexOf(privilege);
+                    if(index < 0) {
+                        $j('#privileges-grant-available-grants').append('<option>' + privilege + '</option>');
+                    }
+                });
+            }
+
+            function onRolesListAvailable(result) {
+                result.forEach(function(index) {
+                    $j('#privileges-grant-users-roles').append('<option>' + index + '</option>');
+                });
+                $j('#privileges-grant-users-roles').trigger('change');
+            }
+
+            function getSelectedPrivileges() {
+                var privileges = '';
+                $j('#privileges-grant-selected-grants').children().each(function() {
+                    var value = $j(this)[0].value;
+                    if(privileges === '') {
+                        privileges += value;
+                    } else {
+                        privileges += ', ' + value;
+                    }
+                });
+
+                return privileges;
+            }
+            
+            function applyAndClose() {
+                var role = $j('#privileges-grant-users-roles').val();
+                var withGrant = $j('#privileges-grant-with-grant').prop('checked');
+                var grantAll = $j('#privileges-grant-grant-all').prop('checked');
+                var withGrantStatement = '';
+
+                if(withGrant) {
+                    withGrantStatement = ' WITH GRANT OPTION';
+                }
+                
+                var sql = '';
+                if(grantAll) {
+                    sql = 'GRANT ALL ON ' + schemaName + '.' + tableName + ' TO ' + role + withGrantStatement + ';';
+                } else {
+                    var privileges = getSelectedPrivileges();
+                    if(privileges !== '') {
+                        sql = 'GRANT ' + privileges + ' ON ' + schemaName + '.' + tableName + ' TO ' + role + withGrantStatement + ';';
+                    }
+                }
+
+                if(sql !== '') {
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Granting privileges...', true);
+                    dbSQL.execute_sql(sql);
+                } else {
+                    w2alert('Please select at least one privilege to be granted');
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Privileges granted successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        db.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while granting privileges: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
-        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
+        <button class="w2ui-btn" onclick="db.destroy(); w2popup.close()">Close</button>
     </div>
 </div>

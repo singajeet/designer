@@ -14,8 +14,8 @@
         <div style="line-height: 30px;">
             <label for="row-movement-table-status">Status:</label>
             <select id="row-movement-table-status" style="margin-left: 7px; width: 250px;">
-                <option>ENABLED</option>
-                <option>DISABLED</option>
+                <option>ENABLE</option>
+                <option>DISABLE</option>
             </select>
         </div>
     	<script type="text/javascript">
@@ -26,10 +26,39 @@
 
             $j('#row-movement-table-owner').val(schemaName);
             $j('#row-movement-table-name').val(tableName);
+
+            var dbSQL = null;
+
+            function applyAndClose() {
+                var status = $j('#row-movement-table-status').val();
+
+                var sql = 'ALTER TABLE ' + schemaName + '.' + tableName + ' ' + status + ' ROW MOVEMENT;';
+                dbSQL = new DatabaseSQL();
+                dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                dbSQL.addSQLErrorEventListener(onSQLError);
+
+                w2popup.lock('Changing row movement...', true);
+                dbSQL.execute_sql(sql);
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Row movement option changed successful!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while changing row movement: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
         <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
     </div>
 </div>
