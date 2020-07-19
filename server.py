@@ -19,6 +19,16 @@ def edit_table():
 	return render_template('dialogs/table/edit_table.html')
 
 
+@app.route('/new-table')
+def new_table():
+    return render_template('dialogs/table/new-table.html')
+
+
+@app.route('/new-trigger')
+def new_trigger():
+    return render_template('dialogs/trigger/new-trigger.html')
+
+
 @app.route('/warehouse-config-wizard')
 def warehouse_config_wizard():
     return render_template('dialogs/warehouse-config-wizard.html')

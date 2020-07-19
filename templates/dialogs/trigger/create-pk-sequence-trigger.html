@@ -37,10 +37,77 @@
 
             $j('#trigger-create-pk-sequence-table-owner').val(schemaName);
             $j('#trigger-create-pk-sequence-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+
+            db.addColumnsAvailableEventListener(onColumnsAvailable);
+            db.addSequencesAvailableEventListener(onSequencesAvailable);
+            db.getColumns(schemaName, tableName);
+            db.getSequences(schemaName);
+
+            function onColumnsAvailable(result) {
+                result.forEach(function(column) {
+                    $j('#trigger-create-pk-column-name').append('<option>' + column + '</option>');
+                });
+            }
+
+            function onSequencesAvailable(result) {
+                result.forEach(function(sequence) {
+                    $j('#trigger-create-pk-sequence-name').append('<option>' + sequence + '</option>');
+                });
+            }
+
+            function applyAndClose() {
+                var triggerName = $j('#trigger-create-pk-sequence-trigger-name').val();
+                var sequenceName = $j('#trigger-create-pk-sequence-name').val();
+                var columnName = $j('#trigger-create-pk-column-name').val();
+
+                if(triggerName === null || triggerName === undefined || triggerName === '') {
+                    w2alert('Trigger Name field cannot be empty!');
+                } else {
+                    var sql = `
+                        begin
+                         execute immediate 'create or replace trigger ` + triggerName + `  '||chr(10)||
+                            '   before insert on ` + schemaName + `.` + tableName + ` '||chr(10)||
+                            '   for each row '||chr(10)||
+                            '   begin  '||chr(10)||
+                            '   if inserting then '||chr(10)||
+                            '      if :NEW.` + columnName + ` is null then '||chr(10)||
+                            '         select ` + sequenceName + `.nextval into :NEW.` + columnName + ` from dual; '||chr(10)||
+                            '      end if; '||chr(10)||
+                            '   end if; '||chr(10)||
+                            'end;'||chr(10);
+                        end;
+                    `;
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Creating PK Sequence trigger...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Trigger created successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        db.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while creating trigger: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
-        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
+        <button class="w2ui-btn" onclick="db.destroy(); w2popup.close()">Close</button>
     </div>
 </div>

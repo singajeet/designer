@@ -2378,6 +2378,8 @@ var PLSQLTabUI = Class.create({
   profilesReloadButtonClickedEventListeners: [],
   grantsReloadButtonClickedEventListeners: [],
   referencesReloadButtonClickedEventListeners: [],
+  compileButtonClickedEventListeners: [],
+  isEditorReadOnly: false,
   initialize: function(id, label) {
     this.id = id;
     this.label = label;
@@ -2395,6 +2397,8 @@ var PLSQLTabUI = Class.create({
     this.profilesReloadButtonClickedEventListeners = [];
     this.grantsReloadButtonClickedEventListeners = [];
     this.referencesReloadButtonClickedEventListeners = [];
+    this.compileButtonClickedEventListeners = [];
+    this.isEditorReadOnly = false;
   },
   getId: function() {
     return this.id;
@@ -2437,18 +2441,29 @@ var PLSQLTabUI = Class.create({
                                             items: [
                                               { type: 'button', id: this.id + '-plsql-sql-editor-toolbar-refresh-sql-btn',
                                                 caption: 'Refresh', icon: 'refresh_icon', hint: 'Refresh SQL'},
+                                              { type: 'break'},
+                                              { type: 'check', id: this.id + '-plsql-sql-editor-toolbar-toggle-edit-sql-btn',
+                                                icon: 'toggle_edit_icon', hint: 'Toggle Edit Mode'},
+                                              { type: 'break'},
+                                              { type: 'button', id: this.id + '-plsql-sql-editor-toolbar-compile-sql-btn',
+                                                icon: 'compile_icon', hint: 'Compile'},
                                               ],
                                             onClick: function(event) {
                                               var target = event.target;
                                               if(target === that.id + '-plsql-sql-editor-toolbar-refresh-sql-btn') {
                                                 that.fireSQLReloadButtonClickedEvent();
+                                              } else if(target === that.id + '-plsql-sql-editor-toolbar-compile-sql-btn') {
+                                                that.fireCompileButtonClickedEvent();
+                                              } else if(target === that.id + '-plsql-sql-editor-toolbar-toggle-edit-sql-btn') {
+                                                that.isEditorReadOnly = !that.isEditorReadOnly;
+                                                that.sqlEditor.setReadOnly(that.isEditorReadOnly);
                                               }
                                             }
                                           });
       this.sqlEditor = ace.edit(this.id + '-plsql-sql-editor');
       this.sqlEditor.setTheme('ace/theme/sqlserver');
       this.sqlEditor.session.setMode('ace/mode/sqlserver');
-      this.sqlEditor.setReadOnly(true);
+      //this.sqlEditor.setReadOnly(true);
     }
   },
   isSQLEditorCreated: function() {
@@ -2758,6 +2773,25 @@ var PLSQLTabUI = Class.create({
   fireReferencesReloadButtonClickedEvent: function() {
     var that = this;
     this.referencesReloadButtonClickedEventListeners.forEach(function(listener){
+      listener(that);
+    });
+  },
+  addCompileButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      this.compileButtonClickedEventListeners.push(listener);
+    }
+  },
+  removeCompileButtonClickedEventListener: function(listener) {
+    if(listener !== null && listener !== undefined) {
+      var index = this.compileButtonClickedEventListeners.indexOf(listener);
+      if(index !== -1) {
+        this.compileButtonClickedEventListeners.split(index, 1);
+      }
+    }
+  },
+  fireCompileButtonClickedEvent: function() {
+    var that = this;
+    this.compileButtonClickedEventListeners.forEach(function(listener){
       listener(that);
     });
   }

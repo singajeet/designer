@@ -24,10 +24,54 @@
 
             $j('#trigger-drop-table-owner').val(schemaName);
             $j('#trigger-drop-table-name').val(tableName);
+
+            var dbSQL = null;
+            var db = new Database();
+
+            db.addTableTriggersListAvailableEventListener(onTriggersAvailable);
+            db.getTableTriggersList(schemaName, tableName);
+
+            function onTriggersAvailable(result) {
+                result.forEach(function(trigger) {
+                    $j('#trigger-drop-trigger-name').append('<option>' + trigger + '</option>');
+                });
+            }
+
+            function applyAndClose() {
+                var triggerName = $j('#trigger-drop-trigger-name').val();
+
+                if(triggerName === null || triggerName === undefined || triggerName === '') {
+                    w2alert('Please select trigger to be dropped!');
+                } else {
+                    var sql = 'DROP TRIGGER ' + schemaName + '.' + triggerName + ';';
+                    dbSQL = new DatabaseSQL();
+                    dbSQL.addSQLSuccessEventListener(onSQLSuccess);
+                    dbSQL.addSQLErrorEventListener(onSQLError);
+
+                    w2popup.lock('Dropping trigger...', true);
+                    dbSQL.execute_sql(sql);
+                }
+            }
+
+            function onSQLSuccess() {
+                w2popup.unlock();
+                w2alert('Trigger dropped successfully!')
+                    .done(function() {
+                        dbSQL.destroy();
+                        db.destroy();
+                        w2popup.close();
+                    });
+            }
+
+            function onSQLError(result) {
+                w2popup.unlock();
+                w2alert('Error while dropping trigger: ' + result);
+                dbSQL.destroy();
+            }
     	</script>
     </div>
     <div rel="buttons">
-        <button class="w2ui-btn" onclick="w2popup.close()">Apply</button>
-        <button class="w2ui-btn" onclick="w2popup.close()">Close</button>
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
+        <button class="w2ui-btn" onclick="db.destroy(); w2popup.close()">Close</button>
     </div>
 </div>

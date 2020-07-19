@@ -18,11 +18,14 @@
     <script src="/static/js/lib/socket.io.slim.js"></script>
     <script src="/static/js/ace/src-min/ace.js"></script>
     <script src="/static/js/ace/src-min/ext-language_tools.js"></script>
+    <script src="/static/js/ace/src-min/ext-settings_menu.js"></script>
+    <script src="/static/js/ace/src-min/ext-keybinding_menu.js"></script>
     <script src="/static/js/themes.js" ></script>
     <script src="/static/js/utils.js" ></script>
     <script src="/static/js/dimensions.js" ></script>
     <script src="/static/js/constants.js" ></script>
     <script src="/static/js/dialogs/edit_table.js" ></script>
+    <script src="/static/js/dialogs/new-table.js" ></script>
     <script src="/static/js/ui/designer.js" ></script>
     <script src="/static/js/nodes/flowchart-nodes.js" ></script>
     <script src="/static/js/nodes/db-nodes.js" ></script>
@@ -32,6 +35,7 @@
     <script src="/static/js/ws/db-ws.js" ></script>
     <script src="/static/js/ui/main-tabs.js" ></script>
     <script src="/static/js/ui/list-view.js" ></script>
+    <script src="/static/js/ui/worksheet-tab.js" ></script>
   	<script>
   		var $j = jQuery.noConflict();
   	</script>
@@ -81,6 +85,7 @@
           var dblinks = {};
           var directories = {};
           var queues = {};
+          var db = {};
 
           var projectNavigator = new ProjectNavigator('projectNavigator', initializeParentCallback, itemAddedCallback, itemRemovedCallback, itemSelectedCallback, initializeContextMenuCallback, contextMenuItemSelectedCallback,
             contextMenuCallback);
@@ -255,6 +260,9 @@
             delete dblinks[tabId];
             delete directories[tabId];
             delete queues[tabId];
+
+            db[tabId].destroy();
+            delete db[tabId];
           }
 
           function createConnection(navigationTree, project) {
@@ -368,6 +376,16 @@
                 openedQueues.push(id + '-queue-tab');
               }
             }
+          }
+
+          function createWorksheetTab(id, label) {
+            var tabId = id + '-worksheet-tab';
+            tabs[tabId] = new WorksheetTabUI(id, label);
+            var content = tabs[tabId].getTabContent();
+            a.addTab(tabId, label, content, 'run_icon');
+            tabs[tabId].initTab();
+
+            tabs[tabId].createSQLEditor();
           }
 
           function createQueueTab(id, label) {
@@ -623,22 +641,31 @@
             }
           }
 
-          function createPLSQLTab(id, label, nodeType) {
+          function createPLSQLTab(id, label, nodeType, mode) {
             var tabId = id + '-plsql-tab';
-            if(nodeType === DatabaseNavNodeType.PACKAGE_BODY || nodeType === DatabaseNavNodeType.TYPE_BODY) {
-              plsqls[tabId] = new DatabasePLSQL(label.replace(' Body', ''), tabId, nodeType);
-            } else {
-              plsqls[tabId] = new DatabasePLSQL(label, tabId, nodeType);
+
+            if(mode !== 'NEW') {
+              if(nodeType === DatabaseNavNodeType.PACKAGE_BODY || nodeType === DatabaseNavNodeType.TYPE_BODY) {
+                plsqls[tabId] = new DatabasePLSQL(label.replace(' Body', ''), tabId, nodeType);
+              } else {
+                plsqls[tabId] = new DatabasePLSQL(label, tabId, nodeType);
+              }
             }
             
             tabs[tabId] = new PLSQLTabUI(id, label);
 
-            plsqls[tabId].addSQLAvailableEventListener(onSQLAvailable);
-            plsqls[tabId].addErrorsAvailableEventListener(onErrorsAvailable);
-            plsqls[tabId].addDependenciesAvailableEventListener(onDependenciesAvailable);
-            // plsqls[tabId].addProfilesAvailableEventListener(onProfilesAvailable);
-            plsqls[tabId].addGrantsAvailableEventListener(onGrantsAvailable);
-            plsqls[tabId].addReferencesAvailableEventListener(onReferencesAvailable);
+            if(mode !== 'NEW') {
+              plsqls[tabId].addSQLAvailableEventListener(onSQLAvailable);
+              plsqls[tabId].addErrorsAvailableEventListener(onErrorsAvailable);
+              plsqls[tabId].addDependenciesAvailableEventListener(onDependenciesAvailable);
+              // plsqls[tabId].addProfilesAvailableEventListener(onProfilesAvailable);
+              plsqls[tabId].addGrantsAvailableEventListener(onGrantsAvailable);
+              plsqls[tabId].addReferencesAvailableEventListener(onReferencesAvailable);
+            }
+
+            db[tabId] = new DatabaseSQL();
+            db[tabId].addSQLSuccessEventListener(onSQLSuccess);
+            db[tabId].addSQLErrorEventListener(onSQLError);
 
             var content = tabs[tabId].getTabContent();
             var icon = "";
@@ -668,52 +695,79 @@
               if(name === 'errors') {
                 if(!tabs[tabId].isErrorsGridCreated()) {
                   tabs[tabId].createErrorsGrid();
-                  plsqls[tabId].getErrors();
+                  if(mode !== 'NEW') {
+                    plsqls[tabId].getErrors();
+                  }
                 }
               } else if(name === 'dependencies') {
                 if(!tabs[tabId].isDependenciesGridCreated()) {
                   tabs[tabId].createDependenciesGrid();
-                  plsqls[tabId].getDependencies();
+                  if(mode !== 'NEW') {
+                    plsqls[tabId].getDependencies();
+                  }
                 }
               } else if(name === 'profiles') {
                 if(!tabs[tabId].isProfilesGridCreated()) {
                   tabs[tabId].createProfilesGrid();
-                  // plsqls[tabId].getProfiles();
+                  if(mode !== 'NEW') {
+                    // plsqls[tabId].getProfiles();
+                  }
                 }
               } else if(name === 'grants') {
                 if(!tabs[tabId].isGrantsGridCreated()) {
                   tabs[tabId].createGrantsGrid();
-                  plsqls[tabId].getGrants();
+                  if(mode !== 'NEW') {  
+                    plsqls[tabId].getGrants();
+                  }
                 }
               } else if(name === 'references') {
                 if(!tabs[tabId].isReferencesGridCreated()) {
                   tabs[tabId].createReferencesGrid();
-                  plsqls[tabId].getReferences();
+                  if(mode !== 'NEW') {  
+                    plsqls[tabId].getReferences();
+                  }
                 }
               }
             });
 
             tabs[tabId].addSQLReloadButtonClickedEventListener(function(tab){
-              plsqls[tabId].getSQL();
+              if(mode !== 'NEW') {
+                plsqls[tabId].getSQL();
+              }
             });
 
             tabs[tabId].addErrorsReloadButtonClickedEventListener(function(tab){
-              plsqls[tabId].getErrors();
+              if(mode !== 'NEW') {
+                plsqls[tabId].getErrors();
+              }
             });
 
             tabs[tabId].addDependenciesReloadButtonClickedEventListener(function(tab){
-              plsqls[tabId].getDependencies();
+              if(mode !== 'NEW') {
+                plsqls[tabId].getDependencies();
+              }
             });
 
             tabs[tabId].addGrantsReloadButtonClickedEventListener(function(tab){
-              plsqls[tabId].getGrants();
+              if(mode !== 'NEW') {
+                plsqls[tabId].getGrants();
+              }
             });
 
             tabs[tabId].addReferencesReloadButtonClickedEventListener(function(tab){
-              plsqls[tabId].getReferences();
+              if(mode !== 'NEW') {
+                plsqls[tabId].getReferences();
+              }
             });
 
-            plsqls[tabId].getSQL();
+            tabs[tabId].addCompileButtonClickedEventListener(function(tab) {
+              var sql = tabs[tabId].getSQLEditor().getValue();
+              db[tabId].execute_sql(sql);
+            });
+
+            if(mode !== 'NEW') {
+              plsqls[tabId].getSQL();
+            }
 
             function onSQLAvailable(result, tabId){
               tabs[tabId].getSQLEditor().setValue(result);
@@ -737,6 +791,14 @@
             function onReferencesAvailable(result, tabId){
               tabs[tabId].getReferencesGrid().records = result;
               tabs[tabId].getReferencesGrid().refresh();
+            }
+
+            function onSQLSuccess(result) {
+              w2alert('Object compiled successfully!');
+            }
+
+            function onSQLError(result) {
+              w2alert('Error while compiling object: ' + result);
             }
           }
 
@@ -1361,9 +1423,27 @@
                 { id: 'sep-4', text: '--'},
                 { id: 'quick-ddl', text: 'Quick DDL...'},
               ]
+            } else if(event.object.nodeType === DatabaseNavNodeType.TRIGGERS_FOLDER) {
+              navigationTree.menu = [
+                { id: 'new-trigger', text: 'New Trigger...', icon: 'trigger_icon'},
+                { id: 'sep-1', text: '--'},
+                { id: 'refresh-triggers', text: 'Refresh', icon: 'refresh_icon'},
+                { id: 'sep-2', text: '--'},
+                { id: 'compile-invalid-triggers', text: 'Compile Invalid...'},
+                { id: 'compile-all-triggers', text: 'Compile All...'}
+              ];
             } else if(event.object.nodeType === NavNodeType.BI_FOLDER) {
               navigationTree.menu = [
                 { id: 'configure-warehouse', text: 'Warehouse Configuration Wizard...', icon: 'database_connection_icon'}
+              ];
+            } else if(event.object.nodeType === DatabaseNavNodeType.TABLES_FOLDER) {
+              navigationTree.menu = [
+                { id: 'new-table', text: 'New Table...', icon: 'table_icon'},
+                { id: 'open-tables', text: 'Open', icon: 'open_icon'},
+                { id: 'sep-1', text: '--'},
+                { id: 'tables-import-data', text: 'Import Data...'},
+                { id: 'sep-2', text: '--'},
+                { id: 'refresh-tables', text: 'Refresh', icon: 'refresh_icon'},
               ];
             } else {
               navigationTree.menu = [
@@ -1428,24 +1508,25 @@
                 schema.addPublicDatabaseLinksAvailableEventListener(onPublicDatabaseLinksAvailable);
                 schema.addDirectoriesAvailableEventListener(onDirectoriesAvailable);
                 navigationTree.insert(connectionId, null, [
-                                            {id: connectionId + '-tables', text: 'Tables', icon: 'tables_folder_icon', nodeType: DatabaseNavNodeType.TABLES_FOLDER},
-                                            {id: connectionId + '-views', text: 'Views', icon: 'views_folder_icon', nodeType: DatabaseNavNodeType.VIEWS_FOLDER},
-                                            {id: connectionId + '-indexes', text: 'Indexes', icon: 'indexes_folder_icon', nodeType: DatabaseNavNodeType.INDEXES_FOLDER},
-                                            {id: connectionId + '-mviews', text: 'Materialized Views', icon: 'mview_folder_icon', nodeType: DatabaseNavNodeType.MVIEWS_FOLDER},
-                                            {id: connectionId + '-procedures', text: 'Procedures', icon: 'procedure_folder_icon', nodeType: DatabaseNavNodeType.PROCEDURES_FOLDER},
-                                            {id: connectionId + '-functions', text: 'Functions', icon: 'function_folder_icon', nodeType: DatabaseNavNodeType.FUNCTIONS_FOLDER},
-                                            {id: connectionId + '-packages', text: 'Packages', icon: 'package_folder_icon', nodeType: DatabaseNavNodeType.PACKAGES_FOLDER},
-                                            {id: connectionId + '-sequences', text: 'Sequences', icon: 'sequence_folder_icon', nodeType: DatabaseNavNodeType.SEQUENCES_FOLDER},
-                                            {id: connectionId + '-synonyms', text: 'Synonyms', icon: 'synonym_folder_icon', nodeType: DatabaseNavNodeType.SYNONYMS_FOLDER},
-                                            // {id: connectionId + '-public-synonyms', text: 'Public Synonyms', icon: 'public_synonym_folder_icon', nodeType: DatabaseNavNodeType.PUBLIC_SYNONYMS_FOLDER},
-                                            {id: connectionId + '-triggers', text: 'Triggers', icon: 'trigger_folder_icon', nodeType: DatabaseNavNodeType.TRIGGERS_FOLDER},
-                                            {id: connectionId + '-types', text: 'Types', icon: 'type_folder_icon', nodeType: DatabaseNavNodeType.TYPES_FOLDER},
-                                            {id: connectionId + '-queues', text: 'Queues', icon: 'queue_folder_icon', nodeType: DatabaseNavNodeType.QUEUES_FOLDER},
-                                            {id: connectionId + '-database-links', text: 'Database Links', icon: 'dblink_folder_icon', nodeType: DatabaseNavNodeType.DBLINKS_FOLDER},
-                                            {id: connectionId + '-public-database-links', text: 'Public Database Links', icon: 'public_dblink_folder_icon', nodeType: DatabaseNavNodeType.PUBLIC_DBLINKS_FOLDER},
-                                            {id: connectionId + '-directories', text: 'Directories', icon: 'directory_folder_icon', nodeType: DatabaseNavNodeType.DIRECTORIES_FOLDER}
+                                            {id: connectionId + '-tables', text: 'Tables', icon: 'tables_folder_icon', nodeType: DatabaseNavNodeType.TABLES_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-views', text: 'Views', icon: 'views_folder_icon', nodeType: DatabaseNavNodeType.VIEWS_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-indexes', text: 'Indexes', icon: 'indexes_folder_icon', nodeType: DatabaseNavNodeType.INDEXES_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-mviews', text: 'Materialized Views', icon: 'mview_folder_icon', nodeType: DatabaseNavNodeType.MVIEWS_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-procedures', text: 'Procedures', icon: 'procedure_folder_icon', nodeType: DatabaseNavNodeType.PROCEDURES_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-functions', text: 'Functions', icon: 'function_folder_icon', nodeType: DatabaseNavNodeType.FUNCTIONS_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-packages', text: 'Packages', icon: 'package_folder_icon', nodeType: DatabaseNavNodeType.PACKAGES_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-sequences', text: 'Sequences', icon: 'sequence_folder_icon', nodeType: DatabaseNavNodeType.SEQUENCES_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-synonyms', text: 'Synonyms', icon: 'synonym_folder_icon', nodeType: DatabaseNavNodeType.SYNONYMS_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            // {id: connectionId + '-public-synonyms', text: 'Public Synonyms', icon: 'public_synonym_folder_icon', nodeType: DatabaseNavNodeType.PUBLIC_SYNONYMS_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-triggers', text: 'Triggers', icon: 'trigger_folder_icon', nodeType: DatabaseNavNodeType.TRIGGERS_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-types', text: 'Types', icon: 'type_folder_icon', nodeType: DatabaseNavNodeType.TYPES_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-queues', text: 'Queues', icon: 'queue_folder_icon', nodeType: DatabaseNavNodeType.QUEUES_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-database-links', text: 'Database Links', icon: 'dblink_folder_icon', nodeType: DatabaseNavNodeType.DBLINKS_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-public-database-links', text: 'Public Database Links', icon: 'public_dblink_folder_icon', nodeType: DatabaseNavNodeType.PUBLIC_DBLINKS_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()},
+                                            {id: connectionId + '-directories', text: 'Directories', icon: 'directory_folder_icon', nodeType: DatabaseNavNodeType.DIRECTORIES_FOLDER, schemaName: dbConnection.getUsername().toUpperCase()}
                                           ]);
                 schema.populateSchemaObjects();
+                createWorksheetTab(dbConnection.getUsername(), dbConnection.getUsername().toUpperCase());
               }
 
               function onTablesAvailable(tables) {
@@ -1752,6 +1833,37 @@
                               //schema.populateSchemaObjects();
                             }
                           });
+            } else if(event.menuItem.id === 'new-table') {
+              var tableId = event.target;
+              var tableItem = navigationTree.get(tableId);
+              var schemaName = tableItem.schemaName;
+              var tableName = 'TABLE1';
+              
+              window.history.pushState(null, null, '?name=' + tableName + '&schemaName=' + schemaName);
+              w2popup.load({ url: '/new-table', showMax: true, modal: true, showClose: false });
+            } else if(event.menuItem.id === 'new-trigger') {
+              var triggerId = event.target;
+              var triggerItem = navigationTree.get(triggerId);
+              var schemaName = triggerItem.schemaName;
+              var triggerName = 'TRIGGER1';
+              
+              window.history.pushState(null, null, '?name=' + triggerName + '&schemaName=' + schemaName);
+              w2popup.load({
+                url: '/new-trigger',
+                showMax: true,
+                modal: true,
+                showClose: false,
+                onClose: function(event) {
+                  if(event.options.retValue === 'OK') {
+                    var sql = event.options.triggerSQL;
+                    triggerName = event.options.triggerName;
+                    createPLSQLTab(triggerId + '-' + triggerName, triggerName, DatabaseNavNodeType.TRIGGER, 'NEW');
+                    var tabId = triggerId + '-' + triggerName + '-plsql-tab';
+                    tabs[tabId].getSQLEditor().setValue(sql);
+                  }
+                }
+              });
+
             }
           }
 

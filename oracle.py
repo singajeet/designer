@@ -10,6 +10,7 @@ import logging
 import json
 from flask_socketio import emit, Namespace
 import cx_Oracle
+import random
 
 
 class DatabaseConnectionServer(Namespace):
@@ -3344,8 +3345,10 @@ class DatabaseSQLServer(Namespace):
         """For internal use only: will be called when 'execute_sql' event will be emitted
         """
         db_conn = self._db_connection.get_connection()
+        db_conn.autocommit = False
         cursor = db_conn.cursor()
-        sql = sql.rstrip(';')
+        if sql.upper().startswith('SELECT'):
+            sql = sql.rstrip(';')
         try:
             cursor.execute(sql)
             emit('execute_sql_success', 'ok', namespace=self._namespace_url)
@@ -3376,6 +3379,18 @@ class DatabaseSQLServer(Namespace):
             emit('execute_select_error', str(err), namespace=self._namespace_url)
             print('Error while executing SQL: ' + sql)
             print(err)
+
+    def on_commit(self):
+        """For internal use only: will be called when 'commit' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        db_conn.commit()
+
+    def on_rollback(self):
+        """For internal use only: will be called when 'rollback' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        db_conn.rollback()
 
 
 class DatabaseServer(Namespace):
@@ -3638,3 +3653,156 @@ class DatabaseServer(Namespace):
         for result in cursor:
             result_array.append(result[0])
         emit('tablespaces_list_result', result_array, namespace=self._namespace_url)
+
+    def on_get_sequences(self, schema_name):
+        """For internal use only: will be called when 'get_sequences' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    sequence_name
+                FROM
+                    sys.all_sequences
+                WHERE
+                    sequence_owner = '%s'
+                """ % schema_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('sequences_result', result_array, namespace=self._namespace_url)
+
+    def on_get_enabled_table_triggers(self, props):
+        """For internal use only: will be called when 'get_enabled_table_triggers' event will be emitted
+        """
+        schema_name = props['schemaName']
+        table_name = props['tableName']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT DISTINCT
+                    trigger_name
+                FROM
+                    sys.all_triggers
+                WHERE
+                    table_owner = '%s'
+                    AND table_name = '%s'
+                    AND status = 'ENABLED'
+                """ % (schema_name, table_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('enabled_table_triggers_result', result_array, namespace=self._namespace_url)
+
+    def on_get_disabled_table_triggers(self, props):
+        """For internal use only: will be called when 'get_disabled_table_triggers' event will be emitted
+        """
+        schema_name = props['schemaName']
+        table_name = props['tableName']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT DISTINCT
+                    trigger_name
+                FROM
+                    sys.all_triggers
+                WHERE
+                    table_owner = '%s'
+                    AND table_name = '%s'
+                    AND status = 'DISABLED'
+                """ % (schema_name, table_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('disabled_table_triggers_result', result_array, namespace=self._namespace_url)
+
+    def on_get_table_triggers(self, props):
+        """For internal use only: will be called when 'get_disabled_table_triggers' event will be emitted
+        """
+        schema_name = props['schemaName']
+        table_name = props['tableName']
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT DISTINCT
+                    trigger_name
+                FROM
+                    sys.all_triggers
+                WHERE
+                    table_owner = '%s'
+                    AND table_name = '%s'
+                """ % (schema_name, table_name)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('table_triggers_result', result_array, namespace=self._namespace_url)
+
+    def on_get_explain_plan(self, sql):
+        """For internal use only: will be called when 'get_explain_plan' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        random_number = random.randint(10000000, 999999999)
+        sql = sql.rstrip(';')
+        query = """
+                EXPLAIN PLAN SET STATEMENT_ID = '%d' FOR %s
+                """ % (random_number, sql)
+        cursor.execute(query)
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    ROWNUM, 
+                    p.operation,
+                    p.options,
+                    p.object_name,
+                    p.object_type,
+                    p.id,
+                    p.parent_id,
+                    p.cost,
+                    p.cardinality,
+                    CAST(p.other_xml AS VARCHAR2(4000)),
+                    p.access_predicates
+                FROM plan_table p
+                WHERE p.statement_id = %d
+                AND p.plan_id = (SELECT max(plan_id) FROM plan_table WHERE statement_id=%d)
+                ORDER BY p.id
+                """ % (random_number, random_number)
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append({'recid': result[0],
+                                 'operation': result[1],
+                                 'options': result[2],
+                                 'objectName': result[3],
+                                 'objectType': result[4],
+                                 'id': result[5],
+                                 'parentId': result[6],
+                                 'cost': result[7],
+                                 'cardinality': result[8],
+                                 'otherXml': result[9],
+                                 'accessPredicates': result[10]
+                                 })
+        emit('explain_plan_result', result_array, namespace=self._namespace_url)
+
+    def on_get_views(self, schema_name):
+        """For internal use only: will be called when 'get_views' event will be emitted
+        """
+        db_conn = self._db_connection.get_connection()
+        cursor = db_conn.cursor()
+        query = """
+                SELECT
+                    view_name
+                FROM
+                    sys.all_views
+                WHERE
+                    owner='%s'
+                """ % schema_name
+        cursor.execute(query)
+        result_array = []
+        for result in cursor:
+            result_array.append(result[0])
+        emit('views_result', result_array, namespace=self._namespace_url)

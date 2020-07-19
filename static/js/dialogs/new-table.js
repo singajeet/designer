@@ -6,7 +6,7 @@
  * @param {String} id: A unique identifier to create HTML contents
  * @param {String} label: A label to be shown on the required widgets
  */
-var EditTableColumnsPanelUI = Class.create({
+var NewTableColumnsPanelUI = Class.create({
 	id: null,
 	label: null,
 	schemaName: null,
@@ -1737,7 +1737,7 @@ var EditTableColumnsPanelUI = Class.create({
  * @param {String} id: A unique identifier to create HTML contents
  * @param {String} label: A label to be shown on the required widgets
  */
-var EditTableConstraintsPanelUI = Class.create({
+var NewTableConstraintsPanelUI = Class.create({
 	id: null,
 	label: null,
 	layout: null,
@@ -2853,7 +2853,7 @@ var EditTableConstraintsPanelUI = Class.create({
  * @param {String} id: A unique identifier to create HTML contents
  * @param {String} label: A label to be shown on the required widgets
  */
-var EditTableIndexesPanelUI = Class.create({
+var NewTableIndexesPanelUI = Class.create({
 	id: null,
 	label: null,
 	schemaName: null,
@@ -4283,7 +4283,7 @@ var EditTableIndexesPanelUI = Class.create({
  * @param {String} id: A unique identifier to create HTML contents
  * @param {String} label: A label to be shown on the required widgets
  */
-var EditTableStoragePanelUI = Class.create({
+var NewTableStoragePanelUI = Class.create({
 	id: null,
 	label: null,
 	layout: null,
@@ -4818,7 +4818,7 @@ var EditTableStoragePanelUI = Class.create({
  * @param {String} id: A unique identifier to create HTML contents
  * @param {String} label: A label to be shown on the required widgets
  */
-var EditTableCommentsPanelUI = Class.create({
+var NewTableCommentsPanelUI = Class.create({
 	id: null,
 	label: null,
 	layout: null,
@@ -4900,7 +4900,7 @@ var EditTableCommentsPanelUI = Class.create({
  * @param {String} id: A unique identifier to create HTML contents
  * @param {String} label: A label to be shown on the required widgets
  */
-var EditTableDDLPanelUI = Class.create({
+var NewTableDDLPanelUI = Class.create({
 	id: null,
 	label: null,
 	layout: null,

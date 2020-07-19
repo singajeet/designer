@@ -16,6 +16,12 @@ var Database = Class.create({
 	rolesAvailableEventListeners: [],
 	privilegesAvailableEventListeners: [],
 	tablespaceListAvailableEventListeners: [],
+	sequencesAvailableEventListeners: [],
+	disabledTableTriggersListAvailableEventListeners: [],
+	enabledTableTriggersListAvailableEventListeners: [],
+	tableTriggersListAvailableEventListeners: [],
+	explainPlanAvailableEventListeners: [],
+	viewsAvailableEventListeners: [],
 	initialize: function() {
 		this.socket = io('/oracle_db');
 		this.schemaListAvailableEventListeners = [];
@@ -29,6 +35,12 @@ var Database = Class.create({
 		this.rolesAvailableEventListeners = [];
 		this.privilegesAvailableEventListeners = [];
 		this.tablespaceListAvailableEventListeners = [];
+		this.sequencesAvailableEventListeners = [];
+		this.disabledTableTriggersListAvailableEventListeners = [];
+		this.enabledTableTriggersListAvailableEventListeners = [];
+		this.tableTriggersListAvailableEventListeners = [];
+		this.explainPlanAvailableEventListeners = [];
+		this.viewsAvailableEventListeners = [];
 		var that = this;
 	    this.socket.on('schemas_list_result', function(result){
 	      that.fireSchemaListAvailableEvent(result);
@@ -62,6 +74,24 @@ var Database = Class.create({
 	    });
 	    this.socket.on('tablespaces_list_result', function(result){
 	      that.fireTablespaceListAvailableEvent(result);
+	    });
+	    this.socket.on('sequences_result', function(result){
+	      that.fireSequencesAvailableEvent(result);
+	    });
+	    this.socket.on('disabled_table_triggers_result', function(result){
+	      that.fireDisabledTableTriggersListAvailableEvent(result);
+	    });
+	    this.socket.on('enabled_table_triggers_result', function(result){
+	      that.fireEnabledTableTriggersListAvailableEvent(result);
+	    });
+	    this.socket.on('table_triggers_result', function(result){
+	      that.fireTableTriggersListAvailableEvent(result);
+	    });
+	    this.socket.on('explain_plan_result', function(result){
+	      that.fireExplainPlanAvailableEvent(result);
+	    });
+	    this.socket.on('views_result', function(result){
+	      that.fireViewsAvailableEvent(result);
 	    });
 	},
 	addSchemaListAvailableEventListener: function(listener) {
@@ -240,6 +270,102 @@ var Database = Class.create({
 			listener(result);
 		});
 	},
+	addSequencesAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.sequencesAvailableEventListeners.push(listener);
+		}
+	},
+	removeSequencesAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.sequencesAvailableEventListeners.indexOf(listener);
+			this.sequencesAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireSequencesAvailableEvent: function(result) {
+		this.sequencesAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addDisabledTableTriggersListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.disabledTableTriggersListAvailableEventListeners.push(listener);
+		}
+	},
+	removeDisabledTableTriggersListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.disabledTableTriggersListAvailableEventListeners.indexOf(listener);
+			this.disabledTableTriggersListAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireDisabledTableTriggersListAvailableEvent: function(result) {
+		this.disabledTableTriggersListAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addEnabledTableTriggersListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.enabledTableTriggersListAvailableEventListeners.push(listener);
+		}
+	},
+	removeEnabledTableTriggersListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.enabledTableTriggersListAvailableEventListeners.indexOf(listener);
+			this.enabledTableTriggersListAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireEnabledTableTriggersListAvailableEvent: function(result) {
+		this.enabledTableTriggersListAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addTableTriggersListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.tableTriggersListAvailableEventListeners.push(listener);
+		}
+	},
+	removeTableTriggersListAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.tableTriggersListAvailableEventListeners.indexOf(listener);
+			this.tableTriggersListAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireTableTriggersListAvailableEvent: function(result) {
+		this.tableTriggersListAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addExplainPlanAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.explainPlanAvailableEventListeners.push(listener);
+		}
+	},
+	removeExplainPlanAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.explainPlanAvailableEventListeners.indexOf(listener);
+			this.explainPlanAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireExplainPlanAvailableEvent: function(result) {
+		this.explainPlanAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
+	addViewsAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			this.viewsAvailableEventListeners.push(listener);
+		}
+	},
+	removeViewsAvailableEventListener: function(listener) {
+		if(listener !== null && listener !== undefined) {
+			var index = this.viewsAvailableEventListeners.indexOf(listener);
+			this.viewsAvailableEventListeners.splice(index, 1);
+		}
+	},
+	fireViewsAvailableEvent: function(result) {
+		this.viewsAvailableEventListeners.forEach(function(listener) {
+			listener(result);
+		});
+	},
 	getSchemaList: function() {
 	    this.socket.emit('get_schemas_list');
 	},
@@ -280,9 +406,49 @@ var Database = Class.create({
 	getTablespaceList: function() {
 	    this.socket.emit('get_tablespaces_list');
 	},
+	getSequences: function(schemaName) {
+		this.socket.emit('get_sequences', schemaName);
+	},
+	getDisabledTableTriggersList: function(schemaName, tableName) {
+		var props = {schemaName: schemaName, tableName: tableName};
+		this.socket.emit('get_disabled_table_triggers', props);
+	},
+	getEnabledTableTriggersList: function(schemaName, tableName) {
+		var props = {schemaName: schemaName, tableName: tableName};
+		this.socket.emit('get_enabled_table_triggers', props);
+	},
+	getTableTriggersList: function(schemaName, tableName) {
+		var props = {schemaName: schemaName, tableName: tableName};
+		this.socket.emit('get_table_triggers', props);
+	},
+	getExplainPlan: function(sql) {
+		this.socket.emit('get_explain_plan', sql);
+	},
+	getViews: function(schemaName) {
+		this.socket.emit('get_views', schemaName);
+	},
 	destroy: function() {
-		this.socket.disconnect();
-		this.socket.destroy();
-		this.socket = null;
+		if(this.socket !== null) {
+			this.socket.off('schemas_list_result');
+		    this.socket.off('columns_to_normalize_result');
+		    this.socket.off('disabled_constraints_result');
+		    this.socket.off('enabled_constraints_result');
+		    this.socket.off('constraints_list_result');
+		    this.socket.off('columns_result');
+		    this.socket.off('tables_result');
+		    this.socket.off('indexes_result');
+		    this.socket.off('roles_result');
+		    this.socket.off('privileges_result');
+		    this.socket.off('tablespaces_list_result');
+		    this.socket.off('sequences_result');
+		    this.socket.off('disabled_table_triggers_result');
+		    this.socket.off('enabled_table_triggers_result');
+		    this.socket.off('table_triggers_result');
+		    this.socket.off('explain_plan_result');
+		    this.socket.off('views_result');
+			this.socket.disconnect();
+			this.socket.destroy();
+			this.socket = null;
+		}
 	}
 });

@@ -649,6 +649,14 @@
     content: url('/static/icons/settings.png');
 }
 
+.editor_settings_icon {
+    content: url('/static/icons/entityObject.png');
+}
+
+.shortcut_icon {
+    content: url('/static/icons/shortcut.png');
+}
+
 .info_icon {
     content: url('/static/icons/info.png');
 }
@@ -788,6 +796,62 @@
 
 .warehouse_catlog_icon {
     content: url('/static/icons/catalog.png');
+}
+
+.run_icon {
+    content: url('/static/icons/run.png');
+}
+
+.commit_icon {
+    content: url('/static/icons/commit.png');
+}
+
+.rollback_icon {
+    content: url('/static/icons/rollback.png');
+}
+
+.clear_icon {
+    content: url('/static/icons/clear.png');
+}
+
+.explain_icon {
+    content: url('/static/icons/explain.png');
+}
+
+.history_icon {
+    content: url('/static/icons/history.png');
+}
+
+.autotrace_icon {
+    content: url('/static/icons/autotrace.png');
+}
+
+.tunning_advisor_icon {
+    content: url('/static/icons/tunning_advisor.png');
+}
+
+.unshared_worksheet_icon {
+    content: url('/static/icons/unshared_worksheet.png');
+}
+
+.upper_lower_case_icon {
+    content: url('/static/icons/upper_lower_case.png');
+}
+
+.run_script_icon {
+    content: url('/static/icons/run_script.png');
+}
+
+.print_icon {
+    content: url('/static/icons/print.png');
+}
+
+.compile_icon {
+    content: url('/static/icons/compile.png');
+}
+
+.toggle_edit_icon {
+    content: url('/static/icons/toggle_edit.png');
 }
 
 .sidebar_panel {
@@ -991,4 +1055,13 @@ div.menu {
 .imagebacked {
     padding-left: 20px; /* image-width */
     background-repeat: no-repeat;
+}
+
+.trigger_panel {
+    height: 60%;
+    display: none;
+}
+
+.display_trigger_panel {
+    display: block !important;
 }

@@ -1,0 +1,829 @@
+<div id="create-trigger-popup" style="width: 600px; height: 700px;">
+    <div rel="title">
+        Create Trigger
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+        <div style="height: 15%;">
+            <div style="float: left">
+                <div style="line-height: 30px;">
+                    <label for="trigger-schema-name">Schema:</label>
+                    <select id="trigger-schema-name" style="width: 400px;">
+                    </select>
+                </div>
+                <div style="line-height: 30px;">
+                    <label for="trigger-name">Name:</label>
+                    <input id="trigger-name" style="width: 400px; margin-left: 13px;" />
+                </div>
+            </div>
+            <div style="float: right; margin-top: 15px; margin-right: 30px;">
+                <img src='/static/icons/header/database.png' />
+            </div>
+        </div>
+        <br>
+        <div style="line-height: 30px;">
+            <label for="trigger-base-type">Base Type:</label>
+            <select id="trigger-base-type" style="width: 426px; margin-left: 63px;">
+                <option>TABLE</option>
+                <option>VIEW</option>
+                <option>SCHEMA</option>
+                <option>DATABASE</option>
+            </select>
+        </div>
+        <div id="trigger-table-type-panel" class="trigger_panel display_trigger_panel">
+            <div style="line-height: 30px;">
+                <label for="trigger-table-base-object-schema-name">Base Object Schema:</label>
+                <select id="trigger-table-base-object-schema-name" style="width: 426px;">
+                </select>
+            </div>
+            <div style="line-height: 30px;">
+                <label for="trigger-table-base-object-name">Base Object:</label>
+                <select id="trigger-table-base-object-name" style="width: 426px; margin-left: 52px;">
+                </select>
+            </div>
+            <div style="line-height: 30px;">
+                <label for="trigger-table-base-object-timing">Timing:</label>
+                <select id="trigger-table-base-object-timing" style="width: 426px; margin-left: 84px;">
+                    <option>BEFORE</option>
+                    <option>AFTER</option>
+                </select>
+            </div>
+            <div>
+                <table>
+                    <tr>
+                        <td style="width: 130px;">
+                            Events:
+                        </td>
+                        <td>
+                            Available Events:
+                        </td>
+                        <td></td>
+                        <td>
+                            Selected Events:
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <select id="trigger-table-available-events" size="8" style="width: 190px;">
+                                <option>DELETE</option>
+                                <option>INSERT</option>
+                                <option>UPDATE</option>
+                            </select>
+                        </td>
+                        <td style='width: 40px;'>
+                            <table>
+                                <tr>
+                                    <td><button id='table-right-button-event'><i class='shuttle_right_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='table-right-all-button-event'><i class='shuttle_right_all_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='table-left-button-event'><i class='shuttle_left_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='table-left-all-button-event'><i class='shuttle_left_all_icon' /></button></td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>
+                            <select id="trigger-table-selected-events" size="8" style="width: 190px;"></select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div>
+                <table>
+                    <tr>
+                        <td style="width: 130px;">
+                            Columns:
+                        </td>
+                        <td>
+                            Available Columns:
+                        </td>
+                        <td></td>
+                        <td>
+                            Selected Columns:
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <select id="trigger-table-available-columns" size="6" style="width: 190px;" disabled>
+                            </select>
+                        </td>
+                        <td style='width: 40px;'>
+                            <table>
+                                <tr>
+                                    <td><button id='table-right-button-column' disabled><i class='shuttle_right_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='table-left-button-column' disabled><i class='shuttle_left_icon' /></button></td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>
+                            <select id="trigger-table-selected-columns" size="6" style="width: 190px;" disabled></select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div style="line-height: 30px;">
+                <label for="trigger-table-reference-old-as">Referencing Old As:</label>
+                <input id="trigger-table-reference-old-as" style="width: 170px; margin-left: 10px;" />
+                <input id="trigger-table-statement-level" type="checkbox" checked>Statement Level</input>
+            </div>
+            <div style="line-height: 30px;">
+                <label for="trigger-table-reference-new-as">Referencing New As:</label>
+                <input id="trigger-table-reference-new-as" style="width: 170px; margin-left: 4px;" />
+                <label for="trigger-table-reference-new-as">When Clause:</label>
+                <input id="trigger-table-when-clause" disabled />
+            </div>
+        </div>
+        <div id="trigger-view-type-panel" class="trigger_panel">
+            <div style="line-height: 30px;">
+                <label for="trigger-view-base-object-schema-name">Base Object Schema:</label>
+                <select id="trigger-view-base-object-schema-name" style="width: 426px;">
+                </select>
+            </div>
+            <div style="line-height: 30px;">
+                <label for="trigger-view-base-object-name">Base Object:</label>
+                <select id="trigger-view-base-object-name" style="width: 426px; margin-left: 52px;">
+                </select>
+            </div>
+            <div style="line-height: 30px;">
+                <label for="trigger-view-base-object-timing">Timing:</label>
+                <select id="trigger-view-base-object-timing" style="width: 426px; margin-left: 84px;">
+                    <option>INSTEAD OF</option>
+                </select>
+            </div>
+            <div>
+                <table>
+                    <tr>
+                        <td style="width: 130px;">
+                            Events:
+                        </td>
+                        <td>
+                            Available Events:
+                        </td>
+                        <td></td>
+                        <td>
+                            Selected Events:
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <select id="trigger-view-available-events" size="12" style="width: 190px;">
+                                <option>DELETE</option>
+                                <option>INSERT</option>
+                                <option>UPDATE</option>
+                            </select>
+                        </td>
+                        <td style='width: 40px;'>
+                            <table>
+                                <tr>
+                                    <td><button id='view-right-button-event'><i class='shuttle_right_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='view-right-all-button-event'><i class='shuttle_right_all_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='view-left-button-event'><i class='shuttle_left_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='view-left-all-button-event'><i class='shuttle_left_all_icon' /></button></td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>
+                            <select id="trigger-view-selected-events" size="12" style="width: 190px;"></select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div style="line-height: 30px;">
+                <label for="trigger-view-reference-old-as">Referencing Old As:</label>
+                <input id="trigger-view-reference-old-as" style="width: 426px; margin-left: 10px;" />
+            </div>
+            <div style="line-height: 30px;">
+                <label for="trigger-view-reference-new-as">Referencing New As:</label>
+                <input id="trigger-view-reference-new-as" style="width: 426px; margin-left: 4px;" />
+            </div>
+        </div>
+        <div id="trigger-schema-type-panel" class="trigger_panel">
+            <div style="line-height: 30px;">
+                <label for="trigger-schema-base-object-schema-name">Base Object Schema:</label>
+                <select id="trigger-schema-base-object-schema-name" style="width: 426px;">
+                </select>
+            </div>
+            <div style="line-height: 30px;">
+                <label for="trigger-schema-base-object-timing">Timing:</label>
+                <select id="trigger-schema-base-object-timing" style="width: 426px; margin-left: 84px;">
+                    <option>BEFORE</option>
+                    <option>AFTER</option>
+                </select>
+            </div>
+            <div>
+                <table>
+                    <tr>
+                        <td style="width: 130px;">
+                            Events:
+                        </td>
+                        <td>
+                            Available Events:
+                        </td>
+                        <td></td>
+                        <td>
+                            Selected Events:
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <select id="trigger-schema-available-events" size="15" style="width: 190px;">
+                                <option>ALTER</option>
+                                <option>ANALYZE</option>
+                                <option>ASSOCIATE STATISTICS</option>
+                                <option>AUDIT</option>
+                                <option>COMMENT</option>
+                                <option>CREATE</option>
+                                <option>DDL</option>
+                                <option>DISASSOCIATE STATISTICS</option>
+                                <option>DROP</option>
+                                <option>GRANT</option>
+                                <option>LOGOFF</option>
+                                <option>NOAUDIT</option>
+                                <option>RENAME</option>
+                                <option>REVOKE</option>
+                                <option>TRUNCATE</option>
+                            </select>
+                        </td>
+                        <td style='width: 40px;'>
+                            <table>
+                                <tr>
+                                    <td><button id='schema-right-button-event'><i class='shuttle_right_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='schema-right-all-button-event'><i class='shuttle_right_all_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='schema-left-button-event'><i class='shuttle_left_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='schema-left-all-button-event'><i class='shuttle_left_all_icon' /></button></td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>
+                            <select id="trigger-schema-selected-events" size="15" style="width: 190px;"></select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div id="trigger-database-type-panel" class="trigger_panel">
+            <div style="line-height: 30px;">
+                <label for="trigger-database-base-object-timing">Timing:</label>
+                <select id="trigger-database-base-object-timing" style="width: 426px; margin-left: 84px;">
+                    <option>BEFORE</option>
+                    <option>AFTER</option>
+                </select>
+            </div>
+            <div>
+                <table>
+                    <tr>
+                        <td style="width: 130px;">
+                            Events:
+                        </td>
+                        <td>
+                            Available Events:
+                        </td>
+                        <td></td>
+                        <td>
+                            Selected Events:
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <select id="trigger-database-available-events" size="15" style="width: 190px;">
+                                <option>ALTER</option>
+                                <option>ANALYZE</option>
+                                <option>ASSOCIATE STATISTICS</option>
+                                <option>AUDIT</option>
+                                <option>COMMENT</option>
+                                <option>CREATE</option>
+                                <option>DDL</option>
+                                <option>DISASSOCIATE STATISTICS</option>
+                                <option>DROP</option>
+                                <option>GRANT</option>
+                                <option>LOGOFF</option>
+                                <option>NOAUDIT</option>
+                                <option>RENAME</option>
+                                <option>REVOKE</option>
+                                <option>SHUTDOWN</option>
+                                <option>TRUNCATE</option>
+                            </select>
+                        </td>
+                        <td style='width: 40px;'>
+                            <table>
+                                <tr>
+                                    <td><button id='database-right-button-event'><i class='shuttle_right_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='database-right-all-button-event'><i class='shuttle_right_all_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='database-left-button-event'><i class='shuttle_left_icon' /></button></td>
+                                </tr>
+                                <tr>
+                                    <td><button id='database-left-all-button-event'><i class='shuttle_left_all_icon' /></button></td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>
+                            <select id="trigger-database-selected-events" size="15" style="width: 190px;"></select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    	<script>
+            var queryString = window.location.search;
+            var params = new URLSearchParams(queryString);
+            var triggerName = params.get('name');
+            var schemaName = params.get('schemaName');
+
+            var db = new Database();
+            db.addSchemaListAvailableEventListener(onSchemaListAvailable);
+            db.addTablesAvailableEventListener(onTablesListAvailable);
+            db.addColumnsAvailableEventListener(onColumnsListAvailable);
+            db.addViewsAvailableEventListener(onViewsListAvailable);
+            db.getSchemaList();
+
+            $j('#trigger-name').val(triggerName);
+
+            //Events button handlers
+            $j('#table-right-button-event').on('click', function() {
+                var selectedItem = $j('#trigger-table-available-events').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#trigger-table-selected-events').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#view-right-button-event').on('click', function() {
+                var selectedItem = $j('#trigger-view-available-events').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#trigger-view-selected-events').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#schema-right-button-event').on('click', function() {
+                var selectedItem = $j('#trigger-schema-available-events').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#trigger-schema-selected-events').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#database-right-button-event').on('click', function() {
+                var selectedItem = $j('#trigger-database-available-events').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#trigger-database-selected-events').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#table-right-all-button-event').on('click', function() {
+                $j('#trigger-table-available-events').children().each(function() {
+                    var html = $j(this)[0].outerHTML;
+                    $j('#trigger-table-selected-events').append(html);
+                    $j(this).remove();
+                });
+            });
+
+            $j('#view-right-all-button-event').on('click', function() {
+                $j('#trigger-view-available-events').children().each(function() {
+                    var html = $j(this)[0].outerHTML;
+                    $j('#trigger-view-selected-events').append(html);
+                    $j(this).remove();
+                });
+            });
+
+            $j('#schema-right-all-button-event').on('click', function() {
+                $j('#trigger-schema-available-events').children().each(function() {
+                    var html = $j(this)[0].outerHTML;
+                    $j('#trigger-schema-selected-events').append(html);
+                    $j(this).remove();
+                });
+            });
+
+            $j('#database-right-all-button-event').on('click', function() {
+                $j('#trigger-database-available-events').children().each(function() {
+                    var html = $j(this)[0].outerHTML;
+                    $j('#trigger-database-selected-events').append(html);
+                    $j(this).remove();
+                });
+            });
+
+            $j('#table-left-button-event').on('click', function() {
+                var selectedItem = $j('#trigger-table-selected-events').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#trigger-table-available-events').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#view-left-button-event').on('click', function() {
+                var selectedItem = $j('#trigger-view-selected-events').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#trigger-view-available-events').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#schema-left-button-event').on('click', function() {
+                var selectedItem = $j('#trigger-schema-selected-events').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#trigger-schema-available-events').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#database-left-button-event').on('click', function() {
+                var selectedItem = $j('#trigger-database-selected-events').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#trigger-database-available-events').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#table-left-all-button-event').on('click', function() {
+                $j('#trigger-table-selected-events').children().each(function() {
+                    var html = $j(this)[0].outerHTML;
+                    $j('#trigger-table-available-events').append(html);
+                    $j(this).remove();
+                });
+            });
+
+            $j('#view-left-all-button-event').on('click', function() {
+                $j('#trigger-view-selected-events').children().each(function() {
+                    var html = $j(this)[0].outerHTML;
+                    $j('#trigger-view-available-events').append(html);
+                    $j(this).remove();
+                });
+            });
+
+            $j('#schema-left-all-button-event').on('click', function() {
+                $j('#trigger-schema-selected-events').children().each(function() {
+                    var html = $j(this)[0].outerHTML;
+                    $j('#trigger-schema-available-events').append(html);
+                    $j(this).remove();
+                });
+            });
+
+            $j('#database-left-all-button-event').on('click', function() {
+                $j('#trigger-database-selected-events').children().each(function() {
+                    var html = $j(this)[0].outerHTML;
+                    $j('#trigger-database-available-events').append(html);
+                    $j(this).remove();
+                });
+            });
+
+            //Columns button handlers
+            $j('#table-right-button-column').on('click', function() {
+                var selectedItem = $j('#trigger-table-available-columns').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#trigger-table-selected-columns').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            $j('#table-left-button-column').on('click', function() {
+                var selectedItem = $j('#trigger-table-selected-columns').children('option:selected');
+                if(selectedItem.length > 0) {
+                    $j('#trigger-table-available-columns').append(selectedItem[0].outerHTML);
+                    selectedItem.remove();
+                }
+            });
+
+            //Statement level handler
+            $j('#trigger-table-statement-level').on('change', function(){
+                if(this.checked) {
+                    $j('#trigger-table-when-clause').prop('disabled', true);
+                } else {
+                    $j('#trigger-table-when-clause').prop('disabled', false);
+                }
+            });
+
+            //Base table schema event handler
+            $j('#trigger-table-base-object-schema-name').on('change', function(){
+                var schema = this.value;
+                db.getTables(schema);
+            });
+
+            //Base view schema event handler
+            $j('#trigger-view-base-object-schema-name').on('change', function(){
+                var schema = this.value;
+                db.getViews(schema);
+            });
+
+            //Base table event handler
+            $j('#trigger-table-base-object-name').on('change', function() {
+                var table = this.value;
+                var schema = $j('#trigger-table-base-object-schema-name').val();
+                db.getColumns(schema, table);
+            });
+
+            //Selected events handler
+            $j('#trigger-table-selected-events').on('DOMSubtreeModified', function() {
+                var children = $j('#trigger-table-selected-events').children();
+                console.log(children);
+                var found = false;
+
+                if(children.length > 0) {
+                    children.each(function() {
+                        if(this.value === 'UPDATE') {
+                            found = true;
+                        }
+                    });
+                }
+
+                if(found) {
+                    $j('#trigger-table-available-columns').prop('disabled', false);
+                    $j('#table-right-button-column').prop('disabled', false);
+                    $j('#table-left-button-column').prop('disabled', false);
+                    $j('#trigger-table-selected-columns').prop('disabled', false);
+                } else {
+                    $j('#trigger-table-available-columns').prop('disabled', true);
+                    $j('#table-right-button-column').prop('disabled', true);
+                    $j('#table-left-button-column').prop('disabled', true);
+                    $j('#trigger-table-selected-columns').prop('disabled', true);
+                    $j('#trigger-table-selected-columns').children().each(function() {
+                        var html = $j(this)[0].outerHTML;
+                        $j('#trigger-table-available-columns').append(html);
+                        $j(this).remove();
+                    });
+                }
+            });
+
+            //Base type event handler
+            $j('#trigger-base-type').on('change', function() {
+                if(this.value === 'TABLE') {
+                    $j('#trigger-database-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-schema-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-view-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-table-type-panel').addClass('display_trigger_panel');
+                } else if(this.value === 'VIEW') {
+                    $j('#trigger-database-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-schema-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-table-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-view-type-panel').addClass('display_trigger_panel');
+                } else if(this.value === 'SCHEMA') {
+                    $j('#trigger-database-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-view-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-table-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-schema-type-panel').addClass('display_trigger_panel');
+                } else if(this.value === 'DATABASE') {
+                    $j('#trigger-schema-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-view-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-table-type-panel').removeClass('display_trigger_panel');
+                    $j('#trigger-database-type-panel').addClass('display_trigger_panel');
+                }
+            });
+
+            function onSchemaListAvailable(result) {
+                result.forEach(function(schema) {
+                    if(schema === schemaName) {
+                        $j('#trigger-schema-name').append('<option selected>' + schema + '</option>');
+                        $j('#trigger-table-base-object-schema-name').append('<option selected>' + schema + '</option>');
+                        $j('#trigger-view-base-object-schema-name').append('<option selected>' + schema + '</option>');
+                        $j('#trigger-schema-base-object-schema-name').append('<option selected>' + schema + '</option>');
+                    } else {
+                        $j('#trigger-schema-name').append('<option>' + schema + '</option>');
+                        $j('#trigger-table-base-object-schema-name').append('<option>' + schema + '</option>');
+                        $j('#trigger-view-base-object-schema-name').append('<option>' + schema + '</option>');
+                        $j('#trigger-schema-base-object-schema-name').append('<option>' + schema + '</option>');
+                    }
+                });
+
+                $j('#trigger-table-base-object-schema-name').trigger('change');
+                $j('#trigger-view-base-object-schema-name').trigger('change');
+            }
+
+            function onTablesListAvailable(result) {
+                $j('#trigger-table-base-object-name').empty();
+                result.forEach(function(table) {
+                    $j('#trigger-table-base-object-name').append('<option>' + table + '</option>');
+                });
+
+                $j('#trigger-table-base-object-name').trigger('change');
+            }
+
+            function onColumnsListAvailable(result) {
+                $j('#trigger-table-available-columns').empty();
+                $j('#trigger-table-selected-columns').empty();
+
+                result.forEach(function(column) {
+                    $j('#trigger-table-available-columns').append('<option>' + column + '</option>');
+                });
+            }
+
+            function onViewsListAvailable(result) {
+                $j('#trigger-view-base-object-name').empty();
+                result.forEach(function(view) {
+                    $j('#trigger-view-base-object-name').append('<option>' + view + '</option>');
+                });
+            }
+
+            function generateSQL() {
+                var type = $j('#trigger-base-type').val();
+
+                if(type === 'TABLE') {
+                    var schema = $j('#trigger-schema-name').val();
+                    var trigger = $j('#trigger-name').val();
+                    var tableSchema = $j('#trigger-table-base-object-schema-name').val();
+                    var table = $j('#trigger-table-base-object-name').val();
+                    var timing = $j('#trigger-table-base-object-timing').val();
+                    var events = [];
+                    $j('#trigger-table-selected-events').children().each(function() {
+                        events.push(this.value);
+                    });
+                    var columns = [];
+                    $j('#trigger-table-selected-columns').children().each(function() {
+                        columns.push(this.value);
+                    });
+                    var oldRef = $j('#trigger-table-reference-old-as').val();
+                    var newRef = $j('#trigger-table-reference-new-as').val();
+                    var isStatementLevel = $j('#trigger-table-statement-level').prop('checked');
+                    var whenClause = $j('#trigger-table-when-clause').val();
+
+                    var columnsStatement = '';
+                    columns.forEach(function(column) {
+                        if(columnsStatement === '') {
+                            columnsStatement = column;
+                        } else {
+                            columnsStatement += ',' + column;
+                        }
+                    });
+
+                    var eventsStatement = '';
+                    events.forEach(function(event) {
+                        if(event !== 'UPDATE') {
+                            if(eventsStatement === '') {
+                                eventsStatement = event;
+                            } else {
+                                eventsStatement += ' OR ' + event;
+                            }
+                        } else {
+                            if(eventsStatement === '') {
+                                eventsStatement = event;
+                            } else {
+                                eventsStatement += ' OR ' + event;
+                            }
+                            if(columnsStatement !== '') {
+                                eventsStatement += ' OF ' + columnsStatement;
+                            }
+                        }
+                    });
+
+                    var sql = 'CREATE OR REPLACE TRIGGER ' + schema + '.' + trigger + '\n';
+                    sql += timing + ' ' + eventsStatement + ' ON ' + tableSchema + '.' + table + '\n';
+                    if((oldRef !== null && oldRef !== undefined && oldRef !== '') || 
+                        (newRef !== null && newRef !== undefined && newRef !== '')) {
+                        sql += 'REFERENCING';
+
+                        if(oldRef !== null && oldRef !== undefined && oldRef !== '') {
+                            sql += ' OLD AS ' + oldRef;
+                        }
+                        if(newRef !== null && newRef !== undefined && newRef !== '') {
+                            sql += ' NEW AS ' + newRef;
+                        }
+
+                        sql += '\n';
+                    }
+
+                    if(!isStatementLevel) {
+                        sql += 'FOR EACH ROW\n';
+                        sql += 'WHEN (' + whenClause + ')\n';
+                    }
+
+                    sql += 'BEGIN\n\tNULL;\nEND;';
+
+                    return sql;
+                } else if(type === 'VIEW') {
+                    var schema = $j('#trigger-schema-name').val();
+                    var trigger = $j('#trigger-name').val();
+                    var viewSchema = $j('#trigger-view-base-object-schema-name').val();
+                    var view = $j('#trigger-view-base-object-name').val();
+                    var timing = $j('#trigger-view-base-object-timing').val();
+                    var events = [];
+                    $j('#trigger-view-selected-events').children().each(function() {
+                        events.push(this.value);
+                    });
+                    var oldRef = $j('#trigger-view-reference-old-as').val();
+                    var newRef = $j('#trigger-view-reference-new-as').val();
+
+                    var eventsStatement = '';
+                    events.forEach(function(event) {
+                        if(eventsStatement === '') {
+                            eventsStatement = event;
+                        } else {
+                            eventsStatement += ' OR ' + event;
+                        }
+                    });
+
+                    var sql = 'CREATE OR REPLACE TRIGGER ' + schema + '.' + trigger + '\n';
+                    sql += timing + ' ' + eventsStatement + ' ON ' + viewSchema + '.' + view + '\n';
+                    if((oldRef !== null && oldRef !== undefined && oldRef !== '') || 
+                        (newRef !== null && newRef !== undefined && newRef !== '')) {
+                        sql += 'REFERENCING';
+
+                        if(oldRef !== null && oldRef !== undefined && oldRef !== '') {
+                            sql += ' OLD AS ' + oldRef;
+                        }
+                        if(newRef !== null && newRef !== undefined && newRef !== '') {
+                            sql += ' NEW AS ' + newRef;
+                        }
+
+                        sql += '\n';
+                    }
+
+                    sql += 'BEGIN\n\tNULL;\nEND;';
+
+                    return sql;
+                } else if(type === 'SCHEMA') {
+                    var schema = $j('#trigger-schema-name').val();
+                    var trigger = $j('#trigger-name').val();
+                    var schemaSchema = $j('#trigger-schema-base-object-schema-name').val();
+                    var timing = $j('#trigger-schema-base-object-timing').val();
+                    var events = [];
+                    $j('#trigger-schema-selected-events').children().each(function() {
+                        events.push(this.value);
+                    });
+
+                    var eventsStatement = '';
+                    events.forEach(function(event) {
+                        if(eventsStatement === '') {
+                            eventsStatement = event;
+                        } else {
+                            eventsStatement += ' OR ' + event;
+                        }
+                    });
+
+                    var sql = 'CREATE OR REPLACE TRIGGER ' + schema + '.' + trigger + '\n';
+                    sql += timing + ' ' + eventsStatement + ' ON ' + schemaSchema + '.SCHEMA' + '\n';
+                    
+                    sql += 'BEGIN\n\tNULL;\nEND;';
+
+                    return sql;
+                } else if(type === 'DATABASE') {
+                    var schema = $j('#trigger-schema-name').val();
+                    var trigger = $j('#trigger-name').val();
+                    var timing = $j('#trigger-database-base-object-timing').val();
+                    var events = [];
+                    $j('#trigger-database-selected-events').children().each(function() {
+                        events.push(this.value);
+                    });
+
+                    var eventsStatement = '';
+                    events.forEach(function(event) {
+                        if(eventsStatement === '') {
+                            eventsStatement = event;
+                        } else {
+                            eventsStatement += ' OR ' + event;
+                        }
+                    });
+
+                    var sql = 'CREATE OR REPLACE TRIGGER ' + schema + '.' + trigger + '\n';
+                    sql += timing + ' ' + eventsStatement + ' ON DATABASE' + '\n';
+                    
+                    sql += 'BEGIN\n\tNULL;\nEND;';
+
+                    return sql;
+                }
+
+                return null;
+            }
+
+            function applyAndClose() {
+                var sql = generateSQL();
+                var trigger = $j('#trigger-name').val();
+                db.destroy();
+                w2popup.close({retValue: 'OK', triggerSQL: sql, triggerName: trigger});
+            }
+
+            function cancel() {
+                db.destroy();
+                w2popup.close({retValue: 'CANCEL'});
+            }
+        </script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
+        <button class="w2ui-btn" onclick="cancel()">Close</button>
+    </div>
+</div>

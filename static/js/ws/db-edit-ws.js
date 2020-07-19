@@ -567,7 +567,7 @@ var DatabaseSQL = Class.create({
 	      that.fireSQLErrorEvent(result);
 	    });
 	    this.socket.on('execute_sql_success', function(result){
-	      that.fireSQLSuccessEvent();
+	      that.fireSQLSuccessEvent(result);
 	    });
 	    this.socket.on('execute_select_error', function(result){
 	      that.fireSelectErrorEvent(result);
@@ -587,9 +587,9 @@ var DatabaseSQL = Class.create({
 			this.sqlSuccessEventListeners.splice(index, 1);
 		}
 	},
-	fireSQLSuccessEvent: function() {
+	fireSQLSuccessEvent: function(result) {
 		this.sqlSuccessEventListeners.forEach(function(listener) {
-			listener();
+			listener(result);
 		});
 	},
 	addSQLErrorEventListener: function(listener) {
@@ -646,9 +646,21 @@ var DatabaseSQL = Class.create({
 	executeSelect: function(sql) {
 	    this.socket.emit('execute_select', sql);
 	},
+	commit: function() {
+		this.socket.emit('commit');
+	},
+	rollback: function() {
+		this.socket.emit('rollback');
+	},
 	destroy: function() {
-		this.socket.disconnect();
-		this.socket.destroy();
-		this.socket = null;
+		if(this.socket !== null) {
+			this.socket.off('execute_sql_error');
+		    this.socket.off('execute_sql_success');
+		    this.socket.off('execute_select_error');
+		    this.socket.off('execute_select_success');
+			this.socket.disconnect(true);
+			this.socket.destroy();
+			this.socket = null;
+		}
 	}
 });

@@ -1,9 +1,9 @@
-<div id="table-edit-popup" style="width: 900px; height: 800px;">
+<div id="table-new-popup" style="width: 900px; height: 800px;">
     <div rel="title">
-        Edit Table
+        New Table
     </div>
     <div rel="body" style="padding: 5px; width: 100%; height: 100%">
-        <div id="table-edit-layout" style="width: 100%; height: 100%"></div>
+        <div id="table-new-layout" style="width: 100%; height: 100%"></div>
         <script>
 			// $j(document).ready(function() {
 				var queryString = window.location.search;
@@ -16,8 +16,8 @@
 				var sqlArray = [];
 				var error = false;
 
-				$j("#table-edit-layout").w2layout({
-					name: 'table-edit-layout',
+				$j("#table-new-layout").w2layout({
+					name: 'table-new-layout',
 			        padding: 4,
 			        panels: [
 			            { type: 'top', size: 90, resizable: false, style: pstyle, content: 'top' },
@@ -27,37 +27,37 @@
 				});
 				
 				var mainHtml = `
-					<div id='table-edit-sidebar-columns-panel' class='sidebar_panel display_sidebar_panel'>Columns</div>
-					<div id='table-edit-sidebar-constraints-panel' class='sidebar_panel'>Constraints</div>
-					<div id='table-edit-sidebar-indexes-panel' class='sidebar_panel'>Indexes</div>
-					<div id='table-edit-sidebar-storage-panel' class='sidebar_panel'>Storage</div>
-					<div id='table-edit-sidebar-comments-panel' class='sidebar_panel'>Comments</div>
-					<div id='table-edit-sidebar-ddl-panel' class='sidebar_panel'>DDL</div>
+					<div id='table-new-sidebar-columns-panel' class='sidebar_panel display_sidebar_panel'>Columns</div>
+					<div id='table-new-sidebar-constraints-panel' class='sidebar_panel'>Constraints</div>
+					<div id='table-new-sidebar-indexes-panel' class='sidebar_panel'>Indexes</div>
+					<div id='table-new-sidebar-storage-panel' class='sidebar_panel'>Storage</div>
+					<div id='table-new-sidebar-comments-panel' class='sidebar_panel'>Comments</div>
+					<div id='table-new-sidebar-ddl-panel' class='sidebar_panel'>DDL</div>
 				`;
-				w2ui['table-edit-layout'].content('main', mainHtml);
+				w2ui['table-new-layout'].content('main', mainHtml);
 
 				var topHtml = `
 					<div style='float: left'>
 						<table>
 							<tr>
 								<td>Schema:</td>
-								<td><input id='table-edit-text-schema-name' size='80px' value='` + schemaName + `' disabled /></td>
+								<td><input id='table-new-text-schema-name' size='80px' value='` + schemaName + `' disabled /></td>
 							</tr>
 							<tr>
 								<td>Name:</td>
-								<td><input id='table-edit-text-name' size='80px' value='` + tableName+ `' /></td>
+								<td><input id='table-new-text-name' size='80px' value='` + tableName+ `' /></td>
 							</tr>
 							<tr>
 								<td>Table Type:</td>
 								<td>
-									<select id='table-edit-table-type-select' style='width: 593px;' disabled>
+									<select id='table-new-table-type-select' style='width: 593px;'>
 										<option>Temporary (Transaction)</option>
 										<option>Temporary (Session)</option>
 										<option>Index Organized</option>
 										<option>External</option>
 										<option>Partitioned</option>
 										<option>Nested</option>
-										<option>Normal</option>
+										<option selected>Normal</option>
 									</select>
 								</td>
 							</tr>
@@ -67,33 +67,28 @@
 						<img src='/static/icons/header/database.png' />
 					</div>
 				`;
-				w2ui["table-edit-layout"].content('top', topHtml);
+				w2ui["table-new-layout"].content('top', topHtml);
 
-				var columnsPanel = new EditTableColumnsPanelUI('table-edit-sidebar-columns-panel', tableName, schemaName);
+				var columnsPanel = new NewTableColumnsPanelUI('table-new-sidebar-columns-panel', tableName, schemaName);
 				columnsPanel.addColumnSelectedEventListener(onColumnSelected);
 				columnsPanel.addComplexTypeSchemaChangedEventListener(onComplexTypeSchemaChanged);
 				columnsPanel.addIdentityColumnSchemaChangedEventListener(onIdentityColumnSchemaChanged);
 
-				var constraintsPanel = new EditTableConstraintsPanelUI('table-edit-sidebar-constraints-panel', tableName);
-				constraintsPanel.addConstraintSelectedEventListener(onConstraintSelected);
-				constraintsPanel.addSchemaChangedEventListener(onConstraintSchemaChanged);
-				constraintsPanel.addTableChangedEventListener(onConstraintTableChanged);
-				constraintsPanel.addRefConstraintChangedEventListener(onRefConstraintChanged);
+				var constraintsPanel = new NewTableConstraintsPanelUI('table-new-sidebar-constraints-panel', tableName);
+				// constraintsPanel.addConstraintSelectedEventListener(onConstraintSelected);
+				// constraintsPanel.addSchemaChangedEventListener(onConstraintSchemaChanged);
+				// constraintsPanel.addTableChangedEventListener(onConstraintTableChanged);
+				// constraintsPanel.addRefConstraintChangedEventListener(onRefConstraintChanged);
 
-				var indexesPanel = new EditTableIndexesPanelUI('table-edit-sidebar-indexes-panel', tableName, schemaName);
-				indexesPanel.addIndexSelectedEventListener(onIndexSelected);
-				indexesPanel.addIndexTypeSchemaChangedEventListener(onIndexTypeSchemaChanged);
+				var indexesPanel = new NewTableIndexesPanelUI('table-new-sidebar-indexes-panel', tableName, schemaName);
+				// indexesPanel.addIndexSelectedEventListener(onIndexSelected);
+				// indexesPanel.addIndexTypeSchemaChangedEventListener(onIndexTypeSchemaChanged);
 
-				var storagePanel = new EditTableStoragePanelUI('table-edit-sidebar-storage-panel', tableName);
-				var commentsPanel = new EditTableCommentsPanelUI('table-edit-sidebar-comments-panel', tableName);
-				var ddlPanel = new EditTableDDLPanelUI('table-edit-sidebar-ddl-panel', tableName);
+				var storagePanel = new NewTableStoragePanelUI('table-new-sidebar-storage-panel', tableName);
+				var commentsPanel = new NewTableCommentsPanelUI('table-new-sidebar-comments-panel', tableName);
+				var ddlPanel = new NewTableDDLPanelUI('table-new-sidebar-ddl-panel', tableName);
 
 				var dbTable = new DatabaseEditableTable(tableName);
-				dbTable.addTableTypeAvailableEventListener(onTableTypeAvailable);
-				dbTable.addColumnsAvailableEventListener(onColumnsAvailable);
-				dbTable.addColumnConstraintsAvailableEventListener(onColumnConstraintsAvailable);
-				dbTable.addColumnIndexesAvailableEventListener(onColumnIndexesAvailable);
-				dbTable.addIdentityColumnDetailsAvailableEventListener(onIdentityColumnDetailsAvailable);
 				dbTable.addTriggersListAvailableEventListener(onTriggersListAvailable);
 				dbTable.addSchemasListAvailableEventListener(onSchemasListAvailable);
 				dbTable.addSequencesListAvailableEventListener(onSequencesListAvailable);
@@ -108,162 +103,109 @@
 				dbTable.addIndexExpressionAvailableEventListener(onIndexExpressionAvailable);
 				dbTable.addIndexTypesListAvailableEventListener(onIndexTypesListAvailable);
 				dbTable.addTablespacesListAvailableEventListener(onTablespacesListAvailable);
-				dbTable.addTableStorageAvailableEventListener(onTableStorageAvailable);
-				dbTable.addTableCommentsAvailableEventListener(onTableCommentsAvailable);
 
 				var dbSQL = new DatabaseSQL();
 				dbSQL.addSQLSuccessEventListener(onSQLSuccess);
 				dbSQL.addSQLErrorEventListener(onSQLError);
 
-				w2ui["table-edit-layout"].content('left', $j().w2sidebar({
-					name: 'table-edit-sidebar',
+				w2ui["table-new-layout"].content('left', $j().w2sidebar({
+					name: 'table-new-sidebar',
 					topHTML    : '<div style="background-color: #eee; padding: 10px 5px; border-bottom: 1px solid silver">Options</div>',
 					nodes: [
-						{id: 'table-edit-sidebar-columns', text: 'Columns', icon: 'column_icon'},
-						{id: 'table-edit-sidebar-constraints', text: 'Constraints', icon: 'constraint_icon'},
-						{id: 'table-edit-sidebar-indexes', text: 'Indexes', icon: 'index_icon'},
-						{id: 'table-edit-sidebar-storage', text: 'Storage', icon: 'storage_icon'},
-						{id: 'table-edit-sidebar-comments', text: 'Comments', icon: 'comment_icon'},
-						{id: 'table-edit-sidebar-ddl', text: 'DDL', icon: 'ddl_icon'}
+						{id: 'table-new-sidebar-columns', text: 'Columns', icon: 'column_icon'},
+						{id: 'table-new-sidebar-constraints', text: 'Constraints', icon: 'constraint_icon'},
+						{id: 'table-new-sidebar-indexes', text: 'Indexes', icon: 'index_icon'},
+						{id: 'table-new-sidebar-storage', text: 'Storage', icon: 'storage_icon'},
+						{id: 'table-new-sidebar-comments', text: 'Comments', icon: 'comment_icon'},
+						{id: 'table-new-sidebar-ddl', text: 'DDL', icon: 'ddl_icon'}
 					],
 					onClick: function(event) {
 						var id = event.target;
-						w2ui['table-edit-sidebar'].nodes.forEach(function(node) {
+						w2ui['table-new-sidebar'].nodes.forEach(function(node) {
 							$j('#' +node.id + '-panel').removeClass('display_sidebar_panel');
 						});
 						$j('#' + id + '-panel').addClass('display_sidebar_panel');
 
-						if(id === 'table-edit-sidebar-constraints') {
+						if(id === 'table-new-sidebar-constraints') {
 							if(!constraintsPanel.isPanelCreated()) {
-								dbTable.getColumnsList('constraintsPanel');
-								// constraintsPanel.createPanel();
-								// dbTable.getConstraints();
-								// constraintsPanel.getConstraintsGrid().lock('Reading Constraints...', true);
-								// dbTable.getSchemasList('constraintsPanel');
+								// dbTable.getColumnsList('constraintsPanel');
+								constraintsPanel.createPanel();
+								dbTable.getSchemasList('constraintsPanel');
+								dbTable.getIndexesList('constraintsPanel');
 							} else {
 								constraintsPanel.refresh();
 							}
-						} if(id === 'table-edit-sidebar-indexes') {
+						} if(id === 'table-new-sidebar-indexes') {
 							if(!indexesPanel.isPanelCreated()) {
-								dbTable.getColumnsList('indexesPanel');
-								// indexesPanel.createPanel();
-								// dbTable.getIndexesList();
-								// dbTable.getSchemasList('indexesPanel');
+								// dbTable.getColumnsList('indexesPanel');
+								indexesPanel.createPanel();
+								dbTable.getIndexesList('indexesPanel');
+								dbTable.getSchemasList('indexesPanel');
+								dbTable.getTablespacesList('indexesPanel');
 							} else {
 								indexesPanel.refresh();
 							}
-						} if(id === 'table-edit-sidebar-storage') {
+						} if(id === 'table-new-sidebar-storage') {
 							if(!storagePanel.isPanelCreated()) {
 								storagePanel.createPanel();
 								dbTable.getTablespacesList('storagePanel');
-								dbTable.getTableStorage();
 							} else {
 								storagePanel.refresh();
 							}
-						} if(id === 'table-edit-sidebar-comments') {
+						} if(id === 'table-new-sidebar-comments') {
 							if(!commentsPanel.isPanelCreated()) {
 								commentsPanel.createPanel();
-								dbTable.getTableComments();
 							} else {
 								commentsPanel.refresh();
 							}
-						} if(id === 'table-edit-sidebar-ddl') {
+						} if(id === 'table-new-sidebar-ddl') {
 							if(!ddlPanel.isPanelCreated()) {								
 								var ddlArray = [];
-								ddlArray = ddlArray.concat(columnsPanel.getChanges());
-								ddlArray = ddlArray.concat(constraintsPanel.getChanges());
-								ddlArray = ddlArray.concat(indexesPanel.getChanges());
-								ddlArray = ddlArray.concat(storagePanel.getChanges());
-								ddlArray = ddlArray.concat(commentsPanel.getChanges());
+								// ddlArray = ddlArray.concat(columnsPanel.getChanges());
+								// ddlArray = ddlArray.concat(constraintsPanel.getChanges());
+								// ddlArray = ddlArray.concat(indexesPanel.getChanges());
+								// ddlArray = ddlArray.concat(storagePanel.getChanges());
+								// ddlArray = ddlArray.concat(commentsPanel.getChanges());
 								ddlPanel.createPanel(ddlArray);
-								var ddl = '';
-								ddlArray.forEach(function(text) {
-									ddl += text + '\n\n';
-								});
-								ddlPanel.setDDL(ddl);
+								// var ddl = '';
+								// ddlArray.forEach(function(text) {
+								// 	ddl += text + '\n\n';
+								// });
+								// ddlPanel.setDDL(ddl);
 							} else {
 								var ddlArray = [];
-								ddlArray = ddlArray.concat(columnsPanel.getChanges());
-								ddlArray = ddlArray.concat(constraintsPanel.getChanges());
-								ddlArray = ddlArray.concat(indexesPanel.getChanges());
-								ddlArray = ddlArray.concat(storagePanel.getChanges());
-								ddlArray = ddlArray.concat(commentsPanel.getChanges());
-								var ddl = '';
-								ddlArray.forEach(function(text) {
-									ddl += text + '\n\n';
-								});
-								ddlPanel.setDDL(ddl);
+								// ddlArray = ddlArray.concat(columnsPanel.getChanges());
+								// ddlArray = ddlArray.concat(constraintsPanel.getChanges());
+								// ddlArray = ddlArray.concat(indexesPanel.getChanges());
+								// ddlArray = ddlArray.concat(storagePanel.getChanges());
+								// ddlArray = ddlArray.concat(commentsPanel.getChanges());
+								// var ddl = '';
+								// ddlArray.forEach(function(text) {
+								// 	ddl += text + '\n\n';
+								// });
+								// ddlPanel.setDDL(ddl);
 								ddlPanel.refresh(ddlArray);
 							}
-						} else if(id === 'table-edit-sidebar-columns') {
+						} else if(id === 'table-new-sidebar-columns') {
 							columnsPanel.refresh();
 						}
 					}
 				}));
-				w2ui['table-edit-sidebar'].select('table-edit-sidebar-columns');
-				dbTable.getTableType();
+				w2ui['table-new-sidebar'].select('table-new-sidebar-columns');
+				// dbTable.getTableType();
 
 				if(!columnsPanel.isPanelCreated()) {
 					columnsPanel.createPanel();
-					dbTable.getColumns();
-					columnsPanel.getColumnsGrid().lock('Reading Columns...', true);
 					dbTable.getTriggersList();
 					dbTable.getSchemasList('columnPanel');
 					dbTable.getSequencesList(schemaName);
 					dbTable.getTypesList('SYS');
 				}
 
-				function onTableTypeAvailable(result) {
-					var tableType = result[0];
-					$j('#table-edit-table-type-select').val(tableType);
-				}
-
 				function onColumnSelected(columnName) {
 					if(columnsPanel.isConstraintsGridCreated()) {
-						dbTable.getColumnConstraints(columnName);
-						columnsPanel.getConstraintsGrid().lock('Reading Constraints...', true);
 					}
 					if(columnsPanel.isIndexesGridCreated()) {
-						dbTable.getColumnIndexes(columnName);
-						columnsPanel.getIndexesGrid().lock('Reading Indexes...', true);
-					}
-					dbTable.getIdentityColumnDetails(columnName);
-				}
-
-				function onColumnConstraintsAvailable(result) {
-					columnsPanel.getConstraintsGrid().records = result;
-					columnsPanel.getConstraintsGrid().refresh();
-					columnsPanel.getConstraintsGrid().unlock();
-				}
-
-				function onColumnIndexesAvailable(result) {
-					columnsPanel.getIndexesGrid().records = result;
-					columnsPanel.getIndexesGrid().refresh();
-					columnsPanel.getIndexesGrid().unlock();
-				}
-
-				function onColumnsAvailable(result) {
-					// columnsPanel.getColumnsGrid().records = result;
-					// columnsPanel.getColumnsGrid().refresh();
-					// columnsPanel.getColumnsGrid().unlock();
-					// columnsPanel.getColumnsGrid().select(1);
-					columnsPanel.loadData(result);
-				}
-
-				function onIdentityColumnDetailsAvailable(result) {
-					if(result.length > 0) {
-						columnsPanel.showIdentityColumnPanel();
-						var triggerName = result[0]['triggerName'];
-						var sequenceName = result[0]['sequenceName'];
-						columnsPanel.setIdentityColumnTrigger(triggerName);
-						if(sequenceName.indexOf('.') > 0) {
-							var schemaName = sequenceName.substr(0, sequenceName.indexOf('.'));
-							columnsPanel.setIdentityColumnSequenceSchema(schemaName);
-							sequenceName = sequenceName.substr(sequenceName.indexOf('.') + 1);
-							columnsPanel.setIdentityColumnSequence(sequenceName);
-						} else {
-							columnsPanel.setIdentityColumnSequence(sequenceName);
-						}
 					}
 				}
 
@@ -299,10 +241,6 @@
 				}
 
 				function onConstraintsAvailable(result) {
-					// constraintsPanel.getConstraintsGrid().records = result;
-					// constraintsPanel.getConstraintsGrid().refresh();
-					// constraintsPanel.getConstraintsGrid().unlock();
-					// constraintsPanel.getConstraintsGrid().select(1);
 					constraintsPanel.loadData(result);
 				}
 
@@ -335,18 +273,18 @@
 
 				function onColumnsListAvailable(result, source) {
 					if(source === 'constraintsPanel') {
-						constraintsPanel.populateColumnsList(result);
-						constraintsPanel.createPanel();
-						dbTable.getConstraints();
-						constraintsPanel.getConstraintsGrid().lock('Reading Constraints...', true);
-						dbTable.getSchemasList('constraintsPanel');
-						dbTable.getIndexesList('constraintsPanel');
+						// constraintsPanel.populateColumnsList(result);
+						// constraintsPanel.createPanel();
+						// dbTable.getConstraints();
+						// constraintsPanel.getConstraintsGrid().lock('Reading Constraints...', true);
+						// dbTable.getSchemasList('constraintsPanel');
+						// dbTable.getIndexesList('constraintsPanel');
 					} else if(source === 'indexesPanel') {
-						indexesPanel.populateColumnsList(result);
-						indexesPanel.createPanel();
-						dbTable.getIndexesList('indexesPanel');
-						dbTable.getSchemasList('indexesPanel');
-						dbTable.getTablespacesList('indexesPanel');
+						// indexesPanel.populateColumnsList(result);
+						// indexesPanel.createPanel();
+						// dbTable.getIndexesList('indexesPanel');
+						// dbTable.getSchemasList('indexesPanel');
+						// dbTable.getTablespacesList('indexesPanel');
 					}
 				}
 
@@ -392,14 +330,6 @@
 					} else if(source === 'storagePanel') {
 						storagePanel.populateTablespacesList(result);
 					}
-				}
-
-				function onTableStorageAvailable(result) {
-					storagePanel.populateTableStorage(result);
-				}
-
-				function onTableCommentsAvailable(result) {
-					commentsPanel.populateTableComments(result);
 				}
 
 				function onSQLSuccess() {
@@ -452,8 +382,8 @@
 				}
 
 				function destroy() {
-					w2ui['table-edit-layout'].destroy();
-					w2ui['table-edit-sidebar'].destroy();
+					w2ui['table-new-layout'].destroy();
+					w2ui['table-new-sidebar'].destroy();
 					columnsPanel.destroy();
 					constraintsPanel.destroy();
 					indexesPanel.destroy();
