@@ -261,7 +261,9 @@
             delete directories[tabId];
             delete queues[tabId];
 
-            db[tabId].destroy();
+            if(db[tabId] !== undefined) {
+              db[tabId].destroy();
+            }
             delete db[tabId];
           }
 
@@ -1445,6 +1447,13 @@
                 { id: 'sep-2', text: '--'},
                 { id: 'refresh-tables', text: 'Refresh', icon: 'refresh_icon'},
               ];
+            } else if(event.object.nodeType === DatabaseNavNodeType.INDEXES_FOLDER) {
+              navigationTree.menu = [
+                { id: 'new-index', text: 'New Index...', icon: 'index_icon'},
+                { id: 'open-indexes', text: 'Open', icon: 'open_icon'},
+                { id: 'sep-1', text: '--'},
+                { id: 'refresh-indexes', text: 'Refresh', icon: 'refresh_icon'}
+              ];
             } else {
               navigationTree.menu = [
                 { id: 'delete-project', text: 'Delete Project', icon: 'delete_icon'}
@@ -1862,6 +1871,19 @@
                     tabs[tabId].getSQLEditor().setValue(sql);
                   }
                 }
+              });
+            } else if(event.menuItem.id === 'new-index') {
+              var indexId = event.target;
+              var indexItem = navigationTree.get(indexId);
+              var schemaName = indexItem.schemaName;
+              var indexName = 'INDEX1';
+              
+              window.history.pushState(null, null, '?name=' + indexName + '&schemaName=' + schemaName);
+              w2popup.load({
+                url: '/new-index',
+                showMax: true,
+                modal: true,
+                showClose: false
               });
 
             }

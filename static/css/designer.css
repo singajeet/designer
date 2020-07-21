@@ -1052,6 +1052,18 @@ div.menu {
     display: block !important;
 }
 
+.index_tab_panel {
+    height: 75%; 
+    border-left: 1px solid lightgrey; 
+    border-bottom: 1px solid lightgrey; 
+    border-right: 1px solid lightgrey;
+    display: none;
+}
+
+.display_index_tab_panel {
+    display: block !important;
+}
+
 .imagebacked {
     padding-left: 20px; /* image-width */
     background-repeat: no-repeat;

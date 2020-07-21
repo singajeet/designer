@@ -1,0 +1,165 @@
+<div id="create-index-popup" style="width: 800px; height: 600px;">
+    <div rel="title">
+        Create Index
+    </div>
+    <div rel="body" style="padding: 5px; width: 100%; height: 100%">
+    	<div style="height: 15%;">
+            <div style="float: left">
+                <div style="line-height: 30px;">
+                    <label for="index-schema-name">Schema:</label>
+                    <select id="index-schema-name" style="width: 500px;">
+                    </select>
+                </div>
+                <div style="line-height: 30px;">
+                    <label for="index-name">Name:</label>
+                    <input id="index-name" style="width: 500px; margin-left: 13px;" />
+                </div>
+            </div>
+            <div style="float: right; margin-top: 15px; margin-right: 30px;">
+                <img src='/static/icons/header/database.png' />
+            </div>
+        </div>
+        <br>
+        <div id="index-tabs" style="width: 100%;"></div>
+        <div id="index-definition-tab-panel" class="index_tab_panel display_index_tab_panel" style="padding: 10px;">
+            <div style="line-height: 30px;">
+                <label for="index-table-schema-name">Table Schema:</label>
+                <select id="index-table-schema-name" style="width: 650px;"></select>
+            </div>
+            <div style="line-height: 30px;">
+                <label for="index-table-name">Table:</label>
+                <select id="index-table-name" style="margin-left: 52px; width: 650px;"></select>
+            </div>
+            <div style="line-height: 30px;">
+                <label for="index-type">Index Type:</label>
+                <select id="index-type" style="margin-left: 18px; width: 650px;">
+                    <option>NON-UNIQUE</option>
+                    <option>UNIQUE</option>
+                    <option>BITMAP</option>
+                    <option>DOMAIN</option>
+                </select>
+            </div>
+            <div id="index-expressions-grid" style="width: 100%; height: 257px;"></div>
+        </div>
+        <script>
+            var queryString = window.location.search;
+            var params = new URLSearchParams(queryString);
+            var indexName = params.get('name');
+            var schemaName = params.get('schemaName');
+
+            var db = new Database();
+            db.addSchemaListAvailableEventListener(onSchemaListAvailable);
+            db.addTablesAvailableEventListener(onTablesAvailable);
+            db.getSchemaList();
+
+            $j('#index-name').val(indexName);
+
+            $j('#index-table-schema-name').on('change', function() {
+                var schema = this.value;
+                db.getTables(schema);
+            });
+
+            $j('#index-tabs').w2tabs({
+                    name: 'index-tabs',
+                    active: 'index-definition-tab',
+                    tabs: [
+                        {id: 'index-definition-tab', text: 'Definition'},
+                        {id: 'index-properties-tab', text: 'Properties'},
+                        {id: 'index-storage-tab', text: 'Storage'},
+                        {id: 'index-ddl-tab', text: 'DDL'}
+                    ],
+                    onClick: function(event) {
+                        // if(event.target === 'index-properties-tab') {
+                        //     $j('#index-storage-tab-panel').removeClass('display_index_advance_tab_panel');
+                        //     $j('#index-properties-tab-panel').addClass('display_index_advance_tab_panel');
+                        // } else {
+                        //     $j('#index-properties-tab-panel').removeClass('display_index_advance_tab_panel');
+                        //     $j('#index-storage-tab-panel').addClass('display_index_advance_tab_panel');
+                        // }
+                    }
+                });
+
+            $j('#index-expressions-grid').w2grid({
+                    name: 'index-expressions-grid',
+                    header: 'Expressions',
+                    show: { header: true,
+                          toolbar: true,
+                          toolbarSave: true,
+                          lineNumbers: true
+                        },
+                    reorderRows: true,
+                    columns: [
+                        {field: 'expression', caption: 'Expression', size: '250px',
+                            editable: { type: 'combo', items: this.columnsList, filter: false }
+                        },
+                        {field: 'order', caption: 'Order', size: '100%',
+                            editable: { type: 'select', items: ['ASC', 'DESC', 'None'] }
+                        }
+                    ],
+                    toolbar: {
+                        items: [
+                            {type: 'break'},
+                            {id: 'index-grid-toolbar-add-expression', type: 'button', icon: 'add_icon'},
+                            {id: 'index-grid-toolbar-delete-expression', type: 'button', icon: 'delete_icon'}
+                        ],
+                        onClick: function(event) {
+                            var grid = w2ui['index-expressions-grid'];
+                            if(event.target === 'index-grid-toolbar-add-expression') {
+                                grid.add({recid: grid.records.length + 1, expression: '', order: 'ASC'}); //that.columnsList[0]
+                            } else if(event.target === 'index-grid-toolbar-delete-expression') {
+                                var records = grid.getSelection();
+                                records.forEach(function(record) {
+                                    grid.remove(record);
+                                });
+                            }
+                        }
+                    },
+                    onSave: function(event) {
+                        var grid = this;
+                        event.onComplete = function() {
+                        };
+                    }
+                });
+
+            function onSchemaListAvailable(result) {
+                result.forEach(function(schema) {
+                    if(schema === schemaName) {
+                        $j('#index-schema-name').append('<option selected>' + schema + '</option>');
+                        $j('#index-table-schema-name').append('<option selected>' + schema + '</option>');
+                    } else {
+                        $j('#index-schema-name').append('<option>' + schema + '</option>');
+                        $j('#index-table-schema-name').append('<option>' + schema + '</option>');
+                    }
+                });
+
+                $j('#index-table-schema-name').trigger('change');
+            }
+
+            function onTablesAvailable(result) {
+                $j('#index-table-name').empty();
+
+                result.forEach(function(table) {
+                    $j('#index-table-name').append('<option>' + table + '</option>');
+                });
+            }
+
+            function applyAndClose() {
+                w2ui['index-tabs'].destroy();
+                w2ui['index-expressions-grid'].destroy();
+                db.destroy();
+                w2popup.close();
+            }
+
+            function cancel() {
+                w2ui['index-tabs'].destroy();
+                w2ui['index-expressions-grid'].destroy();
+                db.destroy();
+                w2popup.close();
+            }
+        </script>
+    </div>
+    <div rel="buttons">
+        <button class="w2ui-btn" onclick="applyAndClose()">Apply</button>
+        <button class="w2ui-btn" onclick="cancel()">Close</button>
+    </div>
+</div>

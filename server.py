@@ -29,6 +29,11 @@ def new_trigger():
     return render_template('dialogs/trigger/new-trigger.html')
 
 
+@app.route('/new-index')
+def new_index():
+    return render_template('dialogs/index/new-index.html')
+
+
 @app.route('/warehouse-config-wizard')
 def warehouse_config_wizard():
     return render_template('dialogs/warehouse-config-wizard.html')
